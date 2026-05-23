@@ -132,7 +132,7 @@ async function main() {
   }
 
   // Superadmin user
-  const pinHash = await hashPin("1234")
+  const pinHash = await hashPin("880826")
   await prisma.user.upsert({
     where:  { id: "seed_superadmin" },
     update: {},
@@ -147,7 +147,7 @@ async function main() {
   })
 
   console.log("\n✅  Seed complete.")
-  console.log("👤  Superadmin: Amine  |  PIN: 8808  ← CHANGE THIS BEFORE PRODUCTION")
+  console.log("👤  Superadmin: Amine  |  PIN: 880826  ← CHANGE THIS BEFORE PRODUCTION")
 }
 
 main()

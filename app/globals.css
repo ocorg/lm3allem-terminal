@@ -4,35 +4,35 @@
 
 /* ── Shared accent tokens ─────────────────────────── */
 :root {
-  --primary:   #F5A623;
-  --secondary: #E07B00;
-  --danger:    #C0392B;
-  --success:   #27AE60;
-  --warning:   #F39C12;
-  --info:      #2980B9;
+  --primary:   #D4941F;   /* Rich burnished gold           */
+  --secondary: #6870C4;   /* Muted indigo accent           */
+  --danger:    #E84040;   /* Clean vivid red               */
+  --success:   #2EBD6E;   /* Fresh emerald                 */
+  --warning:   #F0A030;   /* Warm amber                    */
+  --info:      #4A90D9;   /* Calm blue                     */
 }
 
 /* ── Dark mode — default ──────────────────────────── */
 :root,
 .dark,
 [data-theme="dark"] {
-  --bg:         #1a1a1a;
-  --surface:    #252525;
-  --surface-2:  #2e2e2e;
-  --border:     #333333;
-  --text:       #f5f5f5;
-  --text-muted: #8a8a8a;
+  --bg:         #0D0D14;  /* Deep blue-black               */
+  --surface:    #14141F;  /* Slightly lighter, tinted      */
+  --surface-2:  #1C1C2A;  /* Input / card backgrounds      */
+  --border:     #28283C;  /* Blue-tinted border            */
+  --text:       #EAEAF2;  /* Crisp white, cool hint        */
+  --text-muted: #5A5A78;  /* Muted, blue undertone         */
 }
 
 /* ── Light mode ───────────────────────────────────── */
 .light,
 [data-theme="light"] {
-  --bg:         #f5f0e8;
-  --surface:    #ffffff;
-  --surface-2:  #f0ebe0;
-  --border:     #e0d8cc;
-  --text:       #1a1a1a;
-  --text-muted: #6b6560;
+  --bg:         #F7F5F0;  /* Warm parchment                */
+  --surface:    #FFFFFF;
+  --surface-2:  #EEEAE0;  /* Warm cream                    */
+  --border:     #D8D2C6;  /* Warm gray-brown border        */
+  --text:       #111118;  /* Near-black, blue hint         */
+  --text-muted: #6A6478;  /* Warm-cool muted               */
 }
 
 /* ── Base resets ──────────────────────────────────── */
@@ -64,8 +64,68 @@ body {
 ::-webkit-scrollbar-thumb  { background: var(--border); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
 
-/* ── Focus ring ───────────────────────────────────── */
+/* ── Focus ring ───────────────────────────────────────────── */
 :focus-visible {
   outline: 2px solid color-mix(in srgb, var(--primary) 40%, transparent);
   outline-offset: 2px;
+}
+
+/* ── Portal selector card ─────────────────────────────────── */
+.portal-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 36px 28px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  text-decoration: none;
+  color: var(--text);
+  cursor: pointer;
+  transition: transform 150ms ease, border-color 150ms ease, box-shadow 150ms ease;
+  min-width: 160px;
+}
+
+.portal-card:hover {
+  border-color: var(--primary);
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+
+.portal-card:active {
+  transform: scale(0.97);
+}
+
+.portal-card__icon {
+  color: var(--primary);
+}
+
+.portal-card__name {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: -0.01em;
+}
+
+/* ── Maintenance login button ─────────────────────────────── */
+.maintenance-login-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+  cursor: pointer;
+  transition: color 150ms ease, border-color 150ms ease;
+}
+
+.maintenance-login-btn:hover {
+  color: var(--primary);
+  border-color: var(--primary);
 }
