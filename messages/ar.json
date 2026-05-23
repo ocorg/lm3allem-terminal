@@ -1,0 +1,124 @@
+{
+  "auth": {
+    "title": "محطة المعلم",
+    "enterPin": "أدخل رمز PIN",
+    "confirm": "تأكيد",
+    "backspace": "حذف",
+    "invalidPin": "رمز PIN غير صحيح. تحقق وأعد المحاولة.",
+    "lockedOut": "محاولات كثيرة. أعد المحاولة بعد {seconds} ثانية.",
+    "attemptsRemaining": "متبقي {count} محاولة(ات)"
+  },
+  "portal": {
+    "select": "اختر الفضاء الخاص بك",
+    "magazin": "المجزن",
+    "costumes": "الأزياء",
+    "lm3allem": "المعلم",
+    "magazinDesc": "البيع بالتجزئة والمخزون",
+    "costumesDesc": "تأجير وإدارة الأزياء",
+    "lm3allemDesc": "لوحة تحكم المالك"
+  },
+  "common": {
+    "save": "حفظ",
+    "cancel": "إلغاء",
+    "delete": "حذف",
+    "edit": "تعديل",
+    "add": "إضافة",
+    "search": "بحث...",
+    "loading": "جار التحميل...",
+    "error": "حدث خطأ",
+    "success": "تمت العملية بنجاح",
+    "confirm": "تأكيد",
+    "back": "رجوع",
+    "next": "التالي",
+    "close": "إغلاق",
+    "yes": "نعم",
+    "no": "لا",
+    "active": "نشط",
+    "inactive": "غير نشط",
+    "all": "الكل",
+    "total": "المجموع",
+    "date": "التاريخ",
+    "amount": "المبلغ",
+    "status": "الحالة",
+    "actions": "الإجراءات",
+    "notes": "ملاحظات",
+    "phone": "الهاتف",
+    "name": "الاسم",
+    "logout": "تسجيل الخروج",
+    "noData": "لا توجد بيانات",
+    "required": "حقل مطلوب"
+  },
+  "theme": {
+    "dark": "الوضع المظلم",
+    "light": "الوضع الفاتح"
+  },
+  "maintenance": {
+    "title": "قيد الصيانة",
+    "default": "النظام غير متاح مؤقتاً. يرجى المحاولة لاحقاً."
+  },
+  "magazin": {
+    "nav": {
+      "pos": "نقطة البيع",
+      "inventory": "المخزون",
+      "caisse": "الصندوق",
+      "credits": "الديون",
+      "requests": "المنتجات المطلوبة",
+      "catalogue": "الكتالوج"
+    }
+  },
+  "costumes": {
+    "nav": {
+      "pos": "نقطة البيع",
+      "location": "تأجير",
+      "vente": "بيع",
+      "inventory": "المخزون",
+      "clients": "العملاء",
+      "catalogue": "الكتالوج",
+      "caisse": "الصندوق"
+    },
+    "rental": {
+      "status": {
+        "booked": "محجوز",
+        "in_preparation": "قيد التحضير",
+        "ready_for_pickup": "جاهز للاستلام",
+        "picked_up": "تم الاستلام",
+        "returned": "تم الإرجاع",
+        "cleaning": "قيد التنظيف",
+        "available": "متاح"
+      },
+      "steps": {
+        "client": "العميل",
+        "kit": "الطقم",
+        "dates": "التواريخ",
+        "measurements": "المقاسات",
+        "guarantee": "الضمان",
+        "payment": "الدفع",
+        "confirmation": "التأكيد"
+      }
+    }
+  },
+  "lm3allem": {
+    "nav": {
+      "dashboard": "لوحة التحكم",
+      "finances": "المالية",
+      "caisse": "الصندوق",
+      "expenses": "المصاريف",
+      "users": "المستخدمون",
+      "logs": "السجلات",
+      "options": "الخيارات",
+      "settings": "الإعدادات",
+      "alerts": "التنبيهات"
+    }
+  },
+  "payment": {
+    "cash": "نقداً",
+    "tpe": "بطاقة بنكية",
+    "banque": "تحويل بنكي",
+    "credit": "دين"
+  },
+  "roles": {
+    "superadmin": "المدير العام",
+    "admin": "مسؤول",
+    "staff": "موظف"
+  }
+}

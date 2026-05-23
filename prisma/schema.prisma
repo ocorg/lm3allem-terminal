@@ -1,0 +1,494 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DATABASE_URL_UNPOOLED")
+}
+
+// ─── ENUMS ────────────────────────────────────────────
+
+enum Role {
+  superadmin
+  admin
+  staff
+}
+
+enum Theme {
+  dark
+  light
+}
+
+enum Language {
+  fr
+  ar
+}
+
+enum Portal {
+  magazin
+  costumes
+  lm3allem
+}
+
+enum PaymentMethod {
+  cash
+  tpe
+  banque
+  credit
+}
+
+enum GuaranteeType {
+  cash_deposit
+  id_card
+  passport
+  drivers_license
+}
+
+enum RentalStatus {
+  booked
+  in_preparation
+  ready_for_pickup
+  picked_up
+  returned
+  cleaning
+  available
+}
+
+enum CostumeItemType {
+  suit
+  vest
+  shoes
+  accessory
+}
+
+enum TransactionType {
+  sale
+  rental_payment
+  deposit_collected
+  deposit_returned
+  remaining_balance
+  manual_entry
+  credit_payment
+}
+
+// ─── USERS ────────────────────────────────────────────
+
+model User {
+  id                String    @id @default(cuid())
+  name              String
+  pin               String
+  role              Role      @default(staff)
+  isActive          Boolean   @default(true)
+  portalAccess      Portal[]
+  modulePermissions Json?
+  preferredLanguage Language  @default(fr)
+  preferredTheme    Theme     @default(dark)
+  avatarUrl         String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  sales             Sale[]
+  costumeSales      CostumeSale[]
+  rentals           Rental[]            @relation("CreatedByUser")
+  caisseSessions    CaisseSession[]
+  manualEntries     CaisseManualEntry[]
+  creditPayments    CreditPayment[]
+  activityLogs      ActivityLog[]
+  productRequests   ProductRequest[]
+  rentalPayments    RentalPayment[]
+  expenses          Expense[]
+
+  accounts          Account[]
+  sessions          Session[]
+}
+
+// ─── LOOKUP SYSTEM ────────────────────────────────────
+
+model LookupCategory {
+  id          String        @id @default(cuid())
+  slug        String        @unique
+  name_fr     String
+  name_ar     String
+  description String?
+  createdAt   DateTime      @default(now())
+
+  values      LookupValue[]
+}
+
+model LookupValue {
+  id         String         @id @default(cuid())
+  categoryId String
+  category   LookupCategory @relation(fields: [categoryId], references: [id])
+  label_fr   String
+  label_ar   String
+  order      Int            @default(0)
+  isActive   Boolean        @default(true)
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+}
+
+// ─── SYSTEM SETTINGS ─────────────────────────────────
+
+model SystemSettings {
+  id                    String   @id @default(cuid())
+  maintenanceMode       Boolean  @default(false)
+  maintenanceMessage_fr String?
+  maintenanceMessage_ar String?
+  defaultStaffPermissions Json
+  updatedAt             DateTime @updatedAt
+}
+
+// ─── CLIENTS ─────────────────────────────────────────
+
+model Client {
+  id           String              @id @default(cuid())
+  name         String
+  phone        String              @unique
+  address      String?
+  notes        String?
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+
+  measurements ClientMeasurement[]
+  rentals      Rental[]
+  credits      Credit[]
+}
+
+model ClientMeasurement {
+  id           String   @id @default(cuid())
+  clientId     String
+  client       Client   @relation(fields: [clientId], references: [id])
+  categoryId   String
+  value        String
+  unit         String?
+  recordedById String
+  recordedAt   DateTime @default(now())
+}
+
+// ─── MAGAZIN — PRODUCTS ──────────────────────────────
+
+model Product {
+  id              String           @id @default(cuid())
+  name_fr         String
+  name_ar         String
+  categoryId      String
+  buyingPrice     Decimal          @db.Decimal(10, 2)
+  sellingPrice    Decimal          @db.Decimal(10, 2)
+  minSellingPrice Decimal          @db.Decimal(10, 2)
+  images          String[]
+  isActive        Boolean          @default(true)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  variants        ProductVariant[]
+}
+
+model ProductVariant {
+  id        String    @id @default(cuid())
+  productId String
+  product   Product   @relation(fields: [productId], references: [id])
+  sizeId    String?
+  colorId   String?
+  stock     Int       @default(0)
+  updatedAt DateTime  @updatedAt
+
+  saleItems SaleItem[]
+}
+
+// ─── MAGAZIN — SALES ─────────────────────────────────
+
+model Sale {
+  id              String        @id @default(cuid())
+  cashierId       String
+  cashier         User          @relation(fields: [cashierId], references: [id])
+  caisseSessionId String
+  caisseSession   CaisseSession @relation(fields: [caisseSessionId], references: [id])
+  totalAmount     Decimal       @db.Decimal(10, 2)
+  amountPaid      Decimal       @db.Decimal(10, 2)
+  paymentMethod   PaymentMethod
+  isCredit        Boolean       @default(false)
+  createdAt       DateTime      @default(now())
+
+  items           SaleItem[]
+  credit          Credit?
+}
+
+model SaleItem {
+  id             String         @id @default(cuid())
+  saleId         String
+  sale           Sale           @relation(fields: [saleId], references: [id])
+  variantId      String
+  variant        ProductVariant @relation(fields: [variantId], references: [id])
+  quantity       Int
+  unitPrice      Decimal        @db.Decimal(10, 2)
+  wasBelowMin    Boolean        @default(false)
+  authorizedById String?
+}
+
+// ─── CAISSE ───────────────────────────────────────────
+
+model CaisseSession {
+  id             String              @id @default(cuid())
+  portal         Portal
+  openedById     String
+  openedBy       User                @relation(fields: [openedById], references: [id])
+  closedById     String?
+  openingAmount  Decimal             @db.Decimal(10, 2)
+  closingAmount  Decimal?            @db.Decimal(10, 2)
+  expectedAmount Decimal?            @db.Decimal(10, 2)
+  openedAt       DateTime            @default(now())
+  closedAt       DateTime?
+
+  sales          Sale[]
+  costumeSales   CostumeSale[]
+  rentalPayments RentalPayment[]
+  manualEntries  CaisseManualEntry[]
+}
+
+model CaisseManualEntry {
+  id           String        @id @default(cuid())
+  sessionId    String
+  session      CaisseSession @relation(fields: [sessionId], references: [id])
+  amount       Decimal       @db.Decimal(10, 2)
+  reason       String
+  recordedById String
+  recordedBy   User          @relation(fields: [recordedById], references: [id])
+  createdAt    DateTime      @default(now())
+}
+
+// ─── CREDITS ─────────────────────────────────────────
+
+model Credit {
+  id          String          @id @default(cuid())
+  clientId    String?
+  client      Client?         @relation(fields: [clientId], references: [id])
+  clientName  String
+  clientPhone String?
+  saleId      String?         @unique
+  sale        Sale?           @relation(fields: [saleId], references: [id])
+  totalAmount Decimal         @db.Decimal(10, 2)
+  amountPaid  Decimal         @db.Decimal(10, 2)
+  balance     Decimal         @db.Decimal(10, 2)
+  status      String          @default("open")
+  notes       String?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  payments    CreditPayment[]
+}
+
+model CreditPayment {
+  id           String        @id @default(cuid())
+  creditId     String
+  credit       Credit        @relation(fields: [creditId], references: [id])
+  amount       Decimal       @db.Decimal(10, 2)
+  method       PaymentMethod
+  recordedById String
+  recordedBy   User          @relation(fields: [recordedById], references: [id])
+  createdAt    DateTime      @default(now())
+}
+
+model ProductRequest {
+  id            String   @id @default(cuid())
+  productName   String
+  categoryId    String?
+  requestedById String
+  requestedBy   User     @relation(fields: [requestedById], references: [id])
+  requestCount  Int      @default(1)
+  notes         String?
+  status        String   @default("pending")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+// ─── COSTUMES ────────────────────────────────────────
+
+model CostumeItem {
+  id              String            @id @default(cuid())
+  name_fr         String
+  name_ar         String
+  type            CostumeItemType
+  sizeId          String?
+  colorId         String?
+  stock           Int               @default(1)
+  images          String[]
+  buyingPrice     Decimal           @db.Decimal(10, 2)
+  sellingPrice    Decimal           @db.Decimal(10, 2)
+  minSellingPrice Decimal           @db.Decimal(10, 2)
+  isActive        Boolean           @default(true)
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  rentalKitItems   RentalKitItem[]
+  costumeSaleItems CostumeSaleItem[]
+}
+
+// ─── RENTALS ─────────────────────────────────────────
+
+model Rental {
+  id                  String              @id @default(cuid())
+  clientId            String
+  client              Client              @relation(fields: [clientId], references: [id])
+  status              RentalStatus        @default(booked)
+  bookingDate         DateTime            @default(now())
+  eventDate           DateTime?
+  scheduledPickupDate DateTime
+  scheduledReturnDate DateTime
+  actualPickupDate    DateTime?
+  actualReturnDate    DateTime?
+  totalAmount         Decimal             @db.Decimal(10, 2)
+  amountPaid          Decimal             @db.Decimal(10, 2) @default(0)
+  balance             Decimal             @db.Decimal(10, 2)
+  guaranteeType       GuaranteeType
+  guaranteeAmount     Decimal?            @db.Decimal(10, 2)
+  guaranteePhotoUrl   String?
+  depositApplied      Boolean             @default(false)
+  depositReturned     Boolean             @default(false)
+  notes               String?
+  createdById         String
+  createdBy           User                @relation("CreatedByUser", fields: [createdById], references: [id])
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+
+  kit                 RentalKit?
+  payments            RentalPayment[]
+  measurements        RentalMeasurement[]
+}
+
+model RentalKit {
+  id        String          @id @default(cuid())
+  rentalId  String          @unique
+  rental    Rental          @relation(fields: [rentalId], references: [id])
+  reference String          @unique
+  notes     String?
+  createdAt DateTime        @default(now())
+
+  items     RentalKitItem[]
+}
+
+model RentalKitItem {
+  id            String      @id @default(cuid())
+  kitId         String
+  kit           RentalKit   @relation(fields: [kitId], references: [id])
+  costumeItemId String
+  costumeItem   CostumeItem @relation(fields: [costumeItemId], references: [id])
+  quantity      Int         @default(1)
+  returned      Boolean     @default(false)
+}
+
+model RentalMeasurement {
+  id         String   @id @default(cuid())
+  rentalId   String
+  rental     Rental   @relation(fields: [rentalId], references: [id])
+  categoryId String
+  value      String
+  unit       String?
+}
+
+model RentalPayment {
+  id              String          @id @default(cuid())
+  rentalId        String
+  rental          Rental          @relation(fields: [rentalId], references: [id])
+  caisseSessionId String
+  caisseSession   CaisseSession   @relation(fields: [caisseSessionId], references: [id])
+  amount          Decimal         @db.Decimal(10, 2)
+  method          PaymentMethod
+  type            TransactionType
+  recordedById    String
+  recordedBy      User            @relation(fields: [recordedById], references: [id])
+  createdAt       DateTime        @default(now())
+}
+
+// ─── COSTUME DIRECT SALES ────────────────────────────
+
+model CostumeSale {
+  id              String            @id @default(cuid())
+  cashierId       String
+  cashier         User              @relation(fields: [cashierId], references: [id])
+  caisseSessionId String
+  caisseSession   CaisseSession     @relation(fields: [caisseSessionId], references: [id])
+  totalAmount     Decimal           @db.Decimal(10, 2)
+  paymentMethod   PaymentMethod
+  createdAt       DateTime          @default(now())
+
+  items           CostumeSaleItem[]
+}
+
+model CostumeSaleItem {
+  id             String      @id @default(cuid())
+  saleId         String
+  sale           CostumeSale @relation(fields: [saleId], references: [id])
+  costumeItemId  String
+  costumeItem    CostumeItem @relation(fields: [costumeItemId], references: [id])
+  quantity       Int
+  unitPrice      Decimal     @db.Decimal(10, 2)
+  wasBelowMin    Boolean     @default(false)
+  authorizedById String?
+}
+
+// ─── EXPENSES ────────────────────────────────────────
+
+model Expense {
+  id           String   @id @default(cuid())
+  portal       Portal
+  categoryId   String
+  amount       Decimal  @db.Decimal(10, 2)
+  description  String
+  date         DateTime @default(now())
+  recordedById String
+  recordedBy   User     @relation(fields: [recordedById], references: [id])
+  receiptUrl   String?
+  createdAt    DateTime @default(now())
+}
+
+// ─── ACTIVITY LOGS ───────────────────────────────────
+
+model ActivityLog {
+  id         String   @id @default(cuid())
+  portal     Portal
+  entityType String
+  entityId   String
+  actorId    String
+  actor      User     @relation(fields: [actorId], references: [id])
+  action     String
+  diff       Json?
+  createdAt  DateTime @default(now())
+}
+
+// ─── AUTH.JS V5 ADAPTER MODELS ───────────────────────
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}

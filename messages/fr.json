@@ -1,0 +1,124 @@
+{
+  "auth": {
+    "title": "Lm3allem Terminal",
+    "enterPin": "Entrez votre PIN",
+    "confirm": "Confirmer",
+    "backspace": "Effacer",
+    "invalidPin": "PIN incorrect. Vérifiez et réessayez.",
+    "lockedOut": "Trop de tentatives. Réessayez dans {seconds}s.",
+    "attemptsRemaining": "{count} tentative(s) restante(s)"
+  },
+  "portal": {
+    "select": "Sélectionnez votre espace",
+    "magazin": "Magazin",
+    "costumes": "Costumes",
+    "lm3allem": "Lm3allem",
+    "magazinDesc": "Vente au détail & inventaire",
+    "costumesDesc": "Location & gestion des costumes",
+    "lm3allemDesc": "Tableau de bord propriétaire"
+  },
+  "common": {
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "add": "Ajouter",
+    "search": "Rechercher...",
+    "loading": "Chargement...",
+    "error": "Une erreur est survenue",
+    "success": "Opération réussie",
+    "confirm": "Confirmer",
+    "back": "Retour",
+    "next": "Suivant",
+    "close": "Fermer",
+    "yes": "Oui",
+    "no": "Non",
+    "active": "Actif",
+    "inactive": "Inactif",
+    "all": "Tous",
+    "total": "Total",
+    "date": "Date",
+    "amount": "Montant",
+    "status": "Statut",
+    "actions": "Actions",
+    "notes": "Notes",
+    "phone": "Téléphone",
+    "name": "Nom",
+    "logout": "Déconnexion",
+    "noData": "Aucune donnée disponible",
+    "required": "Champ requis"
+  },
+  "theme": {
+    "dark": "Mode sombre",
+    "light": "Mode clair"
+  },
+  "maintenance": {
+    "title": "Maintenance en cours",
+    "default": "Le système est temporairement indisponible. Réessayez plus tard."
+  },
+  "magazin": {
+    "nav": {
+      "pos": "Point de vente",
+      "inventory": "Inventaire",
+      "caisse": "Caisse",
+      "credits": "Crédits",
+      "requests": "Produits demandés",
+      "catalogue": "Catalogue"
+    }
+  },
+  "costumes": {
+    "nav": {
+      "pos": "Point de vente",
+      "location": "Location",
+      "vente": "Vente",
+      "inventory": "Inventaire",
+      "clients": "Clients",
+      "catalogue": "Catalogue",
+      "caisse": "Caisse"
+    },
+    "rental": {
+      "status": {
+        "booked": "Réservé",
+        "in_preparation": "En préparation",
+        "ready_for_pickup": "Prêt",
+        "picked_up": "Récupéré",
+        "returned": "Rendu",
+        "cleaning": "Nettoyage",
+        "available": "Disponible"
+      },
+      "steps": {
+        "client": "Client",
+        "kit": "Kit",
+        "dates": "Dates",
+        "measurements": "Mesures",
+        "guarantee": "Garantie",
+        "payment": "Paiement",
+        "confirmation": "Confirmation"
+      }
+    }
+  },
+  "lm3allem": {
+    "nav": {
+      "dashboard": "Tableau de bord",
+      "finances": "Finances",
+      "caisse": "Caisse",
+      "expenses": "Dépenses",
+      "users": "Utilisateurs",
+      "logs": "Journaux",
+      "options": "Options",
+      "settings": "Paramètres",
+      "alerts": "Alertes"
+    }
+  },
+  "payment": {
+    "cash": "Espèces",
+    "tpe": "TPE",
+    "banque": "Virement bancaire",
+    "credit": "Crédit"
+  },
+  "roles": {
+    "superadmin": "Super Admin",
+    "admin": "Administrateur",
+    "staff": "Employé"
+  }
+}
