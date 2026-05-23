@@ -63,7 +63,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       return token
     },
     async session({ session, token }) {
-      session.user.id                = token.id
+      session.user.id                = token.id as string
       session.user.role              = token.role as Role
       session.user.portalAccess      = token.portalAccess as Portal[]
       session.user.modulePermissions = token.modulePermissions as Record<string, Record<string, boolean>> | null

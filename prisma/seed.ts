@@ -147,7 +147,7 @@ async function main() {
   })
 
   console.log("\n✅  Seed complete.")
-  console.log("👤  Superadmin: Amine  |  PIN: 1234  ← CHANGE THIS BEFORE PRODUCTION")
+  console.log("👤  Superadmin: Amine  |  PIN: 8808  ← CHANGE THIS BEFORE PRODUCTION")
 }
 
 main()
