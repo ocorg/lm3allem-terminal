@@ -120,5 +120,42 @@
     "superadmin": "Super Admin",
     "admin": "Administrateur",
     "staff": "Employé"
+  },
+  "ui": {
+    "search": "Rechercher...",
+    "noResults": "Aucun résultat.",
+    "page": "Page",
+    "of": "sur",
+    "previous": "Précédent",
+    "next": "Suivant",
+    "confirm": "Confirmer",
+    "cancel": "Annuler",
+    "error": "Une erreur est survenue.",
+    "loading": "Chargement..."
+  },
+  "caisse": {
+    "closed": "Caisse fermée",
+    "closedStaff": "La caisse n'est pas encore ouverte. Contactez un administrateur.",
+    "openSession": "Ouvrir la caisse",
+    "openingAmount": "Fond de caisse (MAD)",
+    "openedBy": "Ouverte par",
+    "openedAt": "Ouverte le",
+    "closeSession": "Clôturer la caisse",
+    "closingAmount": "Montant de clôture (MAD)",
+    "expectedAmount": "Montant théorique",
+    "difference": "Écart",
+    "sessionOpen": "Session active",
+    "confirmClose": "Confirmer la clôture",
+    "confirmCloseMessage": "Cette action est irréversible. La caisse sera clôturée."
+  },
+  "belowMin": {
+    "title": "Autorisation requise",
+    "subtitle": "Les articles suivants sont en dessous du prix minimum. Une autorisation administrateur est nécessaire.",
+    "item": "Article",
+    "requestedPrice": "Prix demandé",
+    "minPrice": "Prix minimum",
+    "enterAdminPin": "Entrez le PIN d'un administrateur pour autoriser.",
+    "unauthorized": "PIN administrateur incorrect.",
+    "cancel": "Annuler la vente"
   }
 }

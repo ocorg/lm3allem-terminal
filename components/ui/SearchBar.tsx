@@ -1,0 +1,96 @@
+"use client"
+
+import { useState, useEffect, useRef } from "react"
+import { Search, X } from "lucide-react"
+
+interface SearchBarProps {
+  value:        string
+  onChange:     (value: string) => void
+  placeholder?: string
+  debounce?:    number
+}
+
+export function SearchBar({
+  value,
+  onChange,
+  placeholder = "Rechercher...",
+  debounce    = 300,
+}: SearchBarProps) {
+  const [local, setLocal]   = useState(value)
+  const timerRef            = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  const onChangeRef         = useRef(onChange)
+
+  // Keep ref up to date without adding it to deps
+  useEffect(() => { onChangeRef.current = onChange })
+
+  // Reset when parent explicitly clears value
+  useEffect(() => {
+    if (value === "") setLocal("")
+  }, [value])
+
+  // Cleanup on unmount
+  useEffect(() => () => clearTimeout(timerRef.current), [])
+
+  const handleChange = (next: string) => {
+    setLocal(next)
+    clearTimeout(timerRef.current)
+    timerRef.current = setTimeout(() => onChangeRef.current(next), debounce)
+  }
+
+  const handleClear = () => {
+    clearTimeout(timerRef.current)
+    setLocal("")
+    onChangeRef.current("")
+  }
+
+  return (
+    <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
+      <Search
+        size={15}
+        style={{
+          position:         "absolute",
+          insetInlineStart: 12,
+          color:            "var(--text-muted)",
+          pointerEvents:    "none",
+        }}
+      />
+      <input
+        type="text"
+        value={local}
+        onChange={(e) => handleChange(e.target.value)}
+        placeholder={placeholder}
+        style={{
+          width:              "100%",
+          height:             40,
+          background:         "var(--surface-2)",
+          border:             "1px solid var(--border)",
+          borderRadius:       8,
+          paddingInlineStart: 36,
+          paddingInlineEnd:   local ? 36 : 12,
+          fontSize:           13,
+          color:              "var(--text)",
+          outline:            "none",
+        }}
+      />
+      {local && (
+        <button
+          onClick={handleClear}
+          aria-label="Clear search"
+          style={{
+            position:        "absolute",
+            insetInlineEnd:  10,
+            background:      "none",
+            border:          "none",
+            cursor:          "pointer",
+            color:           "var(--text-muted)",
+            display:         "flex",
+            alignItems:      "center",
+            padding:         2,
+          }}
+        >
+          <X size={14} />
+        </button>
+      )}
+    </div>
+  )
+}

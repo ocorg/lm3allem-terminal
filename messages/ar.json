@@ -120,5 +120,42 @@
     "superadmin": "المدير العام",
     "admin": "مسؤول",
     "staff": "موظف"
+  },
+  "ui": {
+    "search": "بحث...",
+    "noResults": "لا توجد نتائج.",
+    "page": "صفحة",
+    "of": "من",
+    "previous": "السابق",
+    "next": "التالي",
+    "confirm": "تأكيد",
+    "cancel": "إلغاء",
+    "error": "حدث خطأ.",
+    "loading": "جار التحميل..."
+  },
+  "caisse": {
+    "closed": "الصندوق مغلق",
+    "closedStaff": "لم يتم فتح الصندوق بعد. تواصل مع المسؤول.",
+    "openSession": "فتح الصندوق",
+    "openingAmount": "رصيد الافتتاح (درهم)",
+    "openedBy": "فُتح بواسطة",
+    "openedAt": "تاريخ الفتح",
+    "closeSession": "إقفال الصندوق",
+    "closingAmount": "مبلغ الإقفال (درهم)",
+    "expectedAmount": "المبلغ النظري",
+    "difference": "الفارق",
+    "sessionOpen": "جلسة نشطة",
+    "confirmClose": "تأكيد الإقفال",
+    "confirmCloseMessage": "هذا الإجراء لا يمكن التراجع عنه. سيتم إقفال الصندوق."
+  },
+  "belowMin": {
+    "title": "مطلوب إذن",
+    "subtitle": "المقالات التالية أقل من الحد الأدنى للسعر. يلزم إذن مدير.",
+    "item": "المقال",
+    "requestedPrice": "السعر المطلوب",
+    "minPrice": "الحد الأدنى",
+    "enterAdminPin": "أدخل رمز PIN الخاص بمدير للموافقة.",
+    "unauthorized": "رمز PIN غير صحيح.",
+    "cancel": "إلغاء البيع"
   }
 }

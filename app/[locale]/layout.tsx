@@ -6,6 +6,7 @@ import { getMessages } from "next-intl/server"
 import { routing } from "@/lib/i18n/routing"
 import { auth } from "@/lib/auth/auth"
 import "@/app/globals.css"
+import { Toaster } from "@/components/ui/Toaster"
 
 export const metadata: Metadata = {
   title: "Lm3allem Terminal",
@@ -40,6 +41,7 @@ export default async function LocaleLayout({
     >
       <body>
         <NextIntlClientProvider messages={messages}>
+          <Toaster />
           {children}
         </NextIntlClientProvider>
       </body>
