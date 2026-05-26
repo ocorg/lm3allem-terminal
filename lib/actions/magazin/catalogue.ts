@@ -6,6 +6,8 @@ import type { LookupItem, LookupById, ProductForPOS as ProductForCatalogue } fro
 export async function getCatalogueProducts(): Promise<{
   products:   ProductForCatalogue[]
   categories: LookupItem[]
+  sizes:      LookupItem[]
+  colors:     LookupItem[]
   lookupById: LookupById
 }> {
   const [rawProducts, rawLookup] = await Promise.all([
@@ -47,5 +49,13 @@ export async function getCatalogueProducts(): Promise<{
     minSellingPrice: p.minSellingPrice.toString(),
   }))
 
-  return { products, categories, lookupById }
+  const sizes = rawLookup
+    .filter((lv) => lv.category.slug.endsWith("_sizes"))
+    .map(({ id, label_fr, label_ar }) => ({ id, label_fr, label_ar }))
+
+  const colors = rawLookup
+    .filter((lv) => lv.category.slug.endsWith("_colors"))
+    .map(({ id, label_fr, label_ar }) => ({ id, label_fr, label_ar }))
+
+  return { products, categories, sizes, colors, lookupById }
 }
