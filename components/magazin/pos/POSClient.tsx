@@ -12,7 +12,8 @@ import { toast } from "@/hooks/useToast"
 import { createSale } from "@/lib/actions/magazin/pos"
 import type { ProductForPOS, SaleItemInput } from "@/lib/actions/magazin/pos"
 
-type LookupItem = { id: string; label_fr: string; label_ar: string }
+type LookupItem    = { id: string; label_fr: string; label_ar: string }
+type LookupMapItem = { label_fr: string; label_ar: string }
 
 export interface CartItem {
   variantId:      string
@@ -29,7 +30,7 @@ export interface CartItem {
 interface POSClientProps {
   products:   ProductForPOS[]
   categories: LookupItem[]
-  lookupById: Record<string, LookupItem>
+  lookupById: Record<string, LookupMapItem>
   locale:     string
   role:       string
 }

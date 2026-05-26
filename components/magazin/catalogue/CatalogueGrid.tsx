@@ -3,16 +3,17 @@
 import { useState, useMemo } from "react"
 import { Select }    from "@/components/ui/Select"
 import { formatMAD } from "@/lib/utils/currency"
-import type { ProductForCatalogue } from "@/lib/actions/magazin/catalogue"
+import type { ProductForPOS as ProductForCatalogue } from "@/lib/actions/magazin/pos"
 
-type LookupItem = { id: string; label_fr: string; label_ar: string }
+type LookupItem    = { id: string; label_fr: string; label_ar: string }
+type LookupMapItem = { label_fr: string; label_ar: string }
 
 interface CatalogueGridProps {
   products:   ProductForCatalogue[]
   categories: LookupItem[]
   sizes:      LookupItem[]
   colors:     LookupItem[]
-  lookupById: Record<string, LookupItem>
+  lookupById: Record<string, LookupMapItem>
   locale:     string
 }
 
@@ -61,7 +62,8 @@ export function CatalogueGrid({ products, categories, sizes, colors, lookupById,
       ) : (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 16 }}>
           {filtered.map(p => {
-            const isOut  = p.totalStock === 0
+            const totalStock = p.variants.reduce((s, v) => s + v.stock, 0)
+            const isOut      = totalStock === 0
             const name   = locale === "ar" ? p.name_ar : p.name_fr
             const availSizes = [...new Set(
               p.variants
@@ -94,7 +96,7 @@ export function CatalogueGrid({ products, categories, sizes, colors, lookupById,
                   <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", margin: 0, lineHeight: 1.3 }}>{name}</p>
                   <p style={{ fontSize: 14, fontWeight: 700, color: "var(--primary)", margin: 0 }}>{formatMAD(p.sellingPrice)}</p>
                   <p style={{ fontSize: 11, color: isOut ? "var(--danger)" : "var(--success)", fontWeight: 500, margin: 0 }}>
-                    {isOut ? "Épuisé" : `${p.totalStock} en stock`}
+                    {isOut ? "Épuisé" : `${totalStock} en stock`}
                   </p>
 
                   {/* Size chips */}

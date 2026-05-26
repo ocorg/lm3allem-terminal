@@ -4,12 +4,13 @@ import { Modal }     from "@/components/ui/Modal"
 import { formatMAD } from "@/lib/utils/currency"
 import type { ProductForPOS } from "@/lib/actions/magazin/pos"
 
-type LookupItem = { id: string; label_fr: string; label_ar: string }
+type LookupItem    = { id: string; label_fr: string; label_ar: string }
+type LookupMapItem = { label_fr: string; label_ar: string }
 
 interface VariantPickerModalProps {
   isOpen:    boolean
   product:   ProductForPOS
-  lookupById: Record<string, LookupItem>
+  lookupById: Record<string, LookupMapItem>
   locale:    string
   onClose:   () => void
   onSelect:  (variantId: string) => void

@@ -11,7 +11,8 @@ import { ImageUploader } from "./ImageUploader"
 import { VariantManager } from "./VariantManager"
 import type { ProductForInventory, VariantInput } from "@/lib/actions/magazin/inventory"
 
-type LookupItem = { id: string; label_fr: string; label_ar: string }
+type LookupItem    = { id: string; label_fr: string; label_ar: string }
+type LookupMapItem = { label_fr: string; label_ar: string }
 
 interface ProductFormModalProps {
   isOpen:     boolean
@@ -20,7 +21,7 @@ interface ProductFormModalProps {
   categories: LookupItem[]
   sizes:      LookupItem[]
   colors:     LookupItem[]
-  lookupById: Record<string, LookupItem>
+  lookupById: Record<string, LookupMapItem>
   onClose:    () => void
   onSuccess:  () => void
 }

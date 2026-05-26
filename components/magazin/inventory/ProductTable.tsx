@@ -13,14 +13,15 @@ import { formatMAD }   from "@/lib/utils/currency"
 import { ProductFormModal } from "./ProductFormModal"
 import type { ProductForInventory } from "@/lib/actions/magazin/inventory"
 
-type LookupItem = { id: string; label_fr: string; label_ar: string }
+type LookupItem    = { id: string; label_fr: string; label_ar: string }
+type LookupMapItem = { label_fr: string; label_ar: string }
 
 interface ProductTableProps {
   products:   ProductForInventory[]
   categories: LookupItem[]
   sizes:      LookupItem[]
   colors:     LookupItem[]
-  lookupById: Record<string, LookupItem>
+  lookupById: Record<string, LookupMapItem>
   role:       string
   locale:     string
 }
