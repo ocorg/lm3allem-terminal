@@ -1,0 +1,135 @@
+"use client"
+
+import { useRouter, useParams } from "next/navigation"
+import { useTranslations } from "next-intl"
+import { Select } from "@/components/ui/Select"
+import { Input } from "@/components/ui/Input"
+import { Badge } from "@/components/ui/Badge"
+import { Button } from "@/components/ui/Button"
+import { formatMAD } from "@/lib/utils/currency"
+import { formatDate } from "@/lib/utils/date"
+import type { SessionsResult } from "@/lib/actions/lm3allem/caisse"
+
+interface Props {
+  result: SessionsResult
+  filters: Record<string, string | undefined>
+}
+
+export function CaisseHistoryClient({ result, filters }: Props) {
+  const t  = useTranslations("lm3allem.caisse")
+  const router = useRouter()
+  const params = useParams()
+  const locale = params.locale as string
+
+  function push(newFilters: Record<string, string | undefined>) {
+    const merged = { ...filters, ...newFilters, page: "1" }
+    const sp = new URLSearchParams()
+    Object.entries(merged).forEach(([k, v]) => { if (v) sp.set(k, v) })
+    router.push(`/${locale}/lm3allem/caisse?${sp.toString()}`)
+  }
+
+  const totalPages = Math.ceil(result.total / result.pageSize)
+
+  return (
+    <div style={{ padding: "1.5rem", display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+
+      {/* Filters */}
+      <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap", alignItems: "flex-end" }}>
+        <Select
+          label={t("allPortals")}
+          value={filters.portal ?? ""}
+          onChange={(e) => push({ portal: e.target.value || undefined })}
+          style={{ minWidth: "160px" }}
+          options={[
+            { value: "", label: t("allPortals") },
+            { value: "magazin", label: "Magazin" },
+            { value: "costumes", label: "Costumes" },
+          ]}
+        />
+        <Select
+          label={t("allStatuses")}
+          value={filters.status ?? ""}
+          onChange={(e) => push({ status: e.target.value || undefined })}
+          style={{ minWidth: "160px" }}
+          options={[
+            { value: "", label: t("allStatuses") },
+            { value: "open", label: t("open") },
+            { value: "closed", label: t("closed") },
+          ]}
+        />
+        <Input
+          label={t("openedAt")}
+          type="date"
+          value={filters.from?.slice(0, 10) ?? ""}
+          onChange={(e) => push({ from: e.target.value || undefined })}
+        />
+        <Input
+          label=""
+          type="date"
+          value={filters.to?.slice(0, 10) ?? ""}
+          onChange={(e) => push({ to: e.target.value || undefined })}
+        />
+      </div>
+
+      {/* Table */}
+      <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "8px", overflow: "hidden" }}>
+        {result.sessions.length === 0
+          ? <p style={{ padding: "2rem", textAlign: "center", color: "var(--text-muted)" }}>{t("noSessions")}</p>
+          : (
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.875rem" }}>
+              <thead>
+                <tr style={{ background: "var(--surface-2)" }}>
+                  {[t("allPortals"), t("openedBy"), t("openedAt"), t("openingAmount"), t("closingAmount"), t("expectedAmount"), t("difference"), "Statut"].map((h) => (
+                    <th key={h} style={{ padding: "0.75rem 1rem", textAlign: "start", fontWeight: 600, fontSize: "0.75rem", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.04em", borderBottom: "1px solid var(--border)" }}>
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {result.sessions.map((s, i) => {
+                  const diff = s.closingAmount && s.expectedAmount
+                    ? Number(s.closingAmount) - Number(s.expectedAmount)
+                    : null
+                  const isOpen = !s.closedAt
+                  return (
+                    <tr key={s.id} style={{ borderBottom: i < result.sessions.length - 1 ? "1px solid var(--border)" : "none", borderInlineStart: `3px solid ${isOpen ? "var(--warning)" : "var(--border)"}` }}>
+                      <td style={{ padding: "0.75rem 1rem" }}><Badge variant="default">{s.portal}</Badge></td>
+                      <td style={{ padding: "0.75rem 1rem" }}>{s.openedByName}</td>
+                      <td style={{ padding: "0.75rem 1rem", color: "var(--text-muted)" }}>{formatDate(s.openedAt)}</td>
+                      <td style={{ padding: "0.75rem 1rem" }}>{formatMAD(s.openingAmount)}</td>
+                      <td style={{ padding: "0.75rem 1rem" }}>{s.closingAmount ? formatMAD(s.closingAmount) : "—"}</td>
+                      <td style={{ padding: "0.75rem 1rem" }}>{s.expectedAmount ? formatMAD(s.expectedAmount) : "—"}</td>
+                      <td style={{ padding: "0.75rem 1rem", fontWeight: 600, color: diff === null ? "var(--text-muted)" : diff >= 0 ? "var(--success)" : "var(--danger)" }}>
+                        {diff === null ? "—" : formatMAD(diff.toString())}
+                      </td>
+                      <td style={{ padding: "0.75rem 1rem" }}>
+                        <Badge variant={isOpen ? "warning" : "success"}>{isOpen ? t("open") : t("closed")}</Badge>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          )
+        }
+      </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div style={{ display: "flex", gap: "0.5rem", justifyContent: "center" }}>
+          {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+            <Button
+              key={p}
+              variant={p === result.page ? "primary" : "secondary"}
+              size="sm"
+              onClick={() => push({ page: p.toString() })}
+            >
+              {p}
+            </Button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}

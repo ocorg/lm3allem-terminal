@@ -1,0 +1,110 @@
+"use client"
+
+import { useState, useTransition } from "react"
+import { useTranslations } from "next-intl"
+import { Button } from "@/components/ui/Button"
+import { Input } from "@/components/ui/Input"
+import { Textarea } from "@/components/ui/Textarea"
+import { toast } from "@/hooks/useToast"
+import { updateSystemSettings, type SerializedSettings } from "@/lib/actions/lm3allem/settings"
+
+const MAG_MODULES = ["pos", "inventory", "caisse", "credits", "requests"]
+const COS_MODULES = ["pos", "inventory", "clients", "rentals", "caisse"]
+
+interface Props { settings: SerializedSettings }
+
+export function SettingsClient({ settings }: Props) {
+  const t = useTranslations("lm3allem.settings")
+  const [isPending, startTransition] = useTransition()
+
+  const [maintenanceMode, setMaintenanceMode] = useState(settings.maintenanceMode)
+  const [msgFr, setMsgFr] = useState(settings.maintenanceMessage_fr ?? "")
+  const [msgAr, setMsgAr] = useState(settings.maintenanceMessage_ar ?? "")
+  const [perms, setPerms] = useState<Record<string, unknown>>(settings.defaultStaffPermissions)
+
+  function togglePerm(module: string) {
+    setPerms((p) => ({ ...p, [module]: !p[module] }))
+  }
+
+  function handleSave() {
+    startTransition(async () => {
+      try {
+        await updateSystemSettings({
+          id: settings.id,
+          maintenanceMode,
+          maintenanceMessage_fr: msgFr || null,
+          maintenanceMessage_ar: msgAr || null,
+          defaultStaffPermissions: perms,
+        })
+        toast(t("saved"), "success")
+      } catch {
+        toast("Erreur lors de l'enregistrement", "error")
+      }
+    })
+  }
+
+  return (
+    <div style={{ padding: "1.5rem", display: "flex", flexDirection: "column", gap: "2rem", maxWidth: "640px" }}>
+
+      {/* Maintenance */}
+      <section style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "8px", padding: "1.25rem", display: "flex", flexDirection: "column", gap: "1rem" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div>
+            <p style={{ margin: 0, fontWeight: 600 }}>{t("maintenanceMode")}</p>
+            <p style={{ margin: "2px 0 0", fontSize: "0.8rem", color: "var(--text-muted)" }}>{t("maintenanceModeDesc")}</p>
+          </div>
+          <button
+            onClick={() => setMaintenanceMode((v) => !v)}
+            style={{
+              width: "48px", height: "26px", borderRadius: "13px", border: "none", cursor: "pointer",
+              background: maintenanceMode ? "var(--danger)" : "var(--border)",
+              position: "relative", transition: "background 150ms",
+            }}
+          >
+            <span style={{
+              position: "absolute", top: "3px", insetInlineStart: maintenanceMode ? "calc(100% - 23px)" : "3px",
+              width: "20px", height: "20px", borderRadius: "50%", background: "#fff",
+              transition: "inset-inline-start 150ms",
+            }} />
+          </button>
+        </div>
+        {maintenanceMode && (
+          <p style={{ padding: "0.5rem 0.75rem", background: "color-mix(in srgb, var(--warning) 10%, transparent)", border: "1px solid var(--warning)", borderRadius: "6px", fontSize: "0.8rem", color: "var(--warning)", margin: 0 }}>
+            {t("maintenanceWarning")}
+          </p>
+        )}
+        <Input label={t("maintenanceMessageFr")} value={msgFr} onChange={(e) => setMsgFr(e.target.value)} />
+        <Input label={t("maintenanceMessageAr")} value={msgAr} onChange={(e) => setMsgAr(e.target.value)} dir="rtl" />
+      </section>
+
+      {/* Default Staff Permissions */}
+      <section style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "8px", padding: "1.25rem" }}>
+        <p style={{ margin: "0 0 1rem", fontWeight: 600 }}>{t("defaultStaffPermissions")}</p>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.5rem" }}>
+          <div>
+            <p style={{ fontSize: "0.7rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--text-muted)", margin: "0 0 0.5rem" }}>MAGAZIN</p>
+            {MAG_MODULES.map((m) => (
+              <label key={m} style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.875rem", marginBottom: "0.5rem", cursor: "pointer" }}>
+                <input type="checkbox" checked={!!perms[m]} onChange={() => togglePerm(m)} />
+                {m}
+              </label>
+            ))}
+          </div>
+          <div>
+            <p style={{ fontSize: "0.7rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--text-muted)", margin: "0 0 0.5rem" }}>COSTUMES</p>
+            {COS_MODULES.map((m) => (
+              <label key={m} style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.875rem", marginBottom: "0.5rem", cursor: "pointer" }}>
+                <input type="checkbox" checked={!!perms[m]} onChange={() => togglePerm(m)} />
+                {m}
+              </label>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <Button variant="primary" onClick={handleSave} loading={isPending} style={{ alignSelf: "flex-end" }}>
+        {t("save")}
+      </Button>
+    </div>
+  )
+}

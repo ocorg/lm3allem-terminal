@@ -25,6 +25,7 @@ const NAV_CONFIG: Record<Portal, NavConfigItem[]> = {
     { key: "pos",       path: "pos",       module: "pos" },
     { key: "inventory", path: "inventory", module: "inventory" },
     { key: "clients",   path: "clients",   module: "clients" },
+    { key: "rentals",   path: "rentals",   module: "rentals" },
     { key: "catalogue", path: "catalogue", module: null },
     { key: "caisse",    path: "caisse",    module: "caisse" },
   ],
