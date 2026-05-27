@@ -212,14 +212,92 @@
   "costumes": {
     "nav": {
       "pos": "نقطة البيع",
-      "location": "تأجير",
-      "vente": "بيع",
+      "rentals": "التأجيرات",
       "inventory": "المخزون",
       "clients": "العملاء",
       "catalogue": "الكتالوج",
       "caisse": "الصندوق"
     },
+    "itemType": {
+      "suit": "بدلة",
+      "vest": "صديري",
+      "shoes": "حذاء",
+      "accessory": "إكسسوار"
+    },
+    "guarantee": {
+      "cash_deposit": "تأمين نقدي",
+      "id_card": "البطاقة الوطنية",
+      "passport": "جواز السفر",
+      "drivers_license": "رخصة السياقة"
+    },
+    "transactionType": {
+      "sale": "بيع",
+      "rental_payment": "دفع إيجار",
+      "deposit_collected": "تأمين محصّل",
+      "deposit_returned": "استرداد التأمين",
+      "remaining_balance": "الرصيد المتبقي"
+    },
+    "pos": {
+      "title": "نقطة البيع",
+      "cart": "السلة",
+      "emptyCart": "السلة فارغة",
+      "addToCart": "إضافة",
+      "removeFromCart": "حذف",
+      "subtotal": "المجموع الجزئي",
+      "encaisser": "تحصيل",
+      "confirmSale": "تأكيد البيع",
+      "saleSuccess": "تم تسجيل البيع",
+      "outOfStock": "نفد المخزون",
+      "lowStock": "مخزون منخفض"
+    },
+    "inventory": {
+      "title": "المخزون",
+      "addItem": "إضافة قطعة",
+      "editItem": "تعديل القطعة",
+      "name_fr": "الاسم (FR)",
+      "name_ar": "الاسم (AR)",
+      "type": "النوع",
+      "size": "المقاس",
+      "color": "اللون",
+      "stock": "المخزون",
+      "buyingPrice": "سعر الشراء",
+      "sellingPrice": "سعر البيع",
+      "minSellingPrice": "السعر الأدنى",
+      "images": "الصور",
+      "createSuccess": "تمت إضافة القطعة",
+      "updateSuccess": "تم تحديث القطعة"
+    },
+    "clients": {
+      "title": "العملاء",
+      "addClient": "عميل جديد",
+      "editClient": "تعديل العميل",
+      "name": "الاسم الكامل",
+      "phone": "الهاتف",
+      "address": "العنوان",
+      "notes": "ملاحظات",
+      "rentalCount": "التأجيرات",
+      "measurements": "المقاسات",
+      "phoneTaken": "هذا الرقم مستخدم من قبل عميل آخر",
+      "createSuccess": "تم إنشاء العميل",
+      "updateSuccess": "تم تحديث العميل"
+    },
     "rental": {
+      "title": "التأجيرات",
+      "newRental": "تأجير جديد",
+      "kitReference": "مرجع الطقم",
+      "eventDate": "تاريخ المناسبة",
+      "pickupDate": "تاريخ الاستلام المقرر",
+      "returnDate": "تاريخ الإرجاع المقرر",
+      "totalAmount": "المبلغ الإجمالي",
+      "amountPaid": "المبلغ المدفوع",
+      "balance": "الرصيد المتبقي",
+      "addPayment": "إضافة دفعة",
+      "advanceStatus": "تقدم الحالة",
+      "depositCollected": "تم تحصيل التأمين",
+      "depositReturned": "تم استرداد التأمين",
+      "paymentSuccess": "تم تسجيل الدفعة",
+      "statusSuccess": "تم تحديث الحالة",
+      "createSuccess": "تم إنشاء التأجير",
       "status": {
         "booked": "محجوز",
         "in_preparation": "قيد التحضير",
@@ -238,6 +316,25 @@
         "payment": "الدفع",
         "confirmation": "التأكيد"
       }
+    },
+    "caisse": {
+      "title": "الصندوق",
+      "totalSales": "مبيعات الملابس",
+      "totalRentals": "مدفوعات التأجير",
+      "totalManual": "إدخالات يدوية",
+      "runningTotal": "إجمالي الصندوق",
+      "salesCount": "مبيعات",
+      "rentalsCount": "دفعات"
+    },
+    "catalogue": {
+      "title": "الكتالوج",
+      "allTypes": "جميع الأنواع",
+      "allSizes": "جميع المقاسات",
+      "allColors": "جميع الألوان",
+      "clearFilters": "مسح الفلاتر",
+      "inStock": "متوفر",
+      "outOfStock": "نفد المخزون",
+      "noItems": "لا توجد قطع في الكتالوج."
     }
   },
   "lm3allem": {

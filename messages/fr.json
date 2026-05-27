@@ -212,18 +212,96 @@
   "costumes": {
     "nav": {
       "pos": "Point de vente",
-      "location": "Location",
-      "vente": "Vente",
+      "rentals": "Locations",
       "inventory": "Inventaire",
       "clients": "Clients",
       "catalogue": "Catalogue",
       "caisse": "Caisse"
     },
+    "itemType": {
+      "suit": "Costume",
+      "vest": "Gilet",
+      "shoes": "Chaussures",
+      "accessory": "Accessoire"
+    },
+    "guarantee": {
+      "cash_deposit": "Dépôt en espèces",
+      "id_card": "Carte nationale",
+      "passport": "Passeport",
+      "drivers_license": "Permis de conduire"
+    },
+    "transactionType": {
+      "sale": "Vente",
+      "rental_payment": "Paiement location",
+      "deposit_collected": "Dépôt de garantie",
+      "deposit_returned": "Restitution dépôt",
+      "remaining_balance": "Solde restant"
+    },
+    "pos": {
+      "title": "Point de vente",
+      "cart": "Panier",
+      "emptyCart": "Panier vide",
+      "addToCart": "Ajouter",
+      "removeFromCart": "Retirer",
+      "subtotal": "Sous-total",
+      "encaisser": "Encaisser",
+      "confirmSale": "Confirmer la vente",
+      "saleSuccess": "Vente enregistrée",
+      "outOfStock": "Épuisé",
+      "lowStock": "Stock bas"
+    },
+    "inventory": {
+      "title": "Inventaire",
+      "addItem": "Ajouter un article",
+      "editItem": "Modifier l'article",
+      "name_fr": "Nom (FR)",
+      "name_ar": "Nom (AR)",
+      "type": "Type",
+      "size": "Taille",
+      "color": "Couleur",
+      "stock": "Stock",
+      "buyingPrice": "Prix d'achat",
+      "sellingPrice": "Prix de vente",
+      "minSellingPrice": "Prix minimum",
+      "images": "Photos",
+      "createSuccess": "Article créé avec succès",
+      "updateSuccess": "Article mis à jour"
+    },
+    "clients": {
+      "title": "Clients",
+      "addClient": "Nouveau client",
+      "editClient": "Modifier le client",
+      "name": "Nom complet",
+      "phone": "Téléphone",
+      "address": "Adresse",
+      "notes": "Notes",
+      "rentalCount": "Locations",
+      "measurements": "Mesures",
+      "phoneTaken": "Ce numéro est déjà utilisé par un autre client",
+      "createSuccess": "Client créé",
+      "updateSuccess": "Client mis à jour"
+    },
     "rental": {
+      "title": "Locations",
+      "newRental": "Nouvelle location",
+      "kitReference": "Référence kit",
+      "eventDate": "Date de l'événement",
+      "pickupDate": "Date de retrait prévue",
+      "returnDate": "Date de retour prévue",
+      "totalAmount": "Montant total",
+      "amountPaid": "Acompte versé",
+      "balance": "Solde restant",
+      "addPayment": "Ajouter un paiement",
+      "advanceStatus": "Avancer le statut",
+      "depositCollected": "Dépôt collecté",
+      "depositReturned": "Dépôt restitué",
+      "paymentSuccess": "Paiement enregistré",
+      "statusSuccess": "Statut mis à jour",
+      "createSuccess": "Location créée",
       "status": {
         "booked": "Réservé",
         "in_preparation": "En préparation",
-        "ready_for_pickup": "Prêt",
+        "ready_for_pickup": "Prêt à retirer",
         "picked_up": "Récupéré",
         "returned": "Rendu",
         "cleaning": "Nettoyage",
@@ -238,6 +316,25 @@
         "payment": "Paiement",
         "confirmation": "Confirmation"
       }
+    },
+    "caisse": {
+      "title": "Caisse",
+      "totalSales": "Ventes costumes",
+      "totalRentals": "Paiements location",
+      "totalManual": "Entrées manuelles",
+      "runningTotal": "Total caisse",
+      "salesCount": "ventes",
+      "rentalsCount": "paiements"
+    },
+    "catalogue": {
+      "title": "Catalogue",
+      "allTypes": "Tous les types",
+      "allSizes": "Toutes les tailles",
+      "allColors": "Toutes les couleurs",
+      "clearFilters": "Effacer les filtres",
+      "inStock": "En stock",
+      "outOfStock": "Épuisé",
+      "noItems": "Aucun article dans le catalogue."
     }
   },
   "lm3allem": {
