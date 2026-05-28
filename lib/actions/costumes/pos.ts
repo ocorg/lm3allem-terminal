@@ -2,7 +2,8 @@
 
 import { prisma }      from "@/lib/db/prisma"
 import { auth }        from "@/lib/auth/auth"
-import { logActivity } from "@/lib/activity/logger"
+import { logActivity }         from "@/lib/activity/logger"
+import { createNotification }   from "@/lib/notifications/create"
 import type { CostumeItemType, PaymentMethod } from "@prisma/client"
 
 // ── Shared lookup types (re-exported for costumes components) ──
@@ -144,6 +145,23 @@ export async function createCostumeSale(
       paymentMethod: input.paymentMethod,
     },
   })
+
+  // Low-stock check after costume sale
+  try {
+    const soldItemIds = input.items.map((i: { itemId: string }) => i.itemId)
+    const lowItems = await prisma.costumeItem.findMany({
+      where: { id: { in: soldItemIds }, stock: { lte: 2 } },
+      select: { name_fr: true, stock: true },
+    })
+    for (const item of lowItems) {
+      await createNotification({
+        title:  "Stock bas",
+        body:   `${item.name_fr} — Stock restant: ${item.stock}`,
+        type:   "low_stock",
+        portal: "costumes",
+      })
+    }
+  } catch { /* non-critical */ }
 
   return { saleId: result.id }
 }

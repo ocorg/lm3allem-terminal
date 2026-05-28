@@ -2,7 +2,8 @@
 
 import { prisma }       from "@/lib/db/prisma"
 import { auth }         from "@/lib/auth/auth"
-import { logActivity }  from "@/lib/activity/logger"
+import { logActivity }         from "@/lib/activity/logger"
+import { createNotification }   from "@/lib/notifications/create"
 import type { PaymentMethod } from "@prisma/client"
 
 // ── Shared lookup shape ────────────────────────────
@@ -192,6 +193,23 @@ export async function createSale(
       paymentMethod: input.paymentMethod,
     },
   })
+
+  // Low-stock check after sale
+  try {
+    const soldVariantIds = input.items.map(i => i.variantId)
+    const lowVariants = await prisma.productVariant.findMany({
+      where:   { id: { in: soldVariantIds }, stock: { lte: 2 } },
+      include: { product: { select: { name_fr: true } } },
+    })
+    for (const v of lowVariants) {
+      await createNotification({
+        title:  "Stock bas",
+        body:   `${v.product.name_fr} — Stock restant: ${v.stock}`,
+        type:   "low_stock",
+        portal: "magazin",
+      })
+    }
+  } catch { /* non-critical */ }
 
   return { saleId: result.id }
 }

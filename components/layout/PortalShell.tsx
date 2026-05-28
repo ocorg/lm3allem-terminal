@@ -1,19 +1,18 @@
 import type { ReactNode } from "react"
 import type { Portal, Role } from "@prisma/client"
 import { getTranslations } from "next-intl/server"
-import Sidebar from "@/components/layout/Sidebar"
-import Topbar from "@/components/layout/Topbar"
 import { buildNavItems } from "@/lib/utils/nav"
 import type { Portal as PortalEnum } from "@prisma/client"
+import LayoutShell from "@/components/layout/LayoutShell"
 
 interface Props {
-  portal: Portal
-  locale: string
-  role: Role
-  userName: string
-  portalAccess: PortalEnum[]
+  portal:            Portal
+  locale:            string
+  role:              Role
+  userName:          string
+  portalAccess:      PortalEnum[]
   modulePermissions: Record<string, Record<string, boolean>> | null
-  children: ReactNode
+  children:          ReactNode
 }
 
 export default async function PortalShell({
@@ -27,7 +26,7 @@ export default async function PortalShell({
 }: Props) {
   const canSwitchPortal =
     role === "superadmin" || role === "admin" || portalAccess.length > 1
-  // Translate nav labels server-side
+
   const tNav =
     portal === "magazin"
       ? await getTranslations({ locale, namespace: "magazin.nav" })
@@ -44,29 +43,14 @@ export default async function PortalShell({
   })
 
   return (
-    <div
-      style={{
-        display: "flex",
-        height: "100vh",
-        overflow: "hidden",
-        background: "var(--bg)",
-      }}
+    <LayoutShell
+      portal={portal}
+      locale={locale}
+      userName={userName}
+      canSwitchPortal={canSwitchPortal}
+      navItems={navItems}
     >
-      <Sidebar portal={portal} navItems={navItems} locale={locale} />
-
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden" }}>
-        <Topbar portal={portal} userName={userName} locale={locale} canSwitchPortal={canSwitchPortal} />
-
-        <main
-          style={{
-            flex: 1,
-            overflowY: "auto",
-            padding: 24,
-          }}
-        >
-          {children}
-        </main>
-      </div>
-    </div>
+      {children}
+    </LayoutShell>
   )
 }

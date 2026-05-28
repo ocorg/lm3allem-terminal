@@ -11,6 +11,7 @@ import {
 } from "lucide-react"
 import type { NavItem } from "@/lib/utils/nav"
 import type { Portal } from "@prisma/client"
+import { useBreakpoint } from "@/hooks/useBreakpoint"
 
 const ICON_MAP: Record<string, LucideIcon> = {
   pos:       ShoppingCart,
@@ -43,45 +44,64 @@ const PORTAL_LABELS: Record<Portal, string> = {
 }
 
 interface Props {
-  portal:    Portal
-  navItems:  NavItem[]
-  locale:    string
+  portal:        Portal
+  navItems:      NavItem[]
+  locale:        string
+  isMobile:      boolean
+  mobileOpen:    boolean
+  onMobileClose: () => void
 }
 
 const STORAGE_KEY = "lm3allem-sidebar-collapsed"
 
-export default function Sidebar({ portal, navItems, locale }: Props) {
-  const pathname  = usePathname()
-  const isRTL     = locale === "ar"
+export default function Sidebar({
+  portal,
+  navItems,
+  locale,
+  isMobile,
+  mobileOpen,
+  onMobileClose,
+}: Props) {
+  const pathname         = usePathname()
+  const isRTL            = locale === "ar"
+  const { isTablet }     = useBreakpoint()
   const [collapsed, setCollapsed] = useState(false)
   const [mounted,   setMounted]   = useState(false)
 
-  // Read persisted collapse state — after hydration only
+  // Initial state on mount
   useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY)
-    if (stored === "true") setCollapsed(true)
+    if (isTablet) {
+      setCollapsed(true)
+    } else {
+      const stored = localStorage.getItem(STORAGE_KEY)
+      if (stored === "true") setCollapsed(true)
+    }
     setMounted(true)
-  }, [])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Auto-collapse when resizing into tablet range
+  useEffect(() => {
+    if (isTablet) setCollapsed(true)
+  }, [isTablet])
 
   function toggle() {
     const next = !collapsed
     setCollapsed(next)
-    localStorage.setItem(STORAGE_KEY, String(next))
+    if (!isTablet) localStorage.setItem(STORAGE_KEY, String(next))
   }
 
   const visible = navItems.filter(i => i.visible)
 
-  // Chevron direction: points "inward" (toward content) when collapsed
-  // LTR sidebar is on left  → collapsed = chevron right, expanded = chevron left
-  // RTL sidebar is on right → collapsed = chevron left,  expanded = chevron right
-  const ExpandIcon  = isRTL ? ChevronLeft  : ChevronRight
+  const ExpandIcon   = isRTL ? ChevronLeft  : ChevronRight
   const CollapseIcon = isRTL ? ChevronRight : ChevronLeft
-  const ToggleIcon  = collapsed ? ExpandIcon : CollapseIcon
+  const ToggleIcon   = collapsed ? ExpandIcon : CollapseIcon
+
+  const isCollapsed = !isMobile && mounted && collapsed
 
   return (
     <aside
       style={{
-        width: mounted && collapsed ? 64 : 240,
+        width: isMobile ? 240 : (isCollapsed ? 64 : 240),
         flexShrink: 0,
         height: "100vh",
         background: "var(--surface)",
@@ -89,24 +109,37 @@ export default function Sidebar({ portal, navItems, locale }: Props) {
         display: "flex",
         flexDirection: "column",
         overflow: "hidden",
-        transition: "width 220ms cubic-bezier(0.4, 0, 0.2, 1)",
+        transition: isMobile
+          ? "transform 250ms cubic-bezier(0.4, 0, 0.2, 1)"
+          : "width 220ms cubic-bezier(0.4, 0, 0.2, 1)",
+        // Mobile overlay
+        ...(isMobile ? {
+          position: "fixed" as const,
+          top: 0,
+          [isRTL ? "right" : "left"]: 0,
+          zIndex: 1000,
+          width: 240,
+          transform: mobileOpen
+            ? "translateX(0)"
+            : (isRTL ? "translateX(100%)" : "translateX(-100%)"),
+          boxShadow: mobileOpen ? "4px 0 32px rgba(0,0,0,0.35)" : "none",
+        } : {}),
       }}
     >
       {/* Portal header */}
       <div
         style={{
-          padding: collapsed ? "18px 0" : "18px 16px",
+          padding: isCollapsed ? "18px 0" : "18px 16px",
           borderBottom: "1px solid var(--border)",
           display: "flex",
           alignItems: "center",
           gap: 10,
-          justifyContent: collapsed ? "center" : "flex-start",
+          justifyContent: isCollapsed ? "center" : "flex-start",
           minHeight: 64,
-          transition: "padding 220ms ease, justify-content 220ms ease",
+          transition: "padding 220ms ease",
           overflow: "hidden",
         }}
       >
-        {/* Collapsed: initial letter badge */}
         <div
           style={{
             flexShrink: 0,
@@ -126,11 +159,10 @@ export default function Sidebar({ portal, navItems, locale }: Props) {
           {PORTAL_INITIALS[portal]}
         </div>
 
-        {/* Expanded: text */}
         <div
           style={{
-            opacity: collapsed ? 0 : 1,
-            maxWidth: collapsed ? 0 : 200,
+            opacity: isCollapsed ? 0 : 1,
+            maxWidth: isCollapsed ? 0 : 200,
             overflow: "hidden",
             whiteSpace: "nowrap",
             transition: "opacity 180ms ease, max-width 220ms ease",
@@ -163,9 +195,8 @@ export default function Sidebar({ portal, navItems, locale }: Props) {
       {/* Nav items */}
       <nav style={{ flex: 1, overflowY: "auto", overflowX: "hidden", padding: "6px 0" }}>
         {visible.map(item => {
-          const Icon = ICON_MAP[item.key] ?? Package
-          const isActive =
-            pathname === item.href || pathname.startsWith(item.href + "/")
+          const Icon     = ICON_MAP[item.key] ?? Package
+          const isActive = pathname === item.href || pathname.startsWith(item.href + "/")
 
           return (
             <NavLink
@@ -174,50 +205,53 @@ export default function Sidebar({ portal, navItems, locale }: Props) {
               label={item.label}
               icon={Icon}
               isActive={isActive}
-              collapsed={collapsed}
+              collapsed={isCollapsed}
+              onClick={isMobile ? onMobileClose : undefined}
             />
           )
         })}
       </nav>
 
-      {/* Collapse toggle */}
-      <div
-        style={{
-          borderTop: "1px solid var(--border)",
-          padding: "10px 12px",
-          display: "flex",
-          justifyContent: collapsed ? "center" : (isRTL ? "flex-start" : "flex-end"),
-        }}
-      >
-        <button
-          onClick={toggle}
-          title={collapsed ? "Expand" : "Collapse"}
+      {/* Collapse toggle — desktop only */}
+      {!isMobile && (
+        <div
           style={{
-            width: 32,
-            height: 32,
-            borderRadius: 8,
-            border: "1px solid var(--border)",
-            background: "transparent",
-            color: "var(--text-muted)",
+            borderTop: "1px solid var(--border)",
+            padding: "10px 12px",
             display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            cursor: "pointer",
-            flexShrink: 0,
-            transition: "color 150ms ease, border-color 150ms ease",
-          }}
-          onMouseEnter={e => {
-            e.currentTarget.style.color = "var(--primary)"
-            e.currentTarget.style.borderColor = "var(--primary)"
-          }}
-          onMouseLeave={e => {
-            e.currentTarget.style.color = "var(--text-muted)"
-            e.currentTarget.style.borderColor = "var(--border)"
+            justifyContent: collapsed ? "center" : (isRTL ? "flex-start" : "flex-end"),
           }}
         >
-          <ToggleIcon size={14} strokeWidth={2} />
-        </button>
-      </div>
+          <button
+            onClick={toggle}
+            title={collapsed ? "Expand" : "Collapse"}
+            style={{
+              width: 32,
+              height: 32,
+              borderRadius: 8,
+              border: "1px solid var(--border)",
+              background: "transparent",
+              color: "var(--text-muted)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              cursor: "pointer",
+              flexShrink: 0,
+              transition: "color 150ms ease, border-color 150ms ease",
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.color = "var(--primary)"
+              e.currentTarget.style.borderColor = "var(--primary)"
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.color = "var(--text-muted)"
+              e.currentTarget.style.borderColor = "var(--border)"
+            }}
+          >
+            <ToggleIcon size={14} strokeWidth={2} />
+          </button>
+        </div>
+      )}
     </aside>
   )
 }
@@ -228,12 +262,14 @@ interface NavLinkProps {
   icon:      LucideIcon
   isActive:  boolean
   collapsed: boolean
+  onClick?:  () => void
 }
 
-function NavLink({ href, label, icon: Icon, isActive, collapsed }: NavLinkProps) {
+function NavLink({ href, label, icon: Icon, isActive, collapsed, onClick }: NavLinkProps) {
   return (
     <Link
       href={href}
+      onClick={onClick}
       title={collapsed ? label : undefined}
       style={{
         display: "flex",
@@ -264,11 +300,7 @@ function NavLink({ href, label, icon: Icon, isActive, collapsed }: NavLinkProps)
         }
       }}
     >
-      <Icon
-        size={15}
-        strokeWidth={isActive ? 2.25 : 1.75}
-        style={{ flexShrink: 0 }}
-      />
+      <Icon size={15} strokeWidth={isActive ? 2.25 : 1.75} style={{ flexShrink: 0 }} />
       <span
         style={{
           opacity: collapsed ? 0 : 1,

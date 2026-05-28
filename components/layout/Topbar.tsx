@@ -1,7 +1,8 @@
 "use client"
 
 import { useTransition } from "react"
-import { LogOut, LayoutGrid } from "lucide-react"
+import { LogOut, LayoutGrid, Menu } from "lucide-react"
+import NotificationBell from "@/components/layout/NotificationBell"
 import Link from "next/link"
 import ThemeToggle from "@/components/ui/ThemeToggle"
 import LanguageToggle from "@/components/ui/LanguageToggle"
@@ -15,10 +16,12 @@ const PORTAL_LABELS: Record<Portal, string> = {
 }
 
 interface Props {
-  portal:           Portal
-  userName:         string
-  locale:           string
-  canSwitchPortal:  boolean
+  portal:             Portal
+  userName:           string
+  locale:             string
+  canSwitchPortal:    boolean
+  isMobile:           boolean
+  onMobileMenuToggle: () => void
 }
 
 export default function Topbar({
@@ -26,6 +29,8 @@ export default function Topbar({
   userName,
   locale,
   canSwitchPortal,
+  isMobile,
+  onMobileMenuToggle,
 }: Props) {
   const [isPending, startTransition] = useTransition()
 
@@ -45,49 +50,86 @@ export default function Topbar({
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
-        padding: "0 20px",
+        padding: "0 16px",
         gap: 12,
       }}
     >
-      {/* Leading — portal name */}
-      <p
-        style={{
-          fontSize: 12,
-          fontWeight: 600,
-          color: "var(--text-muted)",
-          letterSpacing: "0.08em",
-          textTransform: "uppercase",
-          whiteSpace: "nowrap",
-        }}
-      >
-        {PORTAL_LABELS[portal]}
-      </p>
+      {/* Leading */}
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        {/* Hamburger — mobile only */}
+        {isMobile && (
+          <button
+            onClick={onMobileMenuToggle}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              width: 36,
+              height: 36,
+              borderRadius: 8,
+              border: "1px solid var(--border)",
+              background: "transparent",
+              color: "var(--text-muted)",
+              cursor: "pointer",
+              flexShrink: 0,
+              transition: "color 150ms ease, border-color 150ms ease",
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.color = "var(--primary)"
+              e.currentTarget.style.borderColor = "var(--primary)"
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.color = "var(--text-muted)"
+              e.currentTarget.style.borderColor = "var(--border)"
+            }}
+          >
+            <Menu size={16} strokeWidth={1.75} />
+          </button>
+        )}
 
-      {/* Trailing — controls */}
-      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        {/* User name */}
-        <span
+        <p
           style={{
-            fontSize: 13,
-            fontWeight: 500,
-            color: "var(--text)",
+            fontSize: 12,
+            fontWeight: 600,
+            color: "var(--text-muted)",
+            letterSpacing: "0.08em",
+            textTransform: "uppercase",
             whiteSpace: "nowrap",
           }}
         >
-          {userName}
-        </span>
+          {PORTAL_LABELS[portal]}
+        </p>
+      </div>
 
-        {/* Divider */}
-        <div
-          style={{
-            width: 1,
-            height: 18,
-            background: "var(--border)",
-            flexShrink: 0,
-          }}
-        />
+      {/* Trailing — controls */}
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        {/* Username — hidden on mobile */}
+        {!isMobile && (
+          <span
+            style={{
+              fontSize: 13,
+              fontWeight: 500,
+              color: "var(--text)",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {userName}
+          </span>
+        )}
 
-        {/* Portal switcher — only for multi-portal users */}
+        {/* Divider — hidden on mobile */}
+        {!isMobile && (
+          <div
+            style={{
+              width: 1,
+              height: 18,
+              background: "var(--border)",
+              flexShrink: 0,
+            }}
+          />
+        )}
+
+        {/* Portal switcher */}
         {canSwitchPortal && (
           <Link
             href={`/${locale}/select-portal`}
@@ -119,10 +161,8 @@ export default function Topbar({
           </Link>
         )}
 
-        {/* Language toggle — travels with the user */}
+        {portal === "lm3allem" && <NotificationBell />}
         <LanguageToggle currentLocale={locale} />
-
-        {/* Theme toggle */}
         <ThemeToggle />
 
         {/* Sign out */}

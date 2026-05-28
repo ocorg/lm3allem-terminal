@@ -3,7 +3,10 @@
 import { prisma }               from "@/lib/db/prisma"
 import { auth }                 from "@/lib/auth/auth"
 import { logActivity }          from "@/lib/activity/logger"
-import { generateKitReference } from "@/lib/utils/kit-reference"
+import { generateKitReference }   from "@/lib/utils/kit-reference"
+import { sendMail }                from "@/lib/email/mailer"
+import { rentalConfirmationHtml }  from "@/lib/email/templates"
+import { createNotification }       from "@/lib/notifications/create"
 import type {
   RentalStatus,
   GuaranteeType,
@@ -291,6 +294,45 @@ export async function createRental(
       kitItemCount: input.kitItems.length,
     },
   })
+
+  // Pusher notification
+  try {
+    await createNotification({
+      title:  "Nouvelle location",
+      body:   `Kit ${kitRef} — ${input.totalAmount} MAD`,
+      type:   "rental",
+      portal: "costumes",
+    })
+  } catch { /* non-critical */ }
+
+  // Email — rental confirmation to admin (non-blocking)
+  try {
+    const adminEmail = process.env.ADMIN_EMAIL
+    if (adminEmail) {
+      const client = await prisma.client.findUnique({
+        where:  { id: input.clientId },
+        select: { name: true, phone: true },
+      })
+      if (client) {
+        await sendMail(
+          adminEmail,
+          `Nouvelle location — ${client.name} · ${kitRef}`,
+          rentalConfirmationHtml({
+            clientName:  client.name,
+            clientPhone: client.phone,
+            kitRef,
+            pickupDate:  new Date(input.scheduledPickupDate).toLocaleDateString("fr-FR"),
+            returnDate:  new Date(input.scheduledReturnDate).toLocaleDateString("fr-FR"),
+            totalAmount: `${input.totalAmount} MAD`,
+            amountPaid:  `${input.amountPaid} MAD`,
+            balance:     `${balance} MAD`,
+          })
+        )
+      }
+    }
+  } catch {
+    // Email failure must never break the rental creation
+  }
 
   return { rentalId: result.id }
 }

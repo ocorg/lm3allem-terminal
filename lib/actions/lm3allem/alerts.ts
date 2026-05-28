@@ -1,7 +1,9 @@
 "use server"
 
 import { auth } from "@/lib/auth/auth"
-import { prisma } from "@/lib/db/prisma"
+import { prisma }             from "@/lib/db/prisma"
+import { sendMail }            from "@/lib/email/mailer"
+import { lowStockDigestHtml }  from "@/lib/email/templates"
 
 export interface LowStockAlert {
   id: string
@@ -110,4 +112,39 @@ export async function getAlerts(): Promise<AlertsData> {
       balance: c.balance.toString(),
     })),
   }
+}
+
+// ── sendLowStockDigest ─────────────────────────────────────────
+export async function sendLowStockDigest(): Promise<{ sent: boolean; count: number }> {
+  const session = await auth()
+  if (!session?.user) throw new Error("Unauthorized")
+
+  const adminEmail = process.env.ADMIN_EMAIL
+  if (!adminEmail) throw new Error("ADMIN_EMAIL non configuré dans .env")
+
+  const [lowVariants, lowCostumes] = await Promise.all([
+    prisma.productVariant.findMany({
+      where:   { stock: { lte: 2 }, product: { isActive: true } },
+      include: { product: { select: { name_fr: true } } },
+    }),
+    prisma.costumeItem.findMany({
+      where:  { stock: { lte: 2 }, isActive: true },
+      select: { id: true, name_fr: true, stock: true },
+    }),
+  ])
+
+  const items = [
+    ...lowVariants.map(v => ({ name: v.product.name_fr, portal: "magazin", stock: v.stock })),
+    ...lowCostumes.map(c => ({ name: c.name_fr, portal: "costumes", stock: c.stock })),
+  ]
+
+  if (items.length === 0) return { sent: false, count: 0 }
+
+  await sendMail(
+    adminEmail,
+    `Stock bas — ${items.length} article${items.length > 1 ? "s" : ""} à réapprovisionner`,
+    lowStockDigestHtml({ items })
+  )
+
+  return { sent: true, count: items.length }
 }

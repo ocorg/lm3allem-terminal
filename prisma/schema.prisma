@@ -447,6 +447,19 @@ model Expense {
 
 // ─── ACTIVITY LOGS ───────────────────────────────────
 
+model Notification {
+  id        String   @id @default(cuid())
+  title     String
+  body      String
+  type      String
+  portal    String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([isRead])
+  @@index([createdAt])
+}
+
 model ActivityLog {
   id         String   @id @default(cuid())
   portal     Portal

@@ -3,7 +3,9 @@
 import { auth } from "@/lib/auth/auth"
 import { prisma } from "@/lib/db/prisma"
 import { hashPin } from "@/lib/auth/pin"
-import { logActivity } from "@/lib/activity/logger"
+import { logActivity }      from "@/lib/activity/logger"
+import { sendMail }          from "@/lib/email/mailer"
+import { pinDeliveryHtml }   from "@/lib/email/templates"
 
 function generatePin(): string {
   return Math.floor(100000 + Math.random() * 900000).toString()
@@ -99,6 +101,20 @@ export async function createUser(
     diff: { name: input.name, role: input.role },
   })
 
+  // Email — PIN delivery to admin (non-blocking)
+  try {
+    const adminEmail = process.env.ADMIN_EMAIL
+    if (adminEmail) {
+      await sendMail(
+        adminEmail,
+        `Nouveau compte — ${input.name}`,
+        pinDeliveryHtml({ userName: input.name, pin: plainPin, action: "created" })
+      )
+    }
+  } catch {
+    // Email failure must never break user creation
+  }
+
   return {
     user: {
       id: user.id,
@@ -193,6 +209,26 @@ export async function resetUserPin(
     actorId: session.user.id,
     action: "user.pin_reset",
   })
+
+  // Email — PIN reset notification to admin (non-blocking)
+  try {
+    const adminEmail = process.env.ADMIN_EMAIL
+    if (adminEmail) {
+      const userRecord = await prisma.user.findUnique({
+        where:  { id },
+        select: { name: true },
+      })
+      if (userRecord) {
+        await sendMail(
+          adminEmail,
+          `PIN réinitialisé — ${userRecord.name}`,
+          pinDeliveryHtml({ userName: userRecord.name, pin: plainPin, action: "reset" })
+        )
+      }
+    }
+  } catch {
+    // Email failure must never break PIN reset
+  }
 
   return { plainPin }
 }

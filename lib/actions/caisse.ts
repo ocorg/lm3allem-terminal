@@ -3,6 +3,8 @@
 import { prisma } from "@/lib/db/prisma"
 import { auth }   from "@/lib/auth/auth"
 import type { Portal } from "@prisma/client"
+import { logActivity }          from "@/lib/activity/logger"
+import { createNotification }    from "@/lib/notifications/create"
 
 // ── Serialisable session shape ─────────────────────
 // Decimal and Date fields are converted to primitives
@@ -61,6 +63,15 @@ export async function openCaisseSession(
       openingAmount,
     },
   })
+
+  try {
+    await createNotification({
+      title:  "Caisse ouverte",
+      body:   `${portal} — Ouverture: ${openingAmount} MAD`,
+      type:   "caisse_open",
+      portal,
+    })
+  } catch { /* non-critical */ }
 
   return { sessionId: created.id }
 }
@@ -134,4 +145,13 @@ export async function closeCaisseSession(
       closedById: authSession.user.id,
     },
   })
+
+  try {
+    await createNotification({
+      title:  "Caisse fermée",
+      body:   `${session.portal} — Clôture: ${closingAmount} MAD`,
+      type:   "caisse_close",
+      portal: session.portal,
+    })
+  } catch { /* non-critical */ }
 }
