@@ -127,6 +127,7 @@ model LookupValue {
   isActive   Boolean        @default(true)
   createdAt  DateTime       @default(now())
   updatedAt  DateTime       @updatedAt
+  expenses   Expense[]
 }
 
 // ─── SYSTEM SETTINGS ─────────────────────────────────
@@ -434,6 +435,7 @@ model Expense {
   id           String   @id @default(cuid())
   portal       Portal
   categoryId   String
+  category     LookupValue @relation(fields: [categoryId], references: [id])
   amount       Decimal  @db.Decimal(10, 2)
   description  String
   date         DateTime @default(now())
