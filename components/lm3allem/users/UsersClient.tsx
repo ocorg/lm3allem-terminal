@@ -70,7 +70,7 @@ export function UsersClient({ initialUsers }: Props) {
       try {
         if (editTarget) {
           await updateUser({ id: editTarget.id, ...form })
-          toast("Utilisateur mis à jour", "success")
+          toast(t("updated"), "success")
           setFormOpen(false)
           router.refresh()
         } else {
@@ -80,7 +80,7 @@ export function UsersClient({ initialUsers }: Props) {
           router.refresh()
         }
       } catch {
-        toast("Erreur lors de l'enregistrement", "error")
+        toast(t("saveError"), "error")
       }
     })
   }
@@ -92,10 +92,10 @@ export function UsersClient({ initialUsers }: Props) {
     startTransition(async () => {
       try {
         await toggleUserActive(u.id)
-        toast(u.isActive ? "Utilisateur désactivé" : "Utilisateur activé", "success")
+        toast(u.isActive ? t("deactivated") : t("activated"), "success")
         router.refresh()
       } catch (e: any) {
-        toast(e?.message ?? "Erreur", "error")
+        toast(e?.message ?? t("toggleError"), "error")
       }
     })
   }
@@ -108,7 +108,7 @@ export function UsersClient({ initialUsers }: Props) {
         const { plainPin } = await resetUserPin(u.id)
         setPinModal({ name: u.name, pin: plainPin })
       } catch {
-        toast("Erreur lors de la réinitialisation", "error")
+        toast(t("pinResetError"), "error")
       }
     })
   }
@@ -127,7 +127,7 @@ export function UsersClient({ initialUsers }: Props) {
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.875rem" }}>
           <thead>
             <tr style={{ background: "var(--surface-2)" }}>
-              {[t("name"), t("role"), t("portals"), t("active"), "Actions"].map((h, i) => (
+              {[t("name"), t("role"), t("portals"), t("active"), t("actionsHeader")].map((h, i) => (
                 <th key={i} style={{ padding: "0.75rem 1rem", textAlign: "start", fontWeight: 600, fontSize: "0.75rem", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.04em", borderBottom: "1px solid var(--border)" }}>
                   {h}
                 </th>

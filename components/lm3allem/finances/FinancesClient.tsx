@@ -104,7 +104,7 @@ export function FinancesClient({ initialData }: { initialData: FinancesData }) {
               <tr style={{ background: "var(--surface-2)" }}>
                 {["month","magazinSales","costumesSales","rentalRevenue","expenses","net"].map((k) => (
                   <th key={k} style={{ padding: "0.75rem 1rem", textAlign: "start", fontWeight: 600, fontSize: "0.75rem", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.04em", borderBottom: "1px solid var(--border)" }}>
-                    {k === "month" ? "Mois" : t(k as any)}
+                    {k === "month" ? t("monthColumn") : t(k as any)}
                   </th>
                 ))}
               </tr>

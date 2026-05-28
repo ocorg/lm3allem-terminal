@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useMemo } from "react"
+import { useTranslations }              from "next-intl"
 import { useRouter }                    from "next/navigation"
 import { Check, ChevronRight, Search, X, Plus } from "lucide-react"
 import { useCaisse }                    from "@/components/caisse/CaisseProvider"
@@ -68,20 +69,9 @@ const INITIAL: WizardData = {
   totalAmount: "", amountPaid: "0", paymentMethod: "cash",
 }
 
-const STEPS = ["Client", "Kit", "Dates", "Mesures", "Garantie", "Paiement", "Confirmation"]
-
-const GUARANTEE_OPTIONS = [
-  { value: "cash_deposit",    label: "Dépôt en espèces" },
-  { value: "id_card",         label: "Carte nationale"  },
-  { value: "passport",        label: "Passeport"        },
-  { value: "drivers_license", label: "Permis de conduire" },
-]
-
-const PAYMENT_OPTIONS = [
-  { value: "cash",   label: "Espèces"  },
-  { value: "tpe",    label: "TPE"      },
-  { value: "banque", label: "Virement" },
-]
+const STEP_KEYS    = ["client", "kit", "dates", "measurements", "guarantee", "payment", "confirmation"] as const
+const GUARANTEE_KEYS: GuaranteeType[] = ["cash_deposit", "id_card", "passport", "drivers_license"]
+const PAYMENT_KEYS:   PaymentMethod[] = ["cash", "tpe", "banque"]
 
 // ── Props ──────────────────────────────────────────────────────
 interface Props {
@@ -98,6 +88,16 @@ interface Props {
 export function RentalWizard({ isOpen, onClose, costumeItems, clients, measurementCategories, lookupById, locale }: Props) {
   const { session } = useCaisse()
   const router      = useRouter()
+
+  const tRental    = useTranslations("costumes.rental")
+  const tGuarantee = useTranslations("costumes.guarantee")
+  const tPayment   = useTranslations("payment")
+  const tClients   = useTranslations("costumes.clients")
+  const tCommon    = useTranslations("common")
+
+  const STEPS = STEP_KEYS.map(k => tRental(`steps.${k}` as Parameters<typeof tRental>[0]))
+  const GUARANTEE_OPTIONS = GUARANTEE_KEYS.map(v => ({ value: v, label: tGuarantee(v as Parameters<typeof tGuarantee>[0]) }))
+  const PAYMENT_OPTIONS   = PAYMENT_KEYS.map(v => ({ value: v, label: tPayment(v as Parameters<typeof tPayment>[0]) }))
 
   const [step,    setStep]    = useState(0)
   const [data,    setData]    = useState<WizardData>(INITIAL)
@@ -119,20 +119,20 @@ export function RentalWizard({ isOpen, onClose, costumeItems, clients, measureme
     const e: Record<string, string> = {}
     if (step === 0) {
       if (data.isNewClient) {
-        if (!data.newClientName.trim())  e.newClientName  = "Requis"
-        if (!data.newClientPhone.trim()) e.newClientPhone = "Requis"
+        if (!data.newClientName.trim())  e.newClientName  = tCommon("required")
+        if (!data.newClientPhone.trim()) e.newClientPhone = tCommon("required")
       } else {
-        if (!data.clientId) e.client = "Veuillez sélectionner un client"
+        if (!data.clientId) e.client = tRental("validation.selectClient")
       }
     }
-    if (step === 1 && !data.kitItems.length) e.kit = "Ajoutez au moins un article au kit"
+    if (step === 1 && !data.kitItems.length) e.kit = tRental("validation.addKitItem")
     if (step === 2) {
-      if (!data.scheduledPickupDate) e.pickupDate = "Requis"
-      if (!data.scheduledReturnDate) e.returnDate = "Requis"
+      if (!data.scheduledPickupDate) e.pickupDate = tCommon("required")
+      if (!data.scheduledReturnDate) e.returnDate = tCommon("required")
     }
     if (step === 5) {
-      if (!data.totalAmount || isNaN(+data.totalAmount)) e.totalAmount = "Requis"
-      if (isNaN(+data.amountPaid))                       e.amountPaid  = "Invalide"
+      if (!data.totalAmount || isNaN(+data.totalAmount)) e.totalAmount = tCommon("required")
+      if (isNaN(+data.amountPaid))                       e.amountPaid  = tRental("validation.invalidAmount")
     }
     setErrors(e)
     return Object.keys(e).length === 0
@@ -166,7 +166,7 @@ export function RentalWizard({ isOpen, onClose, costumeItems, clients, measureme
         measurements:        data.measurements.filter(m => m.value).map(m => ({ categoryId: m.categoryId, value: m.value, unit: m.unit || undefined })),
       })
 
-      toast("Location créée avec succès", "success")
+      toast(tRental("createSuccess"), "success")
       onClose(); router.refresh()
     } catch (err: any) {
       toast(err.message ?? "Erreur lors de la création", "error")
@@ -176,7 +176,7 @@ export function RentalWizard({ isOpen, onClose, costumeItems, clients, measureme
   }
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Nouvelle location" size="xl" closeOnOverlayClick={false}>
+    <Modal isOpen={isOpen} onClose={onClose} title={tRental("newRental")} size="xl" closeOnOverlayClick={false}>
       {/* Stepper */}
       <div style={{ display: "flex", alignItems: "center", gap: 0, marginBottom: 24, overflowX: "auto", paddingBottom: 4 }}>
         {STEPS.map((s, i) => (
@@ -223,6 +223,7 @@ export function RentalWizard({ isOpen, onClose, costumeItems, clients, measureme
 
 // ── Step 1: Client ─────────────────────────────────────────────
 function StepClient({ data, upd, clients, errors }: { data: WizardData; upd: (p: Partial<WizardData>) => void; clients: ClientForList[]; errors: Record<string, string> }) {
+  const tClients = useTranslations("costumes.clients")
   const [search, setSearch] = useState("")
 
   const filtered = useMemo(() => {
@@ -245,8 +246,8 @@ function StepClient({ data, upd, clients, errors }: { data: WizardData; upd: (p:
 
       {data.isNewClient ? (
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          <Input label="Nom complet" value={data.newClientName} onChange={e => upd({ newClientName: e.target.value })} error={errors.newClientName} />
-          <Input label="Téléphone"   value={data.newClientPhone} onChange={e => upd({ newClientPhone: e.target.value })} error={errors.newClientPhone} />
+          <Input label={tClients("name")}  value={data.newClientName}  onChange={e => upd({ newClientName: e.target.value })}  error={errors.newClientName} />
+          <Input label={tClients("phone")} value={data.newClientPhone} onChange={e => upd({ newClientPhone: e.target.value })} error={errors.newClientPhone} />
           <Input label="Adresse (optionnel)" value={data.newClientAddress} onChange={e => upd({ newClientAddress: e.target.value })} />
         </div>
       ) : (
@@ -422,6 +423,8 @@ function StepMeasurements({ data, upd, measurementCategories, lookupById }: { da
 
 // ── Step 5: Guarantee ──────────────────────────────────────────
 function StepGuarantee({ data, upd }: { data: WizardData; upd: (p: Partial<WizardData>) => void }) {
+  const tG = useTranslations("costumes.guarantee")
+  const GUARANTEE_OPTIONS = GUARANTEE_KEYS.map(v => ({ value: v, label: tG(v as Parameters<typeof tG>[0]) }))
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
       <Select
@@ -443,6 +446,8 @@ function StepGuarantee({ data, upd }: { data: WizardData; upd: (p: Partial<Wizar
 
 // ── Step 6: Payment ────────────────────────────────────────────
 function StepPayment({ data, upd, errors }: { data: WizardData; upd: (p: Partial<WizardData>) => void; errors: Record<string, string> }) {
+  const tP = useTranslations("payment")
+  const PAYMENT_OPTIONS = PAYMENT_KEYS.map(v => ({ value: v, label: tP(v as Parameters<typeof tP>[0]) }))
   const suggested = useMemo(
     () => data.kitItems.reduce((s, k) => s + k.sellingPrice * k.quantity, 0),
     [data.kitItems]
@@ -483,6 +488,10 @@ function StepPayment({ data, upd, errors }: { data: WizardData; upd: (p: Partial
 
 // ── Step 7: Confirm ────────────────────────────────────────────
 function StepConfirm({ data, clients, costumeItems, lookupById, measurementCategories }: { data: WizardData; clients: ClientForList[]; costumeItems: CostumeItemForPOS[]; lookupById: LookupById; measurementCategories: LookupItem[] }) {
+  const tG = useTranslations("costumes.guarantee")
+  const tP = useTranslations("payment")
+  const GUARANTEE_OPTIONS = GUARANTEE_KEYS.map(v => ({ value: v, label: tG(v as Parameters<typeof tG>[0]) }))
+  const PAYMENT_OPTIONS   = PAYMENT_KEYS.map(v => ({ value: v, label: tP(v as Parameters<typeof tP>[0]) }))
   const client   = clients.find(c => c.id === data.clientId)
   const clientName = data.isNewClient ? data.newClientName : (client?.name ?? "—")
 

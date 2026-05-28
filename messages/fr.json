@@ -315,6 +315,11 @@
         "guarantee": "Garantie",
         "payment": "Paiement",
         "confirmation": "Confirmation"
+      },
+      "validation": {
+        "selectClient": "Veuillez sélectionner un client",
+        "addKitItem": "Ajoutez au moins un article au kit",
+        "invalidAmount": "Montant invalide"
       }
     },
     "caisse": {
@@ -363,7 +368,9 @@
       "lowStockItems": "Stock faible",
       "noActivity": "Aucune activité récente",
       "noLowStock": "Aucun article en stock faible",
-      "viewAll": "Voir tout"
+      "viewAll": "Voir tout",
+      "revenueTrend": "Chiffre d'affaires — 7 derniers jours",
+      "revenueSplit": "Répartition CA total"
     },
     "finances": {
       "title": "Finances",
@@ -382,7 +389,8 @@
       "totalRevenue": "Revenus totaux",
       "monthlyBreakdown": "Évolution mensuelle",
       "portalBreakdown": "Par portail",
-      "noData": "Aucune donnée pour cette période"
+      "noData": "Aucune donnée pour cette période",
+      "monthColumn": "Mois"
     },
     "caisse": {
       "title": "Historique Caisse",
@@ -415,7 +423,12 @@
       "allPortals": "Tous les portails",
       "noExpenses": "Aucune dépense enregistrée",
       "totalExpenses": "Total dépenses",
-      "recordedBy": "Enregistré par"
+      "recordedBy": "Enregistré par",
+      "added": "Dépense ajoutée",
+      "updated": "Dépense mise à jour",
+      "deleted": "Dépense supprimée",
+      "saveError": "Erreur lors de l'enregistrement",
+      "deleteError": "Erreur lors de la suppression"
     },
     "users": {
       "title": "Utilisateurs",
@@ -440,7 +453,14 @@
       },
       "permissions": "Permissions modules",
       "language": "Langue",
-      "theme": "Thème"
+      "theme": "Thème",
+      "actionsHeader": "Actions",
+      "updated": "Utilisateur mis à jour",
+      "deactivated": "Utilisateur désactivé",
+      "activated": "Utilisateur activé",
+      "saveError": "Erreur lors de l'enregistrement",
+      "pinResetError": "Erreur lors de la réinitialisation",
+      "toggleError": "Erreur"
     },
     "logs": {
       "title": "Journal d'activité",
@@ -482,6 +502,21 @@
       "saved": "Paramètres enregistrés",
       "maintenanceWarning": "Activer le mode maintenance bloquera tous les utilisateurs staff."
     },
+    "notifications": {
+      "title": "Notifications",
+      "markAllRead": "Tout marquer lu",
+      "empty": "Aucune notification",
+      "justNow": "À l'instant",
+      "minutesAgo": "Il y a {count}min",
+      "hoursAgo": "Il y a {count}h",
+      "daysAgo": "Il y a {count}j",
+      "typeLabels": {
+        "rental": "Location",
+        "caisse_open": "Caisse",
+        "caisse_close": "Caisse",
+        "low_stock": "Stock"
+      }
+    },
     "alerts": {
       "title": "Alertes",
       "lowStock": "Stock faible",
@@ -496,7 +531,14 @@
       "openedAt": "Ouverte le",
       "dueDate": "Date retour prévue",
       "portal": "Portail",
-      "status": "Statut"
+      "status": "Statut",
+      "activeAlerts": "{count} alerte(s) active(s)",
+      "sessionOpen": "Ouverte",
+      "digestButton": "Envoyer digest stock",
+      "refresh": "Actualiser",
+      "digestSent": "Digest envoyé — {count} article(s)",
+      "digestEmpty": "Aucun article en stock bas",
+      "digestError": "Erreur lors de l'envoi du digest"
     }
   },
   "payment": {

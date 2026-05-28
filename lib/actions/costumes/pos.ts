@@ -148,7 +148,7 @@ export async function createCostumeSale(
 
   // Low-stock check after costume sale
   try {
-    const soldItemIds = input.items.map((i: { itemId: string }) => i.itemId)
+    const soldItemIds = input.items.map(i => i.costumeItemId)
     const lowItems = await prisma.costumeItem.findMany({
       where: { id: { in: soldItemIds }, stock: { lte: 2 } },
       select: { name_fr: true, stock: true },

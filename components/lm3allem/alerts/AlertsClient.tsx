@@ -39,12 +39,12 @@ export function AlertsClient({ alerts }: Props) {
       try {
         const result = await sendLowStockDigest()
         if (result.sent) {
-          toast(`Digest envoyé — ${result.count} article(s)`, "success")
+          toast(t("digestSent", { count: result.count }), "success")
         } else {
-          toast("Aucun article en stock bas", "info")
+          toast(t("digestEmpty"), "info")
         }
       } catch (err) {
-        toast(err instanceof Error ? err.message : "Erreur envoi digest", "error")
+        toast(err instanceof Error ? err.message : t("digestError"), "error")
       }
     })
   }
@@ -65,7 +65,7 @@ export function AlertsClient({ alerts }: Props) {
         borderRadius: "8px",
       }}>
         <span style={{ fontWeight: 600, color: total === 0 ? "var(--success)" : "var(--warning)" }}>
-          {total === 0 ? t("allClear") : `${total} alertes actives`}
+          {total === 0 ? t("allClear") : t("activeAlerts", { count: total })}
         </span>
         <div style={{ display: "flex", gap: 8 }}>
           <Button
@@ -74,10 +74,10 @@ export function AlertsClient({ alerts }: Props) {
             loading={isPending}
             onClick={handleSendDigest}
           >
-            Envoyer digest stock
+            {t("digestButton")}
           </Button>
           <Button variant="ghost" size="sm" onClick={() => router.refresh()}>
-            Actualiser
+            {t("refresh")}
           </Button>
         </div>
       </div>
@@ -136,7 +136,7 @@ export function AlertsClient({ alerts }: Props) {
                   <div style={{ fontSize: "0.875rem" }}>{s.openedByName}</div>
                   <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>{s.portal} · {formatDate(s.openedAt)}</div>
                 </div>
-                <Badge variant="warning">Ouverte</Badge>
+                <Badge variant="warning">{t("sessionOpen")}</Badge>
               </div>
             ))
           }

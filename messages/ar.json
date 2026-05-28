@@ -315,6 +315,11 @@
         "guarantee": "الضمان",
         "payment": "الدفع",
         "confirmation": "التأكيد"
+      },
+      "validation": {
+        "selectClient": "الرجاء اختيار عميل",
+        "addKitItem": "أضف قطعة واحدة على الأقل للطقم",
+        "invalidAmount": "مبلغ غير صالح"
       }
     },
     "caisse": {
@@ -363,7 +368,9 @@
       "lowStockItems": "مخزون منخفض",
       "noActivity": "لا يوجد نشاط حديث",
       "noLowStock": "لا توجد مقالات ذات مخزون منخفض",
-      "viewAll": "عرض الكل"
+      "viewAll": "عرض الكل",
+      "revenueTrend": "رقم المعاملات — آخر 7 أيام",
+      "revenueSplit": "توزيع رقم المعاملات الإجمالي"
     },
     "finances": {
       "title": "المالية",
@@ -382,7 +389,8 @@
       "totalRevenue": "إجمالي الإيرادات",
       "monthlyBreakdown": "التطور الشهري",
       "portalBreakdown": "حسب البوابة",
-      "noData": "لا توجد بيانات لهذه الفترة"
+      "noData": "لا توجد بيانات لهذه الفترة",
+      "monthColumn": "الشهر"
     },
     "caisse": {
       "title": "سجل الصندوق",
@@ -415,7 +423,12 @@
       "allPortals": "جميع البوابات",
       "noExpenses": "لا توجد مصروفات مسجلة",
       "totalExpenses": "إجمالي المصروفات",
-      "recordedBy": "سجّل بواسطة"
+      "recordedBy": "سجّل بواسطة",
+      "added": "تم إضافة المصروف",
+      "updated": "تم تحديث المصروف",
+      "deleted": "تم حذف المصروف",
+      "saveError": "خطأ في الحفظ",
+      "deleteError": "خطأ في الحذف"
     },
     "users": {
       "title": "المستخدمون",
@@ -440,7 +453,14 @@
       },
       "permissions": "صلاحيات الوحدات",
       "language": "اللغة",
-      "theme": "المظهر"
+      "theme": "المظهر",
+      "actionsHeader": "الإجراءات",
+      "updated": "تم تحديث المستخدم",
+      "deactivated": "تم تعطيل المستخدم",
+      "activated": "تم تفعيل المستخدم",
+      "saveError": "خطأ في الحفظ",
+      "pinResetError": "خطأ في إعادة التعيين",
+      "toggleError": "خطأ"
     },
     "logs": {
       "title": "سجل النشاط",
@@ -482,6 +502,21 @@
       "saved": "تم حفظ الإعدادات",
       "maintenanceWarning": "تفعيل وضع الصيانة سيحجب جميع الموظفين."
     },
+    "notifications": {
+      "title": "الإشعارات",
+      "markAllRead": "تحديد الكل كمقروء",
+      "empty": "لا توجد إشعارات",
+      "justNow": "الآن",
+      "minutesAgo": "منذ {count} دقيقة",
+      "hoursAgo": "منذ {count} ساعة",
+      "daysAgo": "منذ {count} يوم",
+      "typeLabels": {
+        "rental": "تأجير",
+        "caisse_open": "صندوق",
+        "caisse_close": "صندوق",
+        "low_stock": "مخزون"
+      }
+    },
     "alerts": {
       "title": "التنبيهات",
       "lowStock": "مخزون منخفض",
@@ -496,7 +531,14 @@
       "openedAt": "تاريخ الفتح",
       "dueDate": "تاريخ الإرجاع المتوقع",
       "portal": "البوابة",
-      "status": "الحالة"
+      "status": "الحالة",
+      "activeAlerts": "{count} تنبيه(ات) نشط(ة)",
+      "sessionOpen": "مفتوح",
+      "digestButton": "إرسال ملخص المخزون",
+      "refresh": "تحديث",
+      "digestSent": "تم الإرسال — {count} مقال(ات)",
+      "digestEmpty": "لا توجد مقالات بمخزون منخفض",
+      "digestError": "خطأ في إرسال الملخص"
     }
   },
   "payment": {

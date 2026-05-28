@@ -72,11 +72,11 @@ export function ExpensesClient({ initialExpenses, expenseValues }: Props) {
         } else {
           await createExpense(form)
         }
-        toast(editTarget ? "Dépense mise à jour" : "Dépense ajoutée", "success")
+        toast(editTarget ? t("updated") : t("added"), "success")
         setModalOpen(false)
         router.refresh()
       } catch {
-        toast("Erreur lors de l'enregistrement", "error")
+        toast(t("saveError"), "error")
       }
     })
   }
@@ -87,10 +87,10 @@ export function ExpensesClient({ initialExpenses, expenseValues }: Props) {
     startTransition(async () => {
       try {
         await deleteExpense(id)
-        toast("Dépense supprimée", "success")
+        toast(t("deleted"), "success")
         router.refresh()
       } catch {
-        toast("Erreur lors de la suppression", "error")
+        toast(t("deleteError"), "error")
       }
     })
   }
