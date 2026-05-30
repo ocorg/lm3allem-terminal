@@ -10,13 +10,40 @@ import { formatDate } from "@/lib/utils/date"
 import { toast } from "@/hooks/useToast"
 import { sendLowStockDigest } from "@/lib/actions/lm3allem/alerts"
 import type { AlertsData } from "@/lib/actions/lm3allem/alerts"
+import type { RentalStatus } from "@prisma/client"
+
+const PORTAL_VARIANT: Record<string, "primary" | "info" | "success"> = {
+  magazin:  "primary",
+  costumes: "info",
+  lm3allem: "success",
+}
+
+const STATUS_LABELS: Record<RentalStatus, string> = {
+  booked:           "Réservé",
+  in_preparation:   "En préparation",
+  ready_for_pickup: "Prêt à retirer",
+  picked_up:        "Récupéré",
+  returned:         "Rendu",
+  cleaning:         "Nettoyage",
+  available:        "Disponible",
+}
+
+const STATUS_VARIANT: Record<RentalStatus, "primary" | "warning" | "success" | "default" | "danger"> = {
+  booked:           "primary",
+  in_preparation:   "warning",
+  ready_for_pickup: "warning",
+  picked_up:        "success",
+  returned:         "success",
+  cleaning:         "default",
+  available:        "success",
+}
 
 interface Props { alerts: AlertsData }
 
 function SectionHeader({ title, count }: { title: string; count: number }) {
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "0.75rem" }}>
-      <h3 style={{ margin: 0, fontSize: "0.875rem", fontWeight: 600 }}>{title}</h3>
+    <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
+      <h3 style={{ margin: 0, fontSize: 14, fontWeight: 600 }}>{title}</h3>
       {count > 0 && <Badge variant="danger">{count}</Badge>}
       {count === 0 && <Badge variant="success">OK</Badge>}
     </div>
@@ -50,14 +77,18 @@ export function AlertsClient({ alerts }: Props) {
   }
 
   return (
-    <div style={{ padding: "1.5rem", display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+    <div style={{ padding: 24, display: "flex", flexDirection: "column", gap: 24 }}>
+
+      <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.02em", margin: 0 }}>
+        {t("title")}
+      </h1>
 
       {/* Summary Bar */}
       <div style={{
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
-        padding: "1rem 1.25rem",
+        padding: "16px 20px",
         background: total === 0
           ? "color-mix(in srgb, var(--success) 10%, transparent)"
           : "color-mix(in srgb, var(--warning) 10%, transparent)",
@@ -82,13 +113,13 @@ export function AlertsClient({ alerts }: Props) {
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.5rem" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
 
         {/* Low Stock */}
-        <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "8px", padding: "1.25rem" }}>
+        <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "8px", padding: 20 }}>
           <SectionHeader title={t("lowStock")} count={alerts.lowStockItems.length} />
           {alerts.lowStockItems.length === 0
-            ? <p style={{ color: "var(--text-muted)", fontSize: "0.8rem" }}>—</p>
+            ? <p style={{ color: "var(--text-muted)", fontSize: 13 }}>—</p>
             : alerts.lowStockItems.map((item, i) => (
               <div
                 key={item.id}
@@ -96,15 +127,15 @@ export function AlertsClient({ alerts }: Props) {
                   display: "flex",
                   justifyContent: "space-between",
                   alignItems: "center",
-                  padding: "0.5rem 0",
+                  padding: "8px 0",
                   borderBottom: i < alerts.lowStockItems.length - 1 ? "1px solid var(--border)" : "none",
                   borderInlineStart: `3px solid ${item.stock === 0 ? "var(--danger)" : "var(--warning)"}`,
-                  paddingInlineStart: "0.75rem",
+                  paddingInlineStart: 12,
                 }}
               >
                 <div>
-                  <div style={{ fontSize: "0.875rem" }}>{item.name}</div>
-                  <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>{item.portal}</div>
+                  <div style={{ fontSize: 14 }}>{item.name}</div>
+                  <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 2, display: "flex", alignItems: "center", gap: 4 }}><Badge variant={PORTAL_VARIANT[item.portal] ?? "default"}>{item.portal}</Badge></div>
                 </div>
                 <Badge variant={item.stock === 0 ? "danger" : "warning"}>
                   {t("stockLevel")}: {item.stock}
@@ -115,10 +146,10 @@ export function AlertsClient({ alerts }: Props) {
         </div>
 
         {/* Open Caisse */}
-        <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "8px", padding: "1.25rem" }}>
+        <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "8px", padding: 20 }}>
           <SectionHeader title={t("openCaisse")} count={alerts.openCaisseSessions.length} />
           {alerts.openCaisseSessions.length === 0
-            ? <p style={{ color: "var(--text-muted)", fontSize: "0.8rem" }}>—</p>
+            ? <p style={{ color: "var(--text-muted)", fontSize: 13 }}>—</p>
             : alerts.openCaisseSessions.map((s, i) => (
               <div
                 key={s.id}
@@ -126,15 +157,15 @@ export function AlertsClient({ alerts }: Props) {
                   display: "flex",
                   justifyContent: "space-between",
                   alignItems: "center",
-                  padding: "0.5rem 0",
+                  padding: "8px 0",
                   borderBottom: i < alerts.openCaisseSessions.length - 1 ? "1px solid var(--border)" : "none",
                   borderInlineStart: "3px solid var(--warning)",
-                  paddingInlineStart: "0.75rem",
+                  paddingInlineStart: 12,
                 }}
               >
                 <div>
-                  <div style={{ fontSize: "0.875rem" }}>{s.openedByName}</div>
-                  <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>{s.portal} · {formatDate(s.openedAt)}</div>
+                  <div style={{ fontSize: 14 }}>{s.openedByName}</div>
+                  <div style={{ fontSize: 12, color: "var(--text-muted)" }}>{s.portal} · {formatDate(s.openedAt)}</div>
                 </div>
                 <Badge variant="warning">{t("sessionOpen")}</Badge>
               </div>
@@ -143,10 +174,10 @@ export function AlertsClient({ alerts }: Props) {
         </div>
 
         {/* Open Rentals */}
-        <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "8px", padding: "1.25rem" }}>
+        <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "8px", padding: 20 }}>
           <SectionHeader title={t("openRentals")} count={alerts.openRentals.length} />
           {alerts.openRentals.length === 0
-            ? <p style={{ color: "var(--text-muted)", fontSize: "0.8rem" }}>—</p>
+            ? <p style={{ color: "var(--text-muted)", fontSize: 13 }}>—</p>
             : alerts.openRentals.map((r, i) => (
               <div
                 key={r.id}
@@ -154,21 +185,21 @@ export function AlertsClient({ alerts }: Props) {
                   display: "flex",
                   justifyContent: "space-between",
                   alignItems: "center",
-                  padding: "0.5rem 0",
+                  padding: "8px 0",
                   borderBottom: i < alerts.openRentals.length - 1 ? "1px solid var(--border)" : "none",
                   borderInlineStart: "3px solid var(--danger)",
-                  paddingInlineStart: "0.75rem",
+                  paddingInlineStart: 12,
                 }}
               >
                 <div>
-                  <div style={{ fontSize: "0.875rem", fontWeight: 500 }}>{r.reference}</div>
-                  <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>
+                  <div style={{ fontSize: 14, fontWeight: 500 }}>{r.reference}</div>
+                  <div style={{ fontSize: 12, color: "var(--text-muted)" }}>
                     {r.clientName} · {t("dueDate")}: {formatDate(r.scheduledReturnDate)}
                   </div>
                 </div>
                 <div style={{ textAlign: "end" }}>
-                  <div style={{ fontWeight: 600, color: "var(--danger)", fontSize: "0.875rem" }}>{formatMAD(r.balance)}</div>
-                  <Badge variant="default">{r.status}</Badge>
+                  <div style={{ fontWeight: 600, color: "var(--danger)", fontSize: 14 }}>{formatMAD(r.balance)}</div>
+                  <Badge variant={STATUS_VARIANT[r.status as RentalStatus] ?? "default"}>{STATUS_LABELS[r.status as RentalStatus] ?? r.status}</Badge>
                 </div>
               </div>
             ))
@@ -176,10 +207,10 @@ export function AlertsClient({ alerts }: Props) {
         </div>
 
         {/* Unpaid Credits */}
-        <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "8px", padding: "1.25rem" }}>
+        <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "8px", padding: 20 }}>
           <SectionHeader title={t("unpaidCredits")} count={alerts.unpaidCredits.length} />
           {alerts.unpaidCredits.length === 0
-            ? <p style={{ color: "var(--text-muted)", fontSize: "0.8rem" }}>—</p>
+            ? <p style={{ color: "var(--text-muted)", fontSize: 13 }}>—</p>
             : alerts.unpaidCredits.map((c, i) => (
               <div
                 key={c.id}
@@ -187,19 +218,19 @@ export function AlertsClient({ alerts }: Props) {
                   display: "flex",
                   justifyContent: "space-between",
                   alignItems: "center",
-                  padding: "0.5rem 0",
+                  padding: "8px 0",
                   borderBottom: i < alerts.unpaidCredits.length - 1 ? "1px solid var(--border)" : "none",
                   borderInlineStart: "3px solid var(--danger)",
-                  paddingInlineStart: "0.75rem",
+                  paddingInlineStart: 12,
                 }}
               >
                 <div>
-                  <div style={{ fontSize: "0.875rem", fontWeight: 500 }}>{c.clientName}</div>
+                  <div style={{ fontSize: 14, fontWeight: 500 }}>{c.clientName}</div>
                   {c.clientPhone && (
-                    <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>{c.clientPhone}</div>
+                    <div style={{ fontSize: 12, color: "var(--text-muted)" }}>{c.clientPhone}</div>
                   )}
                 </div>
-                <div style={{ fontWeight: 600, color: "var(--danger)", fontSize: "0.875rem" }}>
+                <div style={{ fontWeight: 600, color: "var(--danger)", fontSize: 14 }}>
                   {formatMAD(c.balance)}
                 </div>
               </div>

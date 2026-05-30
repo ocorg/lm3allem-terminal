@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Modal }         from "@/components/ui/Modal"
 import { Input }         from "@/components/ui/Input"
 import { Button }        from "@/components/ui/Button"
@@ -25,6 +25,15 @@ export function CloseSessionModal({ isOpen, sessionId, expectedAmount, onClose, 
   const diff         = countedNum - expectedAmount
   const diffPositive = diff >= 0
   const showDiff     = counted !== "" && !isNaN(countedNum)
+
+  // Reset form state every time the modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setCounted("")
+      setError("")
+      setLoading(false)
+    }
+  }, [isOpen])
 
   const handleClose = async () => {
     const num = parseFloat(counted)

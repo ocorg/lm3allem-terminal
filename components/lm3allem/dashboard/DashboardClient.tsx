@@ -9,9 +9,13 @@ import {
   ResponsiveContainer,
 } from "recharts"
 import { StatCard }      from "@/components/ui/StatCard"
+import { Skeleton }      from "@/components/ui/Skeleton"
 import { Badge }         from "@/components/ui/Badge"
 import { formatMAD }     from "@/lib/utils/currency"
 import { formatRelative } from "@/lib/utils/date"
+import {
+  TrendingUp, Store, Shirt, Calendar, Users, Wallet,
+} from "lucide-react"
 import type { DashboardStats } from "@/lib/actions/lm3allem/dashboard"
 
 // Brand colours (must be hardcoded — recharts can't read CSS vars)
@@ -70,7 +74,7 @@ export function DashboardClient({ stats }: { stats: DashboardStats }) {
   const totalRev = Number(stats.totalRevenue)
 
   return (
-    <div style={{ padding: "1.5rem", display: "flex", flexDirection: "column", gap: "2rem" }}>
+    <div style={{ padding: 24, display: "flex", flexDirection: "column", gap: 32 }}>
 
       {/* ── KPI Grid ──────────────────────────────────────── */}
       <div
@@ -80,12 +84,12 @@ export function DashboardClient({ stats }: { stats: DashboardStats }) {
           gap:                 "1rem",
         }}
       >
-        <StatCard label={t("stats.totalRevenue")}       value={formatMAD(stats.totalRevenue)}    trend="up" />
-        <StatCard label={t("stats.magazinRevenue")}     value={formatMAD(stats.magazinRevenue)}  trend="neutral" />
-        <StatCard label={t("stats.costumesRevenue")}    value={formatMAD(stats.costumesRevenue)} trend="neutral" />
-        <StatCard label={t("stats.openRentals")}        value={stats.openRentals.toString()} />
-        <StatCard label={t("stats.activeUsers")}        value={stats.activeUsers.toString()} />
-        <StatCard label={t("stats.openCaisseSessions")} value={stats.openCaisseSessions.toString()} />
+        <StatCard label={t("stats.totalRevenue")}       value={formatMAD(stats.totalRevenue)}    icon={TrendingUp} trend="up" />
+        <StatCard label={t("stats.magazinRevenue")}     value={formatMAD(stats.magazinRevenue)}  icon={Store}      trend="neutral" />
+        <StatCard label={t("stats.costumesRevenue")}    value={formatMAD(stats.costumesRevenue)} icon={Shirt}      trend="neutral" />
+        <StatCard label={t("stats.openRentals")}        value={stats.openRentals.toString()}     icon={Calendar} />
+        <StatCard label={t("stats.activeUsers")}        value={stats.activeUsers.toString()}     icon={Users} />
+        <StatCard label={t("stats.openCaisseSessions")} value={stats.openCaisseSessions.toString()} icon={Wallet} />
       </div>
 
       {/* ── Charts ────────────────────────────────────────── */}
@@ -93,7 +97,7 @@ export function DashboardClient({ stats }: { stats: DashboardStats }) {
         style={{
           display:             "grid",
           gridTemplateColumns: "2fr 1fr",
-          gap:                 "1.5rem",
+          gap: 24,
           minHeight:           240,
         }}
       >
@@ -103,13 +107,13 @@ export function DashboardClient({ stats }: { stats: DashboardStats }) {
             background:   "var(--surface)",
             border:       "1px solid var(--border)",
             borderRadius: 8,
-            padding:      "1.25rem",
+            padding: 20,
           }}
         >
           <p
             style={{
               margin:         "0 0 1rem",
-              fontSize:       "0.75rem",
+              fontSize: 12,
               fontWeight:     600,
               textTransform:  "uppercase",
               letterSpacing:  "0.06em",
@@ -176,9 +180,7 @@ export function DashboardClient({ stats }: { stats: DashboardStats }) {
               </AreaChart>
             </ResponsiveContainer>
           ) : (
-            <div style={{ height: 180, display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <p style={{ color: "var(--text-muted)", fontSize: 13 }}>Chargement...</p>
-            </div>
+            <Skeleton variant="card" height={180} />
           )}
         </div>
 
@@ -188,7 +190,7 @@ export function DashboardClient({ stats }: { stats: DashboardStats }) {
             background:   "var(--surface)",
             border:       "1px solid var(--border)",
             borderRadius: 8,
-            padding:      "1.25rem",
+            padding: 20,
             display:      "flex",
             flexDirection: "column",
           }}
@@ -196,7 +198,7 @@ export function DashboardClient({ stats }: { stats: DashboardStats }) {
           <p
             style={{
               margin:        "0 0 1rem",
-              fontSize:      "0.75rem",
+              fontSize: 12,
               fontWeight:    600,
               textTransform: "uppercase",
               letterSpacing: "0.06em",
@@ -207,6 +209,12 @@ export function DashboardClient({ stats }: { stats: DashboardStats }) {
           </p>
 
           {mounted ? (
+            totalRev === 0 ? (
+              <div style={{ height: 150, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 8 }}>
+                <Wallet size={28} style={{ color: "var(--border)" }} />
+                <p style={{ fontSize: 12, color: "var(--text-muted)", margin: 0 }}>{t("noData")}</p>
+              </div>
+            ) : (
             <>
               <ResponsiveContainer width="100%" height={150}>
                 <PieChart>
@@ -267,16 +275,15 @@ export function DashboardClient({ stats }: { stats: DashboardStats }) {
                 })}
               </div>
             </>
+            )
           ) : (
-            <div style={{ height: 180, display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <p style={{ color: "var(--text-muted)", fontSize: 13 }}>Chargement...</p>
-            </div>
+            <Skeleton variant="card" height={180} />
           )}
         </div>
       </div>
 
       {/* ── Bottom panels ─────────────────────────────────── */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.5rem" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
 
         {/* Activity */}
         <div
@@ -284,13 +291,13 @@ export function DashboardClient({ stats }: { stats: DashboardStats }) {
             background:   "var(--surface)",
             border:       "1px solid var(--border)",
             borderRadius: 8,
-            padding:      "1.25rem",
+            padding: 20,
           }}
         >
           <p
             style={{
               margin:        "0 0 1rem",
-              fontSize:      "0.75rem",
+              fontSize: 12,
               fontWeight:    600,
               textTransform: "uppercase",
               letterSpacing: "0.06em",
@@ -300,7 +307,7 @@ export function DashboardClient({ stats }: { stats: DashboardStats }) {
             {t("recentActivity")}
           </p>
           {stats.recentActivity.length === 0 ? (
-            <p style={{ color: "var(--text-muted)", fontSize: "0.875rem" }}>{t("noActivity")}</p>
+            <p style={{ color: "var(--text-muted)", fontSize: 14 }}>{t("noActivity")}</p>
           ) : (
             <div style={{ display: "flex", flexDirection: "column" }}>
               {stats.recentActivity.map((a, i) => (
@@ -317,17 +324,17 @@ export function DashboardClient({ stats }: { stats: DashboardStats }) {
                   }}
                 >
                   <div>
-                    <div style={{ fontSize: "0.875rem", color: "var(--text)" }}>{a.action}</div>
-                    <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: 2 }}>
+                    <div style={{ fontSize: 14, color: "var(--text)" }}>{a.action}</div>
+                    <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 2 }}>
                       {a.actorName} · <Badge variant="default">{a.portal}</Badge>
                     </div>
                   </div>
                   <div
                     style={{
-                      fontSize:          "0.75rem",
+                      fontSize: 12,
                       color:             "var(--text-muted)",
                       whiteSpace:        "nowrap",
-                      marginInlineStart: "1rem",
+                      marginInlineStart: 16,
                     }}
                   >
                     {formatRelative(a.createdAt)}
@@ -344,13 +351,13 @@ export function DashboardClient({ stats }: { stats: DashboardStats }) {
             background:   "var(--surface)",
             border:       "1px solid var(--border)",
             borderRadius: 8,
-            padding:      "1.25rem",
+            padding: 20,
           }}
         >
           <p
             style={{
               margin:        "0 0 1rem",
-              fontSize:      "0.75rem",
+              fontSize: 12,
               fontWeight:    600,
               textTransform: "uppercase",
               letterSpacing: "0.06em",
@@ -360,7 +367,7 @@ export function DashboardClient({ stats }: { stats: DashboardStats }) {
             {t("lowStockItems")}
           </p>
           {stats.lowStockItems.length === 0 ? (
-            <p style={{ color: "var(--text-muted)", fontSize: "0.875rem" }}>{t("noLowStock")}</p>
+            <p style={{ color: "var(--text-muted)", fontSize: 14 }}>{t("noLowStock")}</p>
           ) : (
             <div style={{ display: "flex", flexDirection: "column" }}>
               {stats.lowStockItems.map((item, i) => (
@@ -375,17 +382,17 @@ export function DashboardClient({ stats }: { stats: DashboardStats }) {
                       ? "1px solid var(--border)"
                       : "none",
                     borderInlineStart: `3px solid ${item.stock === 0 ? "var(--danger)" : "var(--warning)"}`,
-                    paddingInlineStart: "0.75rem",
+                    paddingInlineStart: 12,
                   }}
                 >
                   <div>
-                    <div style={{ fontSize: "0.875rem", color: "var(--text)" }}>{item.name}</div>
-                    <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: 2 }}>
+                    <div style={{ fontSize: 14, color: "var(--text)" }}>{item.name}</div>
+                    <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 2 }}>
                       {item.portal}
                     </div>
                   </div>
                   <Badge variant={item.stock === 0 ? "danger" : "warning"}>
-                    {item.stock === 0 ? "Épuisé" : `${item.stock}`}
+                    {item.stock === 0 ? t("outOfStock") : `${item.stock}`}
                   </Badge>
                 </div>
               ))}

@@ -9,8 +9,16 @@ export default async function CostumesPOSPage({
   params: Promise<{ locale: string }>
 }) {
   const { locale }            = await params
-  const authSession           = await withModule("costumes", "pos")
-  const { items, lookupById } = await getItemsForPOS()
+  const authSession = await withModule("costumes", "pos")
+  let items: Awaited<ReturnType<typeof getItemsForPOS>>["items"] = []
+  let lookupById: Awaited<ReturnType<typeof getItemsForPOS>>["lookupById"] = {}
+  try {
+    const data = await getItemsForPOS()
+    items      = data.items
+    lookupById = data.lookupById
+  } catch (e) {
+    console.error("[costumes/pos] getItemsForPOS failed:", e)
+  }
 
   return (
     <CaisseGuard portal="costumes" locale={locale} role={authSession.user.role}>

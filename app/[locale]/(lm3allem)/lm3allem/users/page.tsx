@@ -2,6 +2,7 @@ import { getUsers } from "@/lib/actions/lm3allem/users"
 import { UsersClient } from "@/components/lm3allem/users/UsersClient"
 
 export default async function UsersPage() {
-  const users = await getUsers()
+  let users: Awaited<ReturnType<typeof getUsers>>
+  try { users = await getUsers() } catch { users = [] }
   return <UsersClient initialUsers={users} />
 }

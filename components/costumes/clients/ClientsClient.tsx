@@ -53,7 +53,7 @@ export function ClientsClient({ clients, role }: Props) {
   ]
 
   return (
-    <div style={{ padding: 8 }}>
+    <div>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
         <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.02em", margin: 0 }}>Clients</h1>
         <Button size="sm" icon={<Plus size={14} />} onClick={() => setCreating(true)}>Nouveau client</Button>

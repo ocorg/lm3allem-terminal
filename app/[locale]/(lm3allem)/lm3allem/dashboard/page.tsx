@@ -1,7 +1,25 @@
-import { getDashboardStats } from "@/lib/actions/lm3allem/dashboard"
+import { getDashboardStats, type DashboardStats } from "@/lib/actions/lm3allem/dashboard"
 import { DashboardClient } from "@/components/lm3allem/dashboard/DashboardClient"
 
+const EMPTY_STATS: DashboardStats = {
+  totalRevenue:       "0",
+  magazinRevenue:     "0",
+  costumesRevenue:    "0",
+  openRentals:        0,
+  activeUsers:        0,
+  openCaisseSessions: 0,
+  recentActivity:     [],
+  lowStockItems:      [],
+  revenueTrend:       [],
+}
+
 export default async function DashboardPage() {
-  const stats = await getDashboardStats()
+  let stats: DashboardStats
+  try {
+    stats = await getDashboardStats()
+  } catch (e) {
+    console.error("[dashboard] getDashboardStats failed:", e)
+    stats = EMPTY_STATS
+  }
   return <DashboardClient stats={stats} />
 }

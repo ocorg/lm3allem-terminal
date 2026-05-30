@@ -5,8 +5,9 @@
     "confirm": "تأكيد",
     "backspace": "حذف",
     "invalidPin": "رمز PIN غير صحيح. تحقق وأعد المحاولة.",
-    "lockedOut": "محاولات كثيرة. أعد المحاولة بعد {seconds} ثانية.",
-    "attemptsRemaining": "متبقي {count} محاولة(ات)"
+    "lockedOut": "تجاوزت الحد الأقصى للمحاولات. أعد المحاولة بعد {seconds} ثانية.",
+    "attemptsRemaining": "متبقي {count} محاولة(ات)",
+    "verifying": "جار التحقق..."
   },
   "portal": {
     "select": "اختر الفضاء الخاص بك",
@@ -82,7 +83,7 @@
       "lineTotal": "المجموع",
       "subtotal": "الإجمالي",
       "checkout": "تسجيل البيع",
-      "belowMinWarning": "بعض المقالات أقل من الحد الأدنى للسعر وتتطلب إذناً.",
+      "belowMinWarning": "بعض المنتجات أقل من الحد الأدنى للسعر وتتطلب إذناً.",
       "payment": "الدفع",
       "paymentMethod": "طريقة الدفع",
       "cash": "نقداً",
@@ -367,7 +368,9 @@
       "recentActivity": "النشاط الأخير",
       "lowStockItems": "مخزون منخفض",
       "noActivity": "لا يوجد نشاط حديث",
-      "noLowStock": "لا توجد مقالات ذات مخزون منخفض",
+      "noLowStock": "لا توجد منتجات ذات مخزون منخفض",
+      "outOfStock": "نفد المخزون",
+      "noData": "لا توجد بيانات",
       "viewAll": "عرض الكل",
       "revenueTrend": "رقم المعاملات — آخر 7 أيام",
       "revenueSplit": "توزيع رقم المعاملات الإجمالي"
@@ -395,6 +398,7 @@
     "caisse": {
       "title": "سجل الصندوق",
       "allPortals": "جميع البوابات",
+      "portalColumn": "البوابة",
       "allStatuses": "جميع الحالات",
       "open": "مفتوح",
       "closed": "مغلق",
@@ -438,6 +442,7 @@
       "deactivate": "تعطيل",
       "activate": "تفعيل",
       "confirmDeactivate": "هل تريد تعطيل هذا المستخدم؟",
+      "confirmActivate": "تفعيل {name} ؟",
       "name": "الاسم",
       "role": "الدور",
       "portals": "البوابات",
@@ -485,11 +490,17 @@
       "editValue": "تعديل",
       "active": "نشط",
       "inactive": "غير نشط",
+      "activate": "تفعيل",
+      "deactivate": "تعطيل",
       "noCategories": "لا توجد فئات",
       "noValues": "لا توجد قيم في هذه الفئة",
       "labelFr": "التسمية (FR)",
       "labelAr": "التسمية (AR)",
-      "selectCategory": "اختر فئة"
+      "selectCategory": "اختر فئة",
+      "updateSuccess": "تم تحديث القيمة",
+      "addSuccess": "تمت إضافة القيمة",
+      "saveError": "خطأ أثناء الحفظ",
+      "reorderError": "خطأ أثناء إعادة الترتيب"
     },
     "settings": {
       "title": "الإعدادات",
@@ -500,7 +511,8 @@
       "defaultStaffPermissions": "الصلاحيات الافتراضية للموظفين",
       "save": "حفظ",
       "saved": "تم حفظ الإعدادات",
-      "maintenanceWarning": "تفعيل وضع الصيانة سيحجب جميع الموظفين."
+      "maintenanceWarning": "تفعيل وضع الصيانة سيحجب جميع الموظفين.",
+      "saveError": "خطأ أثناء الحفظ"
     },
     "notifications": {
       "title": "الإشعارات",
@@ -512,8 +524,8 @@
       "daysAgo": "منذ {count} يوم",
       "typeLabels": {
         "rental": "تأجير",
-        "caisse_open": "صندوق",
-        "caisse_close": "صندوق",
+        "caisse_open": "فتح الصندوق",
+        "caisse_close": "إغلاق الصندوق",
         "low_stock": "مخزون"
       }
     },
@@ -536,8 +548,8 @@
       "sessionOpen": "مفتوح",
       "digestButton": "إرسال ملخص المخزون",
       "refresh": "تحديث",
-      "digestSent": "تم الإرسال — {count} مقال(ات)",
-      "digestEmpty": "لا توجد مقالات بمخزون منخفض",
+      "digestSent": "تم الإرسال — {count} منتج(ات)",
+      "digestEmpty": "لا توجد منتجات بمخزون منخفض",
       "digestError": "خطأ في إرسال الملخص"
     }
   },
@@ -581,8 +593,8 @@
   },
   "belowMin": {
     "title": "مطلوب إذن",
-    "subtitle": "المقالات التالية أقل من الحد الأدنى للسعر. يلزم إذن مدير.",
-    "item": "المقال",
+    "subtitle": "المنتجات التالية أقل من الحد الأدنى للسعر. يلزم الحصول على إذن من المسؤول.",
+    "item": "المنتج",
     "requestedPrice": "السعر المطلوب",
     "minPrice": "الحد الأدنى",
     "enterAdminPin": "أدخل رمز PIN الخاص بمدير للموافقة.",

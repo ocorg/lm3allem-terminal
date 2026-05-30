@@ -40,7 +40,7 @@ const STATUS_VARIANT: Record<RentalStatus, "primary" | "warning" | "success" | "
   in_preparation:   "warning",
   ready_for_pickup: "warning",
   picked_up:        "success",
-  returned:         "danger",
+  returned:         "success",
   cleaning:         "default",
   available:        "success",
 }
@@ -95,7 +95,7 @@ export function RentalsClient({ rentals, costumeItems, clients, measurementCateg
   ]
 
   return (
-    <div style={{ padding: 8 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
       {/* Header */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
         <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.02em", margin: 0 }}>Locations</h1>

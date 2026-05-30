@@ -122,7 +122,7 @@ export default function Sidebar({
           transform: mobileOpen
             ? "translateX(0)"
             : (isRTL ? "translateX(100%)" : "translateX(-100%)"),
-          boxShadow: mobileOpen ? "4px 0 32px rgba(0,0,0,0.35)" : "none",
+          boxShadow: mobileOpen ? `${isRTL ? "-4px" : "4px"} 0 32px rgba(0,0,0,0.35)` : "none",
         } : {}),
       }}
     >
@@ -282,7 +282,7 @@ function NavLink({ href, label, icon: Icon, isActive, collapsed, onClick }: NavL
         color: isActive ? "var(--primary)" : "var(--text-muted)",
         textDecoration: "none",
         borderInlineStart: isActive ? "3px solid var(--primary)" : "3px solid transparent",
-        background: isActive ? "rgba(212,148,31,0.06)" : "transparent",
+        background: isActive ? "color-mix(in srgb, var(--primary) 6%, transparent)" : "transparent",
         transition: "all 150ms ease",
         whiteSpace: "nowrap",
         overflow: "hidden",

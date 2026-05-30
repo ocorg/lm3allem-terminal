@@ -1,5 +1,10 @@
 import { redirect } from "next/navigation"
-import { auth } from "@/lib/auth/auth"
+import { auth, signOut } from "@/lib/auth/auth"
+
+async function handleSignOut(locale: string) {
+  "use server"
+  await signOut({ redirectTo: `/${locale}` })
+}
 import { getTranslations } from "next-intl/server"
 import Link from "next/link"
 import type { Portal } from "@prisma/client"
@@ -35,6 +40,40 @@ export default async function SelectPortalPage({
   // Staff with exactly 1 portal — redirect directly
   if (!isPrivileged && portalsToShow.length === 1) {
     redirect(`/${locale}/${portalsToShow[0]}`)
+  }
+
+  // Staff with no portal access — show a clear error instead of blank screen
+  if (!isPrivileged && portalsToShow.length === 0) {
+    return (
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          minHeight: "100vh",
+          background: "var(--bg)",
+          gap: 16,
+          padding: 24,
+          textAlign: "center",
+        }}
+      >
+        <p style={{ fontSize: 13, color: "var(--text-muted)", letterSpacing: "0.1em", textTransform: "uppercase" }}>
+          Lm3allem Terminal
+        </p>
+        <p style={{ fontSize: 18, fontWeight: 600, color: "var(--text)", margin: 0 }}>
+          Aucun accès configuré
+        </p>
+        <p style={{ fontSize: 14, color: "var(--text-muted)", maxWidth: 320, lineHeight: 1.6, margin: 0 }}>
+          Votre compte n&apos;a accès à aucun portail. Contactez un administrateur pour configurer vos permissions.
+        </p>
+        <form action={handleSignOut.bind(null, locale)}>
+          <button type="submit" style={{ marginTop: 8, padding: "8px 20px", background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: 8, color: "var(--text-muted)", fontSize: 13, cursor: "pointer" }}>
+            Se déconnecter
+          </button>
+        </form>
+      </div>
+    )
   }
 
   return (

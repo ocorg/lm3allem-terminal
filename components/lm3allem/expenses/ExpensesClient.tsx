@@ -19,6 +19,12 @@ import {
 } from "@/lib/actions/lm3allem/expenses"
 import type { SerializedCategory, SerializedLookupValue } from "@/lib/actions/lm3allem/options"
 
+const PORTAL_VARIANT: Record<string, "primary" | "info" | "success"> = {
+  magazin:  "primary",
+  costumes: "info",
+  lm3allem: "success",
+}
+
 const PORTALS = ["magazin", "costumes", "lm3allem"] as const
 
 interface Props {
@@ -96,10 +102,13 @@ export function ExpensesClient({ initialExpenses, expenseValues }: Props) {
   }
 
   return (
-    <div style={{ padding: "1.5rem", display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+    <div style={{ padding: 24, display: "flex", flexDirection: "column", gap: 24 }}>
       {modal}
 
-      <div style={{ display: "flex", justifyContent: "flex-end" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.02em", margin: 0 }}>
+          {t("title")}
+        </h1>
         <Button variant="primary" onClick={openAdd}>{t("add")}</Button>
       </div>
 
@@ -107,11 +116,11 @@ export function ExpensesClient({ initialExpenses, expenseValues }: Props) {
         {initialExpenses.length === 0
           ? <p style={{ padding: "2rem", textAlign: "center", color: "var(--text-muted)" }}>{t("noExpenses")}</p>
           : (
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.875rem" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
               <thead>
                 <tr style={{ background: "var(--surface-2)" }}>
                   {[t("date"), t("portal"), t("category"), t("description"), t("amount"), t("recordedBy"), ""].map((h, i) => (
-                    <th key={i} style={{ padding: "0.75rem 1rem", textAlign: "start", fontWeight: 600, fontSize: "0.75rem", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.04em", borderBottom: "1px solid var(--border)" }}>
+                    <th key={i} style={{ padding: "12px 16px", textAlign: "start", fontWeight: 600, fontSize: 12, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.04em", borderBottom: "1px solid var(--border)" }}>
                       {h}
                     </th>
                   ))}
@@ -120,14 +129,14 @@ export function ExpensesClient({ initialExpenses, expenseValues }: Props) {
               <tbody>
                 {initialExpenses.map((e, i) => (
                   <tr key={e.id} style={{ borderBottom: i < initialExpenses.length - 1 ? "1px solid var(--border)" : "none" }}>
-                    <td style={{ padding: "0.75rem 1rem", color: "var(--text-muted)" }}>{formatDate(e.date)}</td>
-                    <td style={{ padding: "0.75rem 1rem" }}><Badge variant="default">{e.portal}</Badge></td>
-                    <td style={{ padding: "0.75rem 1rem" }}>{e.categoryLabel_fr}</td>
-                    <td style={{ padding: "0.75rem 1rem" }}>{e.description}</td>
-                    <td style={{ padding: "0.75rem 1rem", fontWeight: 600 }}>{formatMAD(e.amount)}</td>
-                    <td style={{ padding: "0.75rem 1rem", color: "var(--text-muted)" }}>{e.recordedByName}</td>
-                    <td style={{ padding: "0.75rem 1rem" }}>
-                      <div style={{ display: "flex", gap: "0.5rem" }}>
+                    <td style={{ padding: "12px 16px", color: "var(--text-muted)" }}>{formatDate(e.date)}</td>
+                    <td style={{ padding: "12px 16px" }}><Badge variant={PORTAL_VARIANT[e.portal] ?? "default"}>{e.portal}</Badge></td>
+                    <td style={{ padding: "12px 16px" }}>{e.categoryLabel_fr}</td>
+                    <td style={{ padding: "12px 16px" }}>{e.description}</td>
+                    <td style={{ padding: "12px 16px", fontWeight: 600 }}>{formatMAD(e.amount)}</td>
+                    <td style={{ padding: "12px 16px", color: "var(--text-muted)" }}>{e.recordedByName}</td>
+                    <td style={{ padding: "12px 16px" }}>
+                      <div style={{ display: "flex", gap: 8 }}>
                         <Button variant="ghost" size="sm" onClick={() => openEdit(e)}>{t("edit")}</Button>
                         <Button variant="danger" size="sm" onClick={() => handleDelete(e.id)}>{t("delete")}</Button>
                       </div>
@@ -141,7 +150,7 @@ export function ExpensesClient({ initialExpenses, expenseValues }: Props) {
       </div>
 
       <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={editTarget ? t("edit") : t("add")}>
-        <div style={{ display: "flex", flexDirection: "column", gap: "1rem", minWidth: "360px" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 16, width: "100%" }}>
           <Select
             label={t("portal")}
             value={form.portal}
@@ -161,7 +170,7 @@ export function ExpensesClient({ initialExpenses, expenseValues }: Props) {
           <Input label={t("date")} type="date" value={form.date} onChange={(e) => setForm((f) => ({ ...f, date: e.target.value }))} />
           <Textarea label={t("description")} value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} />
           <Input label={t("receiptUrl")} value={form.receiptUrl ?? ""} onChange={(e) => setForm((f) => ({ ...f, receiptUrl: e.target.value || undefined }))} />
-          <div style={{ display: "flex", gap: "0.75rem", justifyContent: "flex-end" }}>
+          <div style={{ display: "flex", gap: 12, justifyContent: "flex-end" }}>
             <Button variant="ghost" onClick={() => setModalOpen(false)}>Annuler</Button>
             <Button variant="primary" onClick={handleSave} loading={isPending}>Enregistrer</Button>
           </div>

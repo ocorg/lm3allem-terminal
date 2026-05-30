@@ -55,7 +55,7 @@ export function ProductFormModal({ isOpen, mode, product, categories, sizes, col
       setNameFr(""); setNameAr(""); setCatId(""); setBuying(""); setSelling(""); setMinSell(""); setImages([]); setVariants([])
     }
     setErrors({})
-  }, [isOpen])
+  }, [isOpen, product?.id, mode])
 
   const validate = () => {
     const e: Record<string, string> = {}

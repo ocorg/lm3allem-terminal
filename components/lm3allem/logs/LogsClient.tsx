@@ -6,6 +6,12 @@ import { Select } from "@/components/ui/Select"
 import { Input } from "@/components/ui/Input"
 import { Button } from "@/components/ui/Button"
 import { Badge } from "@/components/ui/Badge"
+
+const PORTAL_VARIANT: Record<string, "primary" | "info" | "success"> = {
+  magazin:  "primary",
+  costumes: "info",
+  lm3allem: "success",
+}
 import { formatDate } from "@/lib/utils/date"
 import type { LogsResult } from "@/lib/actions/lm3allem/logs"
 
@@ -40,10 +46,14 @@ export function LogsClient({ result, actors, currentFilters }: Props) {
   const totalPages = Math.ceil(result.total / result.pageSize)
 
   return (
-    <div style={{ padding: "1.5rem", display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+    <div style={{ padding: 24, display: "flex", flexDirection: "column", gap: 24 }}>
+
+      <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.02em", margin: 0 }}>
+        {t("title")}
+      </h1>
 
       {/* Filters */}
-      <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap", alignItems: "flex-end", background: "var(--surface)", padding: "1rem", borderRadius: "8px", border: "1px solid var(--border)" }}>
+      <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "flex-end", background: "var(--surface)", padding: 16, borderRadius: "8px", border: "1px solid var(--border)" }}>
         <Select
           label={t("allPortals")}
           value={currentFilters.portal ?? ""}
@@ -84,11 +94,11 @@ export function LogsClient({ result, actors, currentFilters }: Props) {
         {result.logs.length === 0
           ? <p style={{ padding: "2rem", textAlign: "center", color: "var(--text-muted)" }}>{t("noLogs")}</p>
           : (
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.875rem" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
               <thead>
                 <tr style={{ background: "var(--surface-2)" }}>
                   {[t("at"), t("by"), t("action"), t("entity"), "Portal"].map((h, i) => (
-                    <th key={i} style={{ padding: "0.625rem 1rem", textAlign: "start", fontWeight: 600, fontSize: "0.7rem", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.04em", borderBottom: "1px solid var(--border)" }}>
+                    <th key={i} style={{ padding: "10px 16px", textAlign: "start", fontWeight: 600, fontSize: 11, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.04em", borderBottom: "1px solid var(--border)" }}>
                       {h}
                     </th>
                   ))}
@@ -97,13 +107,13 @@ export function LogsClient({ result, actors, currentFilters }: Props) {
               <tbody>
                 {result.logs.map((l, i) => (
                   <tr key={l.id} style={{ borderBottom: i < result.logs.length - 1 ? "1px solid var(--border)" : "none" }}>
-                    <td style={{ padding: "0.625rem 1rem", color: "var(--text-muted)", whiteSpace: "nowrap" }}>{formatDate(l.createdAt)}</td>
-                    <td style={{ padding: "0.625rem 1rem", fontWeight: 500 }}>{l.actorName}</td>
-                    <td style={{ padding: "0.625rem 1rem" }}>
-                      <code style={{ fontSize: "0.75rem", background: "var(--surface-2)", padding: "2px 6px", borderRadius: "4px", color: "var(--text)" }}>{l.action}</code>
+                    <td style={{ padding: "10px 16px", color: "var(--text-muted)", whiteSpace: "nowrap" }}>{formatDate(l.createdAt)}</td>
+                    <td style={{ padding: "10px 16px", fontWeight: 500 }}>{l.actorName}</td>
+                    <td style={{ padding: "10px 16px" }}>
+                      <code style={{ fontSize: 12, background: "var(--surface-2)", padding: "2px 6px", borderRadius: "4px", color: "var(--text)" }}>{l.action}</code>
                     </td>
-                    <td style={{ padding: "0.625rem 1rem", color: "var(--text-muted)" }}>{l.entityType} <span style={{ color: "var(--text-muted)", fontSize: "0.7rem" }}>#{l.entityId.slice(-6)}</span></td>
-                    <td style={{ padding: "0.625rem 1rem" }}><Badge variant="default">{l.portal}</Badge></td>
+                    <td style={{ padding: "10px 16px", color: "var(--text-muted)" }}>{l.entityType} <span style={{ color: "var(--text-muted)", fontSize: 11 }}>#{l.entityId.slice(-6)}</span></td>
+                    <td style={{ padding: "10px 16px" }}><Badge variant={PORTAL_VARIANT[l.portal] ?? "default"}>{l.portal}</Badge></td>
                   </tr>
                 ))}
               </tbody>
@@ -114,11 +124,24 @@ export function LogsClient({ result, actors, currentFilters }: Props) {
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div style={{ display: "flex", gap: "0.5rem", justifyContent: "center", flexWrap: "wrap" }}>
+        <div style={{ display: "flex", gap: 8, justifyContent: "center", flexWrap: "wrap", alignItems: "center" }}>
           <Button variant="secondary" size="sm" onClick={() => goPage(result.page - 1)} disabled={result.page <= 1}>←</Button>
-          {Array.from({ length: Math.min(totalPages, 10) }, (_, i) => i + 1).map((p) => (
-            <Button key={p} variant={p === result.page ? "primary" : "secondary"} size="sm" onClick={() => goPage(p)}>{p}</Button>
-          ))}
+          {Array.from({ length: totalPages }, (_, i) => i + 1)
+            .filter(p =>
+              p === 1 ||
+              p === totalPages ||
+              Math.abs(p - result.page) <= 2
+            )
+            .reduce<(number | "…")[]>((acc, p, i, arr) => {
+              if (i > 0 && typeof arr[i - 1] === "number" && (p as number) - (arr[i - 1] as number) > 1) acc.push("…")
+              acc.push(p)
+              return acc
+            }, [])
+            .map((p, i) =>
+              p === "…"
+                ? <span key={`ellipsis-${i}`} style={{ color: "var(--text-muted)", fontSize: 13, padding: "0 4px" }}>…</span>
+                : <Button key={p} variant={p === result.page ? "primary" : "secondary"} size="sm" onClick={() => goPage(p as number)}>{p}</Button>
+            )}
           <Button variant="secondary" size="sm" onClick={() => goPage(result.page + 1)} disabled={result.page >= totalPages}>→</Button>
         </div>
       )}

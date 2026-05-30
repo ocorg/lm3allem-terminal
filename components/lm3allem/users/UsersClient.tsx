@@ -29,7 +29,9 @@ export function UsersClient({ initialUsers }: Props) {
   const t = useTranslations("lm3allem.users")
   const router = useRouter()
   const { confirm, modal } = useConfirm()
-  const [isPending, startTransition] = useTransition()
+  const [isSaving,   startSave]   = useTransition()
+  const [isToggling, startToggle] = useTransition()
+  const [isResetting, startReset] = useTransition()
 
   const [formOpen, setFormOpen]   = useState(false)
   const [pinModal, setPinModal]   = useState<{ name: string; pin: string } | null>(null)
@@ -66,7 +68,7 @@ export function UsersClient({ initialUsers }: Props) {
   }
 
   function handleSave() {
-    startTransition(async () => {
+    startSave(async () => {
       try {
         if (editTarget) {
           await updateUser({ id: editTarget.id, ...form })
@@ -87,9 +89,9 @@ export function UsersClient({ initialUsers }: Props) {
 
   async function handleToggleActive(u: SerializedUser) {
     if (u.role === "superadmin") return
-    const ok = await confirm({ title: u.isActive ? t("confirmDeactivate") : `Activer ${u.name} ?`, message: "", variant: u.isActive ? "danger" : "primary" })
+    const ok = await confirm({ title: u.isActive ? t("confirmDeactivate") : t("confirmActivate", { name: u.name }), message: "", variant: u.isActive ? "danger" : "primary" })
     if (!ok) return
-    startTransition(async () => {
+    startToggle(async () => {
       try {
         await toggleUserActive(u.id)
         toast(u.isActive ? t("deactivated") : t("activated"), "success")
@@ -103,7 +105,7 @@ export function UsersClient({ initialUsers }: Props) {
   async function handleResetPin(u: SerializedUser) {
     const ok = await confirm({ title: `Réinitialiser le PIN de ${u.name} ?`, message: "", variant: "primary" })
     if (!ok) return
-    startTransition(async () => {
+    startReset(async () => {
       try {
         const { plainPin } = await resetUserPin(u.id)
         setPinModal({ name: u.name, pin: plainPin })
@@ -116,7 +118,7 @@ export function UsersClient({ initialUsers }: Props) {
   const isSuperadmin = (u: SerializedUser) => u.role === "superadmin"
 
   return (
-    <div style={{ padding: "1.5rem", display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+    <div style={{ padding: 24, display: "flex", flexDirection: "column", gap: 24 }}>
       {modal}
 
       <div style={{ display: "flex", justifyContent: "flex-end" }}>
@@ -124,11 +126,11 @@ export function UsersClient({ initialUsers }: Props) {
       </div>
 
       <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "8px", overflow: "hidden" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.875rem" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
           <thead>
             <tr style={{ background: "var(--surface-2)" }}>
               {[t("name"), t("role"), t("portals"), t("active"), t("actionsHeader")].map((h, i) => (
-                <th key={i} style={{ padding: "0.75rem 1rem", textAlign: "start", fontWeight: 600, fontSize: "0.75rem", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.04em", borderBottom: "1px solid var(--border)" }}>
+                <th key={i} style={{ padding: "12px 16px", textAlign: "start", fontWeight: 600, fontSize: 12, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.04em", borderBottom: "1px solid var(--border)" }}>
                   {h}
                 </th>
               ))}
@@ -137,26 +139,26 @@ export function UsersClient({ initialUsers }: Props) {
           <tbody>
             {initialUsers.map((u, i) => (
               <tr key={u.id} style={{ borderBottom: i < initialUsers.length - 1 ? "1px solid var(--border)" : "none", opacity: u.isActive ? 1 : 0.55 }}>
-                <td style={{ padding: "0.75rem 1rem", fontWeight: 600 }}>{u.name}</td>
-                <td style={{ padding: "0.75rem 1rem" }}>
+                <td style={{ padding: "12px 16px", fontWeight: 600 }}>{u.name}</td>
+                <td style={{ padding: "12px 16px" }}>
                   <Badge variant={u.role === "superadmin" ? "primary" : u.role === "admin" ? "info" : "default"}>
                     {t(`roles.${u.role}`)}
                   </Badge>
                 </td>
-                <td style={{ padding: "0.75rem 1rem" }}>
-                  <div style={{ display: "flex", gap: "0.25rem", flexWrap: "wrap" }}>
+                <td style={{ padding: "12px 16px" }}>
+                  <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
                     {u.portalAccess.map((p) => <Badge key={p} variant="default">{p}</Badge>)}
                   </div>
                 </td>
-                <td style={{ padding: "0.75rem 1rem" }}>
+                <td style={{ padding: "12px 16px" }}>
                   <Badge variant={u.isActive ? "success" : "default"}>{u.isActive ? t("active") : t("inactive")}</Badge>
                 </td>
-                <td style={{ padding: "0.75rem 1rem" }}>
-                  <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+                <td style={{ padding: "12px 16px" }}>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                     <Button variant="ghost" size="sm" onClick={() => openEdit(u)}>{t("edit")}</Button>
                     <Button variant="ghost" size="sm" onClick={() => handleResetPin(u)}>{t("resetPin")}</Button>
                     {!isSuperadmin(u) && (
-                      <Button variant={u.isActive ? "danger" : "primary"} size="sm" onClick={() => handleToggleActive(u)} loading={isPending}>
+                      <Button variant={u.isActive ? "danger" : "primary"} size="sm" onClick={() => handleToggleActive(u)} loading={isToggling}>
                         {u.isActive ? t("deactivate") : t("activate")}
                       </Button>
                     )}
@@ -170,7 +172,7 @@ export function UsersClient({ initialUsers }: Props) {
 
       {/* Create / Edit Modal */}
       <Modal isOpen={formOpen} onClose={() => setFormOpen(false)} title={editTarget ? t("edit") : t("add")}>
-        <div style={{ display: "flex", flexDirection: "column", gap: "1rem", minWidth: "400px" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 16, width: "100%" }}>
           <Input label={t("name")} value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} />
           {!editTarget && (
             <Select
@@ -185,10 +187,10 @@ export function UsersClient({ initialUsers }: Props) {
           )}
 
           <div>
-            <p style={{ fontSize: "0.75rem", fontWeight: 600, color: "var(--text-muted)", marginBottom: "0.5rem", textTransform: "uppercase" }}>{t("portals")}</p>
-            <div style={{ display: "flex", gap: "0.5rem" }}>
+            <p style={{ fontSize: 12, fontWeight: 600, color: "var(--text-muted)", marginBottom: 8, textTransform: "uppercase" }}>{t("portals")}</p>
+            <div style={{ display: "flex", gap: 8 }}>
               {ALL_PORTALS.map((p) => (
-                <button key={p} onClick={() => togglePortal(p)} style={{ padding: "0.25rem 0.75rem", borderRadius: "4px", border: "1px solid var(--border)", background: form.portalAccess.includes(p) ? "var(--primary)" : "var(--surface-2)", color: form.portalAccess.includes(p) ? "#000" : "var(--text)", cursor: "pointer", fontSize: "0.8rem" }}>
+                <button key={p} onClick={() => togglePortal(p)} style={{ padding: "0.25rem 0.75rem", borderRadius: "4px", border: "1px solid var(--border)", background: form.portalAccess.includes(p) ? "var(--primary)" : "var(--surface-2)", color: form.portalAccess.includes(p) ? "#000" : "var(--text)", cursor: "pointer", fontSize: 13 }}>
                   {p}
                 </button>
               ))}
@@ -196,21 +198,21 @@ export function UsersClient({ initialUsers }: Props) {
           </div>
 
           <div>
-            <p style={{ fontSize: "0.75rem", fontWeight: 600, color: "var(--text-muted)", marginBottom: "0.5rem", textTransform: "uppercase" }}>{t("permissions")}</p>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
+            <p style={{ fontSize: 12, fontWeight: 600, color: "var(--text-muted)", marginBottom: 8, textTransform: "uppercase" }}>{t("permissions")}</p>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
               <div>
-                <p style={{ fontSize: "0.7rem", color: "var(--text-muted)", marginBottom: "0.25rem" }}>MAGAZIN</p>
+                <p style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 4 }}>MAGAZIN</p>
                 {MAG_MODULES.map((m) => (
-                  <label key={m} style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.8rem", marginBottom: "0.25rem", cursor: "pointer" }}>
+                  <label key={m} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, marginBottom: 4, cursor: "pointer" }}>
                     <input type="checkbox" checked={!!form.modulePermissions[m]} onChange={() => toggleModule(m)} />
                     {m}
                   </label>
                 ))}
               </div>
               <div>
-                <p style={{ fontSize: "0.7rem", color: "var(--text-muted)", marginBottom: "0.25rem" }}>COSTUMES</p>
+                <p style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 4 }}>COSTUMES</p>
                 {COS_MODULES.map((m) => (
-                  <label key={m} style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.8rem", marginBottom: "0.25rem", cursor: "pointer" }}>
+                  <label key={m} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, marginBottom: 4, cursor: "pointer" }}>
                     <input type="checkbox" checked={!!form.modulePermissions[m]} onChange={() => toggleModule(m)} />
                     {m}
                   </label>
@@ -219,9 +221,9 @@ export function UsersClient({ initialUsers }: Props) {
             </div>
           </div>
 
-          <div style={{ display: "flex", gap: "0.75rem", justifyContent: "flex-end" }}>
+          <div style={{ display: "flex", gap: 12, justifyContent: "flex-end" }}>
             <Button variant="ghost" onClick={() => setFormOpen(false)}>Annuler</Button>
-            <Button variant="primary" onClick={handleSave} loading={isPending}>Enregistrer</Button>
+            <Button variant="primary" onClick={handleSave} loading={isSaving}>Enregistrer</Button>
           </div>
         </div>
       </Modal>
@@ -229,13 +231,22 @@ export function UsersClient({ initialUsers }: Props) {
       {/* PIN Display Modal */}
       <Modal isOpen={!!pinModal} onClose={() => setPinModal(null)} title={t("pinGenerated")}>
         {pinModal && (
-          <div style={{ display: "flex", flexDirection: "column", gap: "1rem", alignItems: "center", padding: "1rem", minWidth: "280px" }}>
-            <p style={{ color: "var(--text-muted)", fontSize: "0.875rem" }}>{pinModal.name}</p>
-            <div style={{ fontSize: "2.5rem", fontWeight: 700, letterSpacing: "0.4em", color: "var(--primary)", fontVariantNumeric: "tabular-nums", padding: "0.5rem 1rem", background: "var(--surface-2)", borderRadius: "8px", border: "1px solid var(--border)" }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 16, alignItems: "center", padding: 16, minWidth: "280px" }}>
+            <p style={{ color: "var(--text-muted)", fontSize: 14 }}>{pinModal.name}</p>
+            <div style={{ fontSize: 40, fontWeight: 700, letterSpacing: "0.4em", color: "var(--primary)", fontVariantNumeric: "tabular-nums", padding: "8px 16px", background: "var(--surface-2)", borderRadius: "8px", border: "1px solid var(--border)" }}>
               {pinModal.pin}
             </div>
-            <p style={{ color: "var(--warning)", fontSize: "0.8rem", textAlign: "center" }}>{t("pinWarning")}</p>
-            <Button variant="primary" onClick={() => setPinModal(null)}>OK, noté</Button>
+            <p style={{ color: "var(--warning)", fontSize: 13, textAlign: "center" }}>{t("pinWarning")}</p>
+            <div style={{ display: "flex", gap: 8 }}>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => { navigator.clipboard.writeText(pinModal.pin).catch(() => {}) }}
+              >
+                Copier le PIN
+              </Button>
+              <Button variant="primary" onClick={() => setPinModal(null)}>OK, noté</Button>
+            </div>
           </div>
         )}
       </Modal>

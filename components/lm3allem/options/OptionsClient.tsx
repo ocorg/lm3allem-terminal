@@ -58,10 +58,10 @@ export function OptionsClient({ categories }: Props) {
           const created = await createLookupValue({ categoryId: selectedCat.id, ...form })
           setValues((prev) => [...prev, created])
         }
-        toast(editTarget ? "Valeur mise à jour" : "Valeur ajoutée", "success")
+        toast(editTarget ? t("updateSuccess") : t("addSuccess"), "success")
         setModalOpen(false)
       } catch {
-        toast("Erreur lors de l'enregistrement", "error")
+        toast(t("saveError"), "error")
       }
     })
   }
@@ -72,7 +72,7 @@ export function OptionsClient({ categories }: Props) {
         await toggleLookupValueActive(v.id)
         setValues((prev) => prev.map((item) => item.id === v.id ? { ...item, isActive: !item.isActive } : item))
       } catch {
-        toast("Erreur", "error")
+        toast(t("saveError"), "error")
       }
     })
   }
@@ -89,29 +89,34 @@ export function OptionsClient({ categories }: Props) {
       try {
         await reorderLookupValues(reordered.map((v) => v.id))
       } catch {
-        toast("Erreur lors du réordonnancement", "error")
+        toast(t("reorderError"), "error")
       }
     })
   }
 
   return (
-    <div style={{ padding: "1.5rem", display: "grid", gridTemplateColumns: "280px 1fr", gap: "1.5rem", alignItems: "start" }}>
+    <div style={{ padding: 24, display: "grid", gridTemplateColumns: "280px 1fr", gap: 24, alignItems: "start" }}>
+
+      {/* Title — spans both columns */}
+      <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.02em", margin: 0, gridColumn: "1 / -1" }}>
+        {t("title")}
+      </h1>
 
       {/* Categories List */}
       <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "8px", overflow: "hidden" }}>
-        <p style={{ padding: "0.875rem 1rem", margin: 0, fontSize: "0.75rem", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--text-muted)", borderBottom: "1px solid var(--border)", background: "var(--surface-2)" }}>
+        <p style={{ padding: "14px 16px", margin: 0, fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--text-muted)", borderBottom: "1px solid var(--border)", background: "var(--surface-2)" }}>
           {t("categories")}
         </p>
         {categories.length === 0
-          ? <p style={{ padding: "1rem", color: "var(--text-muted)", fontSize: "0.875rem" }}>{t("noCategories")}</p>
+          ? <p style={{ padding: 16, color: "var(--text-muted)", fontSize: 14 }}>{t("noCategories")}</p>
           : categories.map((cat) => (
             <button key={cat.id} onClick={() => selectCategory(cat)} style={{
               display: "flex", justifyContent: "space-between", alignItems: "center",
-              width: "100%", padding: "0.75rem 1rem", textAlign: "start", cursor: "pointer",
+              width: "100%", padding: "12px 16px", textAlign: "start", cursor: "pointer",
               background: selectedCat?.id === cat.id ? "var(--surface-2)" : "transparent",
               border: "none", borderBottom: "1px solid var(--border)",
               borderInlineStart: selectedCat?.id === cat.id ? "3px solid var(--primary)" : "3px solid transparent",
-              color: "var(--text)", fontSize: "0.875rem",
+              color: "var(--text)", fontSize: 14,
             }}>
               <span>{cat.name_fr}</span>
               <Badge variant="default">{cat.valueCount}</Badge>
@@ -122,8 +127,8 @@ export function OptionsClient({ categories }: Props) {
 
       {/* Values Panel */}
       <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "8px", overflow: "hidden" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0.875rem 1rem", borderBottom: "1px solid var(--border)", background: "var(--surface-2)" }}>
-          <p style={{ margin: 0, fontSize: "0.75rem", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--text-muted)" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "14px 16px", borderBottom: "1px solid var(--border)", background: "var(--surface-2)" }}>
+          <p style={{ margin: 0, fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--text-muted)" }}>
             {selectedCat ? selectedCat.name_fr : t("selectCategory")}
           </p>
           {selectedCat && (
@@ -141,23 +146,27 @@ export function OptionsClient({ categories }: Props) {
                 <div>
                   {values.map((v, i) => (
                     <div key={v.id} style={{
-                      display: "flex", alignItems: "center", gap: "0.75rem",
-                      padding: "0.625rem 1rem",
+                      display: "flex", alignItems: "center", gap: 12,
+                      padding: "10px 16px",
                       borderBottom: i < values.length - 1 ? "1px solid var(--border)" : "none",
                       opacity: v.isActive ? 1 : 0.5,
                     }}>
                       <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
-                        <button onClick={() => moveItem(i, -1)} disabled={i === 0} style={{ cursor: "pointer", background: "none", border: "none", color: "var(--text-muted)", fontSize: "0.65rem", lineHeight: 1, padding: "1px" }}>▲</button>
-                        <button onClick={() => moveItem(i, 1)} disabled={i === values.length - 1} style={{ cursor: "pointer", background: "none", border: "none", color: "var(--text-muted)", fontSize: "0.65rem", lineHeight: 1, padding: "1px" }}>▼</button>
+                        <button onClick={() => moveItem(i, -1)} disabled={i === 0} style={{ cursor: "pointer", background: "none", border: "none", color: "var(--text-muted)", fontSize: 10, lineHeight: 1, padding: "1px" }}>▲</button>
+                        <button onClick={() => moveItem(i, 1)} disabled={i === values.length - 1} style={{ cursor: "pointer", background: "none", border: "none", color: "var(--text-muted)", fontSize: 10, lineHeight: 1, padding: "1px" }}>▼</button>
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: "0.875rem", color: "var(--text)" }}>{v.label_fr}</div>
-                        <div style={{ fontSize: "0.75rem", color: "var(--text-muted)" }}>{v.label_ar}</div>
+                        <div style={{ fontSize: 14, color: "var(--text)" }}>{v.label_fr}</div>
+                        <div style={{ fontSize: 12, color: "var(--text-muted)" }}>{v.label_ar}</div>
                       </div>
                       <Badge variant={v.isActive ? "success" : "default"}>{v.isActive ? t("active") : t("inactive")}</Badge>
                       <Button variant="ghost" size="sm" onClick={() => openEdit(v)}>{t("editValue")}</Button>
-                      <Button variant="ghost" size="sm" onClick={() => handleToggle(v)}>
-                        {v.isActive ? t("inactive") : t("active")}
+                      <Button
+                        variant={v.isActive ? "danger" : "secondary"}
+                        size="sm"
+                        onClick={() => handleToggle(v)}
+                      >
+                        {v.isActive ? t("deactivate") : t("activate")}
                       </Button>
                     </div>
                   ))}
@@ -167,10 +176,10 @@ export function OptionsClient({ categories }: Props) {
       </div>
 
       <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={editTarget ? t("editValue") : t("addValue")}>
-        <div style={{ display: "flex", flexDirection: "column", gap: "1rem", minWidth: "320px" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 16, minWidth: "320px" }}>
           <Input label={t("labelFr")} value={form.label_fr} onChange={(e) => setForm((f) => ({ ...f, label_fr: e.target.value }))} />
           <Input label={t("labelAr")} value={form.label_ar} onChange={(e) => setForm((f) => ({ ...f, label_ar: e.target.value }))} dir="rtl" />
-          <div style={{ display: "flex", gap: "0.75rem", justifyContent: "flex-end" }}>
+          <div style={{ display: "flex", gap: 12, justifyContent: "flex-end" }}>
             <Button variant="ghost" onClick={() => setModalOpen(false)}>Annuler</Button>
             <Button variant="primary" onClick={handleSave} loading={isPending}>Enregistrer</Button>
           </div>

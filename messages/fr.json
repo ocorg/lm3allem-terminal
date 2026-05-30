@@ -5,8 +5,9 @@
     "confirm": "Confirmer",
     "backspace": "Effacer",
     "invalidPin": "PIN incorrect. Vérifiez et réessayez.",
-    "lockedOut": "Trop de tentatives. Réessayez dans {seconds}s.",
-    "attemptsRemaining": "{count} tentative(s) restante(s)"
+    "lockedOut": "Trop de tentatives. Réessayez dans {seconds} s.",
+    "attemptsRemaining": "{count} tentative(s) restante(s)",
+    "verifying": "Vérification en cours..."
   },
   "portal": {
     "select": "Sélectionnez votre espace",
@@ -136,7 +137,7 @@
     },
     "caisse": {
       "title": "Caisse",
-      "openingAmount": "Fond d'ouverture",
+      "openingAmount": "Fonds d'ouverture",
       "totalSales": "Total ventes",
       "manualTotal": "Entrées manuelles",
       "runningTotal": "Total estimé",
@@ -368,6 +369,8 @@
       "lowStockItems": "Stock faible",
       "noActivity": "Aucune activité récente",
       "noLowStock": "Aucun article en stock faible",
+      "outOfStock": "Épuisé",
+      "noData": "Aucune donnée",
       "viewAll": "Voir tout",
       "revenueTrend": "Chiffre d'affaires — 7 derniers jours",
       "revenueSplit": "Répartition CA total"
@@ -395,6 +398,7 @@
     "caisse": {
       "title": "Historique Caisse",
       "allPortals": "Tous les portails",
+      "portalColumn": "Portail",
       "allStatuses": "Tous les statuts",
       "open": "Ouvert",
       "closed": "Fermé",
@@ -438,6 +442,7 @@
       "deactivate": "Désactiver",
       "activate": "Activer",
       "confirmDeactivate": "Désactiver cet utilisateur ?",
+      "confirmActivate": "Activer {name} ?",
       "name": "Nom",
       "role": "Rôle",
       "portals": "Portails",
@@ -485,11 +490,17 @@
       "editValue": "Modifier",
       "active": "Actif",
       "inactive": "Inactif",
+      "activate": "Activer",
+      "deactivate": "Désactiver",
       "noCategories": "Aucune catégorie",
       "noValues": "Aucune valeur dans cette catégorie",
       "labelFr": "Libellé (FR)",
       "labelAr": "Libellé (AR)",
-      "selectCategory": "Sélectionner une catégorie"
+      "selectCategory": "Sélectionner une catégorie",
+      "updateSuccess": "Valeur mise à jour",
+      "addSuccess": "Valeur ajoutée",
+      "saveError": "Erreur lors de l'enregistrement",
+      "reorderError": "Erreur lors du réordonnancement"
     },
     "settings": {
       "title": "Paramètres",
@@ -500,20 +511,21 @@
       "defaultStaffPermissions": "Permissions staff par défaut",
       "save": "Enregistrer",
       "saved": "Paramètres enregistrés",
-      "maintenanceWarning": "Activer le mode maintenance bloquera tous les utilisateurs staff."
+      "maintenanceWarning": "Activer le mode maintenance bloquera tous les utilisateurs staff.",
+      "saveError": "Erreur lors de l'enregistrement"
     },
     "notifications": {
       "title": "Notifications",
       "markAllRead": "Tout marquer lu",
       "empty": "Aucune notification",
       "justNow": "À l'instant",
-      "minutesAgo": "Il y a {count}min",
+      "minutesAgo": "Il y a {count} min",
       "hoursAgo": "Il y a {count}h",
       "daysAgo": "Il y a {count}j",
       "typeLabels": {
         "rental": "Location",
-        "caisse_open": "Caisse",
-        "caisse_close": "Caisse",
+        "caisse_open": "Ouverture de caisse",
+        "caisse_close": "Fermeture de caisse",
         "low_stock": "Stock"
       }
     },
@@ -534,7 +546,7 @@
       "status": "Statut",
       "activeAlerts": "{count} alerte(s) active(s)",
       "sessionOpen": "Ouverte",
-      "digestButton": "Envoyer digest stock",
+      "digestButton": "Envoyer le récapitulatif stock",
       "refresh": "Actualiser",
       "digestSent": "Digest envoyé — {count} article(s)",
       "digestEmpty": "Aucun article en stock bas",
@@ -568,7 +580,7 @@
     "closed": "Caisse fermée",
     "closedStaff": "La caisse n'est pas encore ouverte. Contactez un administrateur.",
     "openSession": "Ouvrir la caisse",
-    "openingAmount": "Fond de caisse (MAD)",
+    "openingAmount": "Fonds de caisse (MAD)",
     "openedBy": "Ouverte par",
     "openedAt": "Ouverte le",
     "closeSession": "Clôturer la caisse",

@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useMemo, type ReactNode } from "react"
-import { ChevronUp, ChevronDown } from "lucide-react"
+import { ChevronUp, ChevronDown, SearchX } from "lucide-react"
 import { useTranslations } from "next-intl"
 import { Skeleton } from "./Skeleton"
 import { SearchBar } from "./SearchBar"
@@ -182,14 +182,17 @@ export function DataTable<T extends { id: string }>({
                     <td
                       colSpan={columns.length}
                       style={{
-                        ...tdStyle,
-                        height:      120,
-                        textAlign:   "center",
-                        color:       "var(--text-muted)",
-                        border:      "none",
+                        height:    200,
+                        textAlign: "center",
+                        border:    "none",
                       }}
                     >
-                      {emptyMessage ?? t("noResults")}
+                      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
+                        <SearchX size={32} style={{ color: "var(--border)" }} />
+                        <p style={{ fontSize: 14, color: "var(--text-muted)", margin: 0 }}>
+                          {emptyMessage ?? t("noResults")}
+                        </p>
+                      </div>
                     </td>
                   </tr>
                 )

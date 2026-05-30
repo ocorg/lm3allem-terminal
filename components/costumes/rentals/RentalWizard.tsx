@@ -11,6 +11,7 @@ import { Input }                        from "@/components/ui/Input"
 import { Select }                       from "@/components/ui/Select"
 import { Textarea }                     from "@/components/ui/Textarea"
 import { toast }                        from "@/hooks/useToast"
+import { useConfirm }                   from "@/hooks/useConfirm"
 import { formatMAD }                    from "@/lib/utils/currency"
 import { ImageUploader }                from "@/components/magazin/inventory/ImageUploader"
 import { createClient }                 from "@/lib/actions/costumes/clients"
@@ -88,6 +89,7 @@ interface Props {
 export function RentalWizard({ isOpen, onClose, costumeItems, clients, measurementCategories, lookupById, locale }: Props) {
   const { session } = useCaisse()
   const router      = useRouter()
+  const { confirm, modal: confirmModal } = useConfirm()
 
   const tRental    = useTranslations("costumes.rental")
   const tGuarantee = useTranslations("costumes.guarantee")
@@ -175,8 +177,24 @@ export function RentalWizard({ isOpen, onClose, costumeItems, clients, measureme
     }
   }
 
+  const handleRequestClose = async () => {
+    if (step === 0 && !data.clientId && !data.newClientName) {
+      // Nothing entered yet — close immediately
+      onClose()
+      return
+    }
+    const ok = await confirm({
+      title: "Abandonner la location ?",
+      message: "Toutes les données saisies seront perdues.",
+      confirmLabel: "Abandonner",
+      variant: "danger",
+    })
+    if (ok) onClose()
+  }
+
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={tRental("newRental")} size="xl" closeOnOverlayClick={false}>
+    <Modal isOpen={isOpen} onClose={handleRequestClose} title={tRental("newRental")} size="xl" closeOnOverlayClick={false}>
+      {confirmModal}
       {/* Stepper */}
       <div style={{ display: "flex", alignItems: "center", gap: 0, marginBottom: 24, overflowX: "auto", paddingBottom: 4 }}>
         {STEPS.map((s, i) => (
@@ -211,7 +229,7 @@ export function RentalWizard({ isOpen, onClose, costumeItems, clients, measureme
 
       {/* Navigation */}
       <div style={{ display: "flex", justifyContent: "space-between", paddingTop: 20, borderTop: "1px solid var(--border)", marginTop: 20 }}>
-        <Button variant="secondary" onClick={step === 0 ? onClose : prev}>{step === 0 ? "Annuler" : "Retour"}</Button>
+        <Button variant="secondary" onClick={step === 0 ? handleRequestClose : prev}>{step === 0 ? "Annuler" : "Retour"}</Button>
         {step < 6
           ? <Button onClick={next} icon={<ChevronRight size={14} />}>Suivant</Button>
           : <Button onClick={handleSubmit} loading={loading}>Confirmer la location</Button>
@@ -253,9 +271,9 @@ function StepClient({ data, upd, clients, errors }: { data: WizardData; upd: (p:
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           <div style={{ position: "relative" }}>
-            <Search size={14} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "var(--text-muted)", pointerEvents: "none" }} />
+            <Search size={14} style={{ position: "absolute", insetInlineStart: 10, top: "50%", transform: "translateY(-50%)", color: "var(--text-muted)", pointerEvents: "none" }} />
             <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Rechercher par nom ou téléphone..."
-              style={{ width: "100%", paddingLeft: 32, paddingRight: 12, height: 36, border: "1px solid var(--border)", borderRadius: 8, background: "var(--surface)", color: "var(--text)", fontSize: 13, outline: "none", boxSizing: "border-box" }} />
+              style={{ width: "100%", paddingInlineStart: 32, paddingInlineEnd: 12, height: 36, border: "1px solid var(--border)", borderRadius: 8, background: "var(--surface)", color: "var(--text)", fontSize: 13, outline: "none", boxSizing: "border-box" }} />
           </div>
           {errors.client && <p style={{ color: "var(--danger)", fontSize: 12, margin: 0 }}>{errors.client}</p>}
           <div style={{ maxHeight: 200, overflowY: "auto", border: "1px solid var(--border)", borderRadius: 8 }}>
@@ -315,9 +333,9 @@ function StepKit({ data, upd, costumeItems, lookupById, locale, errors }: { data
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         <p style={{ fontSize: 12, fontWeight: 600, color: "var(--text-muted)", margin: 0, textTransform: "uppercase", letterSpacing: "0.05em" }}>Articles disponibles</p>
         <div style={{ position: "relative" }}>
-          <Search size={14} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "var(--text-muted)", pointerEvents: "none" }} />
+          <Search size={14} style={{ position: "absolute", insetInlineStart: 10, top: "50%", transform: "translateY(-50%)", color: "var(--text-muted)", pointerEvents: "none" }} />
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Rechercher..."
-            style={{ width: "100%", paddingLeft: 32, height: 34, border: "1px solid var(--border)", borderRadius: 8, background: "var(--surface)", color: "var(--text)", fontSize: 13, outline: "none", boxSizing: "border-box" }} />
+            style={{ width: "100%", paddingInlineStart: 32, height: 34, border: "1px solid var(--border)", borderRadius: 8, background: "var(--surface)", color: "var(--text)", fontSize: 13, outline: "none", boxSizing: "border-box" }} />
         </div>
         <div style={{ flex: 1, overflowY: "auto", border: "1px solid var(--border)", borderRadius: 8 }}>
           {filtered.map(item => {

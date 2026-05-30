@@ -4,6 +4,7 @@ import { useState } from "react"
 import { Lock } from "lucide-react"
 import { useTranslations } from "next-intl"
 import { OpenCaisseModal } from "./OpenCaisseModal"
+import { Button } from "@/components/ui/Button"
 import type { Portal } from "@prisma/client"
 
 interface CaisseClosedViewProps {
@@ -71,23 +72,13 @@ export function CaisseClosedView({ portal, locale, role }: CaisseClosedViewProps
 
           {/* CTA — admin only */}
           {canOpen && (
-            <button
+            <Button
+              size="lg"
+              style={{ marginTop: 4 }}
               onClick={() => setOpen(true)}
-              style={{
-                marginTop:    4,
-                background:   "var(--primary)",
-                color:        "#1a1a1a",
-                border:       "none",
-                borderRadius: 8,
-                padding:      "10px 28px",
-                fontSize:     14,
-                fontWeight:   600,
-                cursor:       "pointer",
-                height:       44,
-              }}
             >
               {t("openSession")}
-            </button>
+            </Button>
           )}
         </div>
       </div>

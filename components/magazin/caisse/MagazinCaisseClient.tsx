@@ -24,7 +24,7 @@ export function MagazinCaisseClient({ initialStats, role }: MagazinCaisseClientP
   const [showClose,  setShowClose]  = useState(false)
 
   return (
-    <div style={{ padding: 8, display: "flex", flexDirection: "column", gap: 20 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
 
       {/* Header */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>

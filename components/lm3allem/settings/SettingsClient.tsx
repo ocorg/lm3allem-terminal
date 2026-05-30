@@ -38,26 +38,30 @@ export function SettingsClient({ settings }: Props) {
         })
         toast(t("saved"), "success")
       } catch {
-        toast("Erreur lors de l'enregistrement", "error")
+        toast(t("saveError"), "error")
       }
     })
   }
 
   return (
-    <div style={{ padding: "1.5rem", display: "flex", flexDirection: "column", gap: "2rem", maxWidth: "640px" }}>
+    <div style={{ padding: 24, display: "flex", flexDirection: "column", gap: 32, maxWidth: "640px" }}>
+
+      <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.02em", margin: 0 }}>
+        {t("title")}
+      </h1>
 
       {/* Maintenance */}
-      <section style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "8px", padding: "1.25rem", display: "flex", flexDirection: "column", gap: "1rem" }}>
+      <section style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "8px", padding: 20, display: "flex", flexDirection: "column", gap: 16 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div>
             <p style={{ margin: 0, fontWeight: 600 }}>{t("maintenanceMode")}</p>
-            <p style={{ margin: "2px 0 0", fontSize: "0.8rem", color: "var(--text-muted)" }}>{t("maintenanceModeDesc")}</p>
+            <p style={{ margin: "2px 0 0", fontSize: 13, color: "var(--text-muted)" }}>{t("maintenanceModeDesc")}</p>
           </div>
           <button
             onClick={() => setMaintenanceMode((v) => !v)}
             style={{
               width: "48px", height: "26px", borderRadius: "13px", border: "none", cursor: "pointer",
-              background: maintenanceMode ? "var(--danger)" : "var(--border)",
+              background: maintenanceMode ? "var(--danger)" : "color-mix(in srgb, var(--text-muted) 40%, transparent)",
               position: "relative", transition: "background 150ms",
             }}
           >
@@ -69,7 +73,7 @@ export function SettingsClient({ settings }: Props) {
           </button>
         </div>
         {maintenanceMode && (
-          <p style={{ padding: "0.5rem 0.75rem", background: "color-mix(in srgb, var(--warning) 10%, transparent)", border: "1px solid var(--warning)", borderRadius: "6px", fontSize: "0.8rem", color: "var(--warning)", margin: 0 }}>
+          <p style={{ padding: "0.5rem 0.75rem", background: "color-mix(in srgb, var(--warning) 10%, transparent)", border: "1px solid var(--warning)", borderRadius: "6px", fontSize: 13, color: "var(--warning)", margin: 0 }}>
             {t("maintenanceWarning")}
           </p>
         )}
@@ -78,22 +82,22 @@ export function SettingsClient({ settings }: Props) {
       </section>
 
       {/* Default Staff Permissions */}
-      <section style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "8px", padding: "1.25rem" }}>
-        <p style={{ margin: "0 0 1rem", fontWeight: 600 }}>{t("defaultStaffPermissions")}</p>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.5rem" }}>
+      <section style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "8px", padding: 20 }}>
+        <p style={{ margin: "0 0 16px", fontWeight: 600 }}>{t("defaultStaffPermissions")}</p>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
           <div>
-            <p style={{ fontSize: "0.7rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--text-muted)", margin: "0 0 0.5rem" }}>MAGAZIN</p>
+            <p style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--text-muted)", margin: "0 0 8px" }}>MAGAZIN</p>
             {MAG_MODULES.map((m) => (
-              <label key={m} style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.875rem", marginBottom: "0.5rem", cursor: "pointer" }}>
+              <label key={m} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, marginBottom: 8, cursor: "pointer" }}>
                 <input type="checkbox" checked={!!perms[m]} onChange={() => togglePerm(m)} />
                 {m}
               </label>
             ))}
           </div>
           <div>
-            <p style={{ fontSize: "0.7rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--text-muted)", margin: "0 0 0.5rem" }}>COSTUMES</p>
+            <p style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--text-muted)", margin: "0 0 8px" }}>COSTUMES</p>
             {COS_MODULES.map((m) => (
-              <label key={m} style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.875rem", marginBottom: "0.5rem", cursor: "pointer" }}>
+              <label key={m} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, marginBottom: 8, cursor: "pointer" }}>
                 <input type="checkbox" checked={!!perms[m]} onChange={() => togglePerm(m)} />
                 {m}
               </label>

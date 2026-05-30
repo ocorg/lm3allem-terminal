@@ -10,6 +10,12 @@ import { formatMAD } from "@/lib/utils/currency"
 import { formatDate } from "@/lib/utils/date"
 import type { SessionsResult } from "@/lib/actions/lm3allem/caisse"
 
+const PORTAL_VARIANT: Record<string, "primary" | "info" | "success"> = {
+  magazin:  "primary",
+  costumes: "info",
+  lm3allem: "success",
+}
+
 interface Props {
   result: SessionsResult
   filters: Record<string, string | undefined>
@@ -31,10 +37,10 @@ export function CaisseHistoryClient({ result, filters }: Props) {
   const totalPages = Math.ceil(result.total / result.pageSize)
 
   return (
-    <div style={{ padding: "1.5rem", display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+    <div style={{ padding: 24, display: "flex", flexDirection: "column", gap: 24 }}>
 
       {/* Filters */}
-      <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap", alignItems: "flex-end" }}>
+      <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "flex-end" }}>
         <Select
           label={t("allPortals")}
           value={filters.portal ?? ""}
@@ -76,11 +82,11 @@ export function CaisseHistoryClient({ result, filters }: Props) {
         {result.sessions.length === 0
           ? <p style={{ padding: "2rem", textAlign: "center", color: "var(--text-muted)" }}>{t("noSessions")}</p>
           : (
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.875rem" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
               <thead>
                 <tr style={{ background: "var(--surface-2)" }}>
-                  {[t("allPortals"), t("openedBy"), t("openedAt"), t("openingAmount"), t("closingAmount"), t("expectedAmount"), t("difference"), "Statut"].map((h) => (
-                    <th key={h} style={{ padding: "0.75rem 1rem", textAlign: "start", fontWeight: 600, fontSize: "0.75rem", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.04em", borderBottom: "1px solid var(--border)" }}>
+                  {[t("portalColumn"), t("openedBy"), t("openedAt"), t("openingAmount"), t("closingAmount"), t("expectedAmount"), t("difference"), t("allStatuses")].map((h) => (
+                    <th key={h} style={{ padding: "12px 16px", textAlign: "start", fontWeight: 600, fontSize: 12, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.04em", borderBottom: "1px solid var(--border)" }}>
                       {h}
                     </th>
                   ))}
@@ -94,16 +100,16 @@ export function CaisseHistoryClient({ result, filters }: Props) {
                   const isOpen = !s.closedAt
                   return (
                     <tr key={s.id} style={{ borderBottom: i < result.sessions.length - 1 ? "1px solid var(--border)" : "none", borderInlineStart: `3px solid ${isOpen ? "var(--warning)" : "var(--border)"}` }}>
-                      <td style={{ padding: "0.75rem 1rem" }}><Badge variant="default">{s.portal}</Badge></td>
-                      <td style={{ padding: "0.75rem 1rem" }}>{s.openedByName}</td>
-                      <td style={{ padding: "0.75rem 1rem", color: "var(--text-muted)" }}>{formatDate(s.openedAt)}</td>
-                      <td style={{ padding: "0.75rem 1rem" }}>{formatMAD(s.openingAmount)}</td>
-                      <td style={{ padding: "0.75rem 1rem" }}>{s.closingAmount ? formatMAD(s.closingAmount) : "—"}</td>
-                      <td style={{ padding: "0.75rem 1rem" }}>{s.expectedAmount ? formatMAD(s.expectedAmount) : "—"}</td>
-                      <td style={{ padding: "0.75rem 1rem", fontWeight: 600, color: diff === null ? "var(--text-muted)" : diff >= 0 ? "var(--success)" : "var(--danger)" }}>
+                      <td style={{ padding: "12px 16px" }}><Badge variant={PORTAL_VARIANT[s.portal] ?? "default"}>{s.portal}</Badge></td>
+                      <td style={{ padding: "12px 16px" }}>{s.openedByName}</td>
+                      <td style={{ padding: "12px 16px", color: "var(--text-muted)" }}>{formatDate(s.openedAt)}</td>
+                      <td style={{ padding: "12px 16px" }}>{formatMAD(s.openingAmount)}</td>
+                      <td style={{ padding: "12px 16px" }}>{s.closingAmount ? formatMAD(s.closingAmount) : "—"}</td>
+                      <td style={{ padding: "12px 16px" }}>{s.expectedAmount ? formatMAD(s.expectedAmount) : "—"}</td>
+                      <td style={{ padding: "12px 16px", fontWeight: 600, color: diff === null ? "var(--text-muted)" : diff >= 0 ? "var(--success)" : "var(--danger)" }}>
                         {diff === null ? "—" : formatMAD(diff.toString())}
                       </td>
-                      <td style={{ padding: "0.75rem 1rem" }}>
+                      <td style={{ padding: "12px 16px" }}>
                         <Badge variant={isOpen ? "warning" : "success"}>{isOpen ? t("open") : t("closed")}</Badge>
                       </td>
                     </tr>
@@ -117,7 +123,7 @@ export function CaisseHistoryClient({ result, filters }: Props) {
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div style={{ display: "flex", gap: "0.5rem", justifyContent: "center" }}>
+        <div style={{ display: "flex", gap: 8, justifyContent: "center" }}>
           {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
             <Button
               key={p}

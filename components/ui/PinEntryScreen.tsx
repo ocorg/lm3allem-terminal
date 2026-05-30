@@ -160,7 +160,13 @@ export default function PinEntryScreen({ locale, initialLockState }: Props) {
           </p>
         )}
 
-        {!isLocked && errorMsg && (
+        {!isLocked && isPending && (
+          <p style={{ color: "var(--text-muted)", fontSize: 12 }}>
+            {t("verifying")}
+          </p>
+        )}
+
+        {!isLocked && !isPending && errorMsg && (
           <>
             <p style={{ color: "var(--danger)", fontSize: 13, fontWeight: 500 }}>
               {errorMsg}
