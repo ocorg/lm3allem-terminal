@@ -1,7 +1,8 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
-import { Search, X } from "lucide-react"
+import { useTranslations }             from "next-intl"
+import { Search, X }                   from "lucide-react"
 
 interface SearchBarProps {
   value:        string
@@ -13,22 +14,18 @@ interface SearchBarProps {
 export function SearchBar({
   value,
   onChange,
-  placeholder = "Rechercher...",
-  debounce    = 300,
+  placeholder,
+  debounce = 300,
 }: SearchBarProps) {
+  const tUi         = useTranslations("ui")
   const [local, setLocal]   = useState(value)
   const timerRef            = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const onChangeRef         = useRef(onChange)
 
-  // Keep ref up to date without adding it to deps
   useEffect(() => { onChangeRef.current = onChange })
-
-  // Reset when parent explicitly clears value
   useEffect(() => {
     if (value === "") setLocal("")
   }, [value])
-
-  // Cleanup on unmount
   useEffect(() => () => clearTimeout(timerRef.current), [])
 
   const handleChange = (next: string) => {
@@ -58,7 +55,7 @@ export function SearchBar({
         type="text"
         value={local}
         onChange={(e) => handleChange(e.target.value)}
-        placeholder={placeholder}
+        placeholder={placeholder ?? tUi("search")}
         style={{
           width:              "100%",
           height:             40,
@@ -77,15 +74,15 @@ export function SearchBar({
           onClick={handleClear}
           aria-label="Clear search"
           style={{
-            position:        "absolute",
-            insetInlineEnd:  10,
-            background:      "none",
-            border:          "none",
-            cursor:          "pointer",
-            color:           "var(--text-muted)",
-            display:         "flex",
-            alignItems:      "center",
-            padding:         2,
+            position:       "absolute",
+            insetInlineEnd: 10,
+            background:     "none",
+            border:         "none",
+            cursor:         "pointer",
+            color:          "var(--text-muted)",
+            display:        "flex",
+            alignItems:     "center",
+            padding:        2,
           }}
         >
           <X size={14} />

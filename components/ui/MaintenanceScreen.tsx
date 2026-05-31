@@ -1,46 +1,52 @@
-import Link from "next/link"
-import { Wrench } from "lucide-react"
+import Link                  from "next/link"
+import { Wrench }            from "lucide-react"
+import { getTranslations }   from "next-intl/server"
 
 interface Props {
-  locale: string
+  locale:  string
   message: string
 }
 
-export default function MaintenanceScreen({ locale, message }: Props) {
+export default async function MaintenanceScreen({ locale, message }: Props) {
+  const t = await getTranslations({ locale, namespace: "maintenance" })
+  const tCommon = await getTranslations({ locale, namespace: "common" })
+
   return (
     <div
       style={{
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
+        display:        "flex",
+        flexDirection:  "column",
+        alignItems:     "center",
         justifyContent: "center",
-        minHeight: "100vh",
-        background: "var(--bg)",
-        padding: 24,
-        gap: 24,
-        textAlign: "center",
+        minHeight:      "100vh",
+        background:     "var(--bg)",
+        padding:        24,
+        gap:            24,
+        textAlign:      "center",
       }}
     >
       {/* Logo */}
       <div>
         <p
           style={{
-            fontSize: 26,
-            fontWeight: 700,
-            color: "var(--primary)",
+            fontSize:      26,
+            fontWeight:    800,
+            fontFamily:    "var(--font-display)",
+            color:         "var(--primary)",
             letterSpacing: "-0.025em",
-            lineHeight: 1,
+            lineHeight:    1,
           }}
         >
           Lm3allem
         </p>
         <p
           style={{
-            fontSize: 11,
-            color: "var(--text-muted)",
+            fontSize:      11,
+            fontFamily:    "var(--font-mono)",
+            color:         "var(--text-muted)",
             letterSpacing: "0.2em",
             textTransform: "uppercase",
-            marginTop: 5,
+            marginTop:     5,
           }}
         >
           Terminal
@@ -56,14 +62,15 @@ export default function MaintenanceScreen({ locale, message }: Props) {
       <div style={{ maxWidth: 340 }}>
         <h1
           style={{
-            fontSize: 18,
-            fontWeight: 600,
-            color: "var(--text)",
-            marginBottom: 10,
+            fontSize:      18,
+            fontWeight:    600,
+            fontFamily:    "var(--font-display)",
+            color:         "var(--text)",
+            marginBottom:  10,
             letterSpacing: "-0.01em",
           }}
         >
-          {locale === "ar" ? "قيد الصيانة" : "Maintenance en cours"}
+          {t("title")}
         </h1>
         <p style={{ fontSize: 14, color: "var(--text-muted)", lineHeight: 1.6 }}>
           {message}
@@ -72,7 +79,7 @@ export default function MaintenanceScreen({ locale, message }: Props) {
 
       {/* Login button — always accessible for superadmin */}
       <Link href={`/${locale}`} className="maintenance-login-btn">
-        {locale === "ar" ? "تسجيل الدخول" : "Se connecter"}
+        {tCommon("login")}
       </Link>
     </div>
   )

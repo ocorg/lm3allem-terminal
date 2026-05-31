@@ -1,15 +1,20 @@
+/* Google Fonts — must be first, before Tailwind directives */
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Mono:ital,wght@0,400;0,500;1,400&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 /* ── Shared accent tokens ─────────────────────────── */
 :root {
-  --primary:   #D4941F;   /* Rich burnished gold           */
-  --secondary: #6870C4;   /* Muted indigo accent           */
-  --danger:    #E84040;   /* Clean vivid red               */
-  --success:   #2EBD6E;   /* Fresh emerald                 */
-  --warning:   #F0A030;   /* Warm amber                    */
-  --info:      #4A90D9;   /* Calm blue                     */
+  --primary:      #D4941F;   /* Rich burnished gold           */
+  --secondary:    #6870C4;   /* Muted indigo accent           */
+  --danger:       #E84040;   /* Clean vivid red               */
+  --success:      #2EBD6E;   /* Fresh emerald                 */
+  --warning:      #F0A030;   /* Warm amber                    */
+  --info:         #4A90D9;   /* Calm blue                     */
+  --font-display: 'Syne', sans-serif;
+  --font-mono:    'DM Mono', monospace;
 }
 
 /* ── Dark mode — default ──────────────────────────── */
@@ -50,12 +55,18 @@ html {
 body {
   background-color: var(--bg);
   color: var(--text);
+  font-family: var(--font-display);
   min-height: 100vh;
 }
 
 /* RTL base alignment */
 [dir="rtl"] {
   text-align: right;
+}
+
+/* ── Mono utility class ───────────────────────────── */
+.mono {
+  font-family: var(--font-mono);
 }
 
 /* ── Custom scrollbar ─────────────────────────────── */
@@ -83,14 +94,14 @@ body {
   text-decoration: none;
   color: var(--text);
   cursor: pointer;
-  transition: transform 150ms ease, border-color 150ms ease, box-shadow 150ms ease;
-  min-width: 160px;
+  transition: border-color 200ms ease, box-shadow 200ms ease;
+  min-width: 180px;
+  min-height: 200px;
 }
 
 .portal-card:hover {
   border-color: var(--primary);
-  transform: translateY(-3px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 8px 32px rgba(212, 148, 31, 0.12);
 }
 
 .portal-card:active {
@@ -103,9 +114,18 @@ body {
 
 .portal-card__name {
   font-size: 15px;
-  font-weight: 600;
+  font-weight: 700;
+  font-family: var(--font-display);
   color: var(--text);
-  letter-spacing: -0.01em;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.portal-card__desc {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-align: center;
+  margin-top: -4px;
 }
 
 /* ── Maintenance login button ─────────────────────────────── */
@@ -157,6 +177,7 @@ body {
 .data-table-row-clickable:hover {
   background: var(--surface-2);
 }
+
 /* ── Bell shake (new notification) ───────────────── */
 @keyframes bellShake {
   0%   { transform: rotate(0deg); }
@@ -167,4 +188,16 @@ body {
   75%  { transform: rotate(4deg); }
   90%  { transform: rotate(-2deg); }
   100% { transform: rotate(0deg); }
+}
+
+/* ── Count-up blur-in (complements JS counter) ────── */
+@keyframes countUp {
+  from { filter: blur(4px); opacity: 0; }
+  to   { filter: blur(0);   opacity: 1; }
+}
+
+/* ── Entrance fade-up (CSS fallback) ─────────────── */
+@keyframes entrance-fade-up {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0);    }
 }

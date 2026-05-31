@@ -1,15 +1,16 @@
 "use client"
 import { useState, useEffect, type ReactNode } from "react"
-import Sidebar from "@/components/layout/Sidebar"
-import Topbar from "@/components/layout/Topbar"
+import Sidebar  from "@/components/layout/Sidebar"
+import Topbar   from "@/components/layout/Topbar"
 import { useBreakpoint } from "@/hooks/useBreakpoint"
 import type { NavItem } from "@/lib/utils/nav"
-import type { Portal } from "@prisma/client"
+import type { Portal, Role } from "@prisma/client"
 
 interface Props {
   portal:          Portal
   locale:          string
   userName:        string
+  role:            Role
   canSwitchPortal: boolean
   navItems:        NavItem[]
   children:        ReactNode
@@ -19,6 +20,7 @@ export default function LayoutShell({
   portal,
   locale,
   userName,
+  role,
   canSwitchPortal,
   navItems,
   children,
@@ -33,9 +35,9 @@ export default function LayoutShell({
   return (
     <div
       style={{
-        display: "flex",
-        height: "100vh",
-        overflow: "hidden",
+        display:    "flex",
+        height:     "100vh",
+        overflow:   "hidden",
         background: "var(--bg)",
       }}
     >
@@ -44,10 +46,10 @@ export default function LayoutShell({
         <div
           onClick={() => setMobileOpen(false)}
           style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(0,0,0,0.55)",
-            zIndex: 999,
+            position:       "fixed",
+            inset:          0,
+            background:     "rgba(0,0,0,0.55)",
+            zIndex:         999,
             backdropFilter: "blur(2px)",
           }}
         />
@@ -57,6 +59,7 @@ export default function LayoutShell({
         portal={portal}
         navItems={navItems}
         locale={locale}
+        userName={userName}
         isMobile={isMobile}
         mobileOpen={mobileOpen}
         onMobileClose={() => setMobileOpen(false)}
@@ -64,16 +67,17 @@ export default function LayoutShell({
 
       <div
         style={{
-          flex: 1,
-          display: "flex",
+          flex:      1,
+          display:   "flex",
           flexDirection: "column",
-          overflow: "hidden",
-          minWidth: 0,
+          overflow:  "hidden",
+          minWidth:  0,
         }}
       >
         <Topbar
           portal={portal}
           userName={userName}
+          role={role}
           locale={locale}
           canSwitchPortal={canSwitchPortal}
           isMobile={isMobile}
@@ -81,9 +85,9 @@ export default function LayoutShell({
         />
         <main
           style={{
-            flex: 1,
+            flex:      1,
             overflowY: "auto",
-            padding: isMobile ? 12 : 24,
+            padding:   isMobile ? 12 : 24,
           }}
         >
           {children}

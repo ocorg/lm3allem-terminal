@@ -47,7 +47,10 @@
     "name": "Nom",
     "logout": "Déconnexion",
     "noData": "Aucune donnée disponible",
-    "required": "Champ requis"
+    "required": "Champ requis",
+    "unit": "Unité",
+    "switchPortal": "Changer de portail",
+    "login": "Se connecter"
   },
   "theme": {
     "dark": "Mode sombre",
@@ -133,7 +136,21 @@
       "productUpdated": "Produit mis à jour",
       "toggleSuccess": "Statut mis à jour",
       "noProducts": "Aucun produit dans l'inventaire",
-      "variantCount": "variante(s)"
+      "variantCount": "variante(s)",
+      "zeroStock": "Mettre le stock à 0",
+      "variantsRequired": "Ajoutez au moins une variante",
+      "addVariantRow": "Ajouter une variante",
+      "variantsLabel": "Variantes",
+      "productNameFr": "Nom (FR) *",
+      "productNameAr": "Nom (AR)",
+      "categoryRequired": "Catégorie *",
+      "buyingRequired": "Prix d'achat *",
+      "sellingRequired": "Prix de vente *",
+      "minRequired": "Prix minimum *",
+      "chooseCategory": "Choisir une catégorie",
+      "newProduct": "Nouveau produit",
+      "variantsSectionLabel": "Variantes *",
+      "invalidAmount": "Montant invalide"
     },
     "caisse": {
       "title": "Caisse",
@@ -266,7 +283,11 @@
       "minSellingPrice": "Prix minimum",
       "images": "Photos",
       "createSuccess": "Article créé avec succès",
-      "updateSuccess": "Article mis à jour"
+      "updateSuccess": "Article mis à jour",
+      "colPhoto": "Photo",
+      "colArticle": "Article",
+      "colSellingPrice": "Prix vente",
+      "colMinPrice": "Prix min"
     },
     "clients": {
       "title": "Clients",
@@ -280,7 +301,13 @@
       "measurements": "Mesures",
       "phoneTaken": "Ce numéro est déjà utilisé par un autre client",
       "createSuccess": "Client créé",
-      "updateSuccess": "Client mis à jour"
+      "updateSuccess": "Client mis à jour",
+      "noClients": "Aucun client enregistré",
+      "addFirst": "Ajouter le premier client",
+      "createdAtLabel": "Inscrit le",
+      "addressOptional": "Adresse (optionnel)",
+      "notesOptional": "Notes (optionnel)",
+      "nameColumn": "Client"
     },
     "rental": {
       "title": "Locations",
@@ -321,7 +348,41 @@
         "selectClient": "Veuillez sélectionner un client",
         "addKitItem": "Ajoutez au moins un article au kit",
         "invalidAmount": "Montant invalide"
-      }
+      },
+      "abandon": "Abandonner",
+      "abandonTitle": "Abandonner la location ?",
+      "abandonMessage": "Toutes les données saisies seront perdues.",
+      "existingClient": "Client existant",
+      "newClientToggle": "Nouveau client",
+      "addressOptional": "Adresse (optionnel)",
+      "searchClientPlaceholder": "Rechercher par nom ou téléphone...",
+      "suggestedTotal": "Total suggéré",
+      "confirmClientRow": "Client",
+      "confirmPickup": "Retrait prévu",
+      "confirmReturn": "Retour prévu",
+      "confirmKitItems": "Articles kit",
+      "confirmGuarantee": "Garantie",
+      "kitSummary": "{items} article(s), {pieces} pièce(s)",
+      "readyToConfirm": "Tout est prêt. Confirmez pour enregistrer la location.",
+      "availableItems": "Articles disponibles",
+      "noItemAdded": "Aucun article ajouté",
+      "kitSelected": "Kit sélectionné",
+      "eventDateOptional": "Date de l'événement (optionnel)",
+      "noMeasurementCats": "Aucune catégorie de mesure configurée dans les options.",
+      "measurementNote": "Les mesures non remplies ne seront pas enregistrées.",
+      "guaranteeTypeLabel": "Type de garantie",
+      "depositAmountLabel": "Montant du dépôt (MAD)",
+      "guaranteePhotoLabel": "Photo de la pièce / du dépôt (optionnel)",
+      "totalAmountLabel": "Montant total (MAD)",
+      "advanceAmountLabel": "Acompte versé (MAD)",
+      "paymentModeLabel": "Mode de paiement",
+      "suggestedHint": "Suggéré d'après le kit : {amount}",
+      "acompteLabel": "Acompte",
+      "paymentMethodColumn": "Mode paiement",
+      "pickupRequired": "Date de retrait prévue",
+      "returnRequired": "Date de retour prévue",
+      "locationsCount": "{count} location(s)",
+      "confirmRental": "Confirmer la location"
     },
     "caisse": {
       "title": "Caisse",

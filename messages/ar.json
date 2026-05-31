@@ -47,7 +47,10 @@
     "name": "الاسم",
     "logout": "تسجيل الخروج",
     "noData": "لا توجد بيانات",
-    "required": "حقل مطلوب"
+    "required": "حقل مطلوب",
+    "unit": "الوحدة",
+    "switchPortal": "تغيير البوابة",
+    "login": "تسجيل الدخول"
   },
   "theme": {
     "dark": "الوضع المظلم",
@@ -133,7 +136,21 @@
       "productUpdated": "تم تحديث المنتج",
       "toggleSuccess": "تم تحديث الحالة",
       "noProducts": "لا توجد منتجات",
-      "variantCount": "نوع(أنواع)"
+      "variantCount": "نوع(أنواع)",
+      "zeroStock": "ضبط المخزون على 0",
+      "variantsRequired": "أضف نوعاً واحداً على الأقل",
+      "addVariantRow": "إضافة نوع",
+      "variantsLabel": "الأنواع",
+      "productNameFr": "الاسم (FR) *",
+      "productNameAr": "الاسم (AR)",
+      "categoryRequired": "الفئة *",
+      "buyingRequired": "سعر الشراء *",
+      "sellingRequired": "سعر البيع *",
+      "minRequired": "السعر الأدنى *",
+      "chooseCategory": "اختر فئة",
+      "newProduct": "منتج جديد",
+      "variantsSectionLabel": "الأنواع *",
+      "invalidAmount": "مبلغ غير صالح"
     },
     "caisse": {
       "title": "الصندوق",
@@ -266,7 +283,11 @@
       "minSellingPrice": "السعر الأدنى",
       "images": "الصور",
       "createSuccess": "تمت إضافة القطعة",
-      "updateSuccess": "تم تحديث القطعة"
+      "updateSuccess": "تم تحديث القطعة",
+      "colPhoto": "صورة",
+      "colArticle": "القطعة",
+      "colSellingPrice": "سعر البيع",
+      "colMinPrice": "السعر الأدنى"
     },
     "clients": {
       "title": "العملاء",
@@ -280,7 +301,13 @@
       "measurements": "المقاسات",
       "phoneTaken": "هذا الرقم مستخدم من قبل عميل آخر",
       "createSuccess": "تم إنشاء العميل",
-      "updateSuccess": "تم تحديث العميل"
+      "updateSuccess": "تم تحديث العميل",
+      "noClients": "لا يوجد عملاء مسجلون",
+      "addFirst": "أضف أول عميل",
+      "createdAtLabel": "تاريخ التسجيل",
+      "addressOptional": "العنوان (اختياري)",
+      "notesOptional": "ملاحظات (اختياري)",
+      "nameColumn": "العميل"
     },
     "rental": {
       "title": "التأجيرات",
@@ -321,7 +348,41 @@
         "selectClient": "الرجاء اختيار عميل",
         "addKitItem": "أضف قطعة واحدة على الأقل للطقم",
         "invalidAmount": "مبلغ غير صالح"
-      }
+      },
+      "abandon": "تخلّ عن التأجير",
+      "abandonTitle": "هل تريد التخلي عن التأجير؟",
+      "abandonMessage": "ستُفقد جميع البيانات المُدخلة.",
+      "existingClient": "عميل موجود",
+      "newClientToggle": "عميل جديد",
+      "addressOptional": "العنوان (اختياري)",
+      "searchClientPlaceholder": "ابحث بالاسم أو الهاتف...",
+      "suggestedTotal": "الإجمالي المقترح",
+      "confirmClientRow": "العميل",
+      "confirmPickup": "الاستلام المقرر",
+      "confirmReturn": "الإرجاع المقرر",
+      "confirmKitItems": "قطع الطقم",
+      "confirmGuarantee": "الضمان",
+      "kitSummary": "{items} قطعة، {pieces} وحدة",
+      "readyToConfirm": "كل شيء جاهز. أكّد لتسجيل التأجير.",
+      "availableItems": "القطع المتاحة",
+      "noItemAdded": "لم تُضف أي قطعة",
+      "kitSelected": "الطقم المختار",
+      "eventDateOptional": "تاريخ المناسبة (اختياري)",
+      "noMeasurementCats": "لم يتم تكوين فئات القياس في الخيارات.",
+      "measurementNote": "لن تُحفظ المقاسات الفارغة.",
+      "guaranteeTypeLabel": "نوع الضمان",
+      "depositAmountLabel": "مبلغ الوديعة (درهم)",
+      "guaranteePhotoLabel": "صورة الوثيقة / الإيداع (اختياري)",
+      "totalAmountLabel": "المبلغ الإجمالي (درهم)",
+      "advanceAmountLabel": "الدفعة المقدمة (درهم)",
+      "paymentModeLabel": "طريقة الدفع",
+      "suggestedHint": "مقترح بناءً على الطقم: {amount}",
+      "acompteLabel": "الدفعة المقدمة",
+      "paymentMethodColumn": "طريقة الدفع",
+      "pickupRequired": "تاريخ الاستلام المقرر",
+      "returnRequired": "تاريخ الإرجاع المقرر",
+      "locationsCount": "{count} تأجير(ات)",
+      "confirmRental": "تأكيد التأجير"
     },
     "caisse": {
       "title": "الصندوق",

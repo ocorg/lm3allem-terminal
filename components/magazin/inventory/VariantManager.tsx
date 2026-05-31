@@ -1,7 +1,8 @@
 "use client"
 
-import { Plus, Trash2 } from "lucide-react"
-import { Select } from "@/components/ui/Select"
+import { useTranslations } from "next-intl"
+import { Plus, Trash2 }    from "lucide-react"
+import { Select }          from "@/components/ui/Select"
 import type { VariantInput } from "@/lib/actions/magazin/inventory"
 
 type LookupItem = { id: string; label_fr: string; label_ar: string }
@@ -14,6 +15,8 @@ interface VariantManagerProps {
 }
 
 export function VariantManager({ variants, onChange, sizes, colors }: VariantManagerProps) {
+  const tInv = useTranslations("magazin.inventory")
+  const tCom = useTranslations("common")
 
   const addRow = () =>
     onChange([...variants, { sizeId: null, colorId: null, stock: 1 }])
@@ -21,8 +24,6 @@ export function VariantManager({ variants, onChange, sizes, colors }: VariantMan
   const updateRow = (i: number, updates: Partial<VariantInput>) =>
     onChange(variants.map((v, idx) => idx === i ? { ...v, ...updates } : v))
 
-  // Existing variants (with DB id): set stock=0 rather than delete to preserve sale history.
-  // New variants (no id): remove from list entirely.
   const removeRow = (i: number) => {
     if (variants[i].id) {
       onChange(variants.map((v, idx) => idx === i ? { ...v, stock: 0 } : v))
@@ -35,7 +36,7 @@ export function VariantManager({ variants, onChange, sizes, colors }: VariantMan
     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
       {variants.length > 0 && (
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 80px 36px", gap: 8 }}>
-          {["Taille", "Couleur", "Stock", ""].map(h => (
+          {[tInv("size"), tInv("color"), tInv("stock"), ""].map(h => (
             <span key={h} style={{ fontSize: 10, fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
               {h}
             </span>
@@ -47,11 +48,11 @@ export function VariantManager({ variants, onChange, sizes, colors }: VariantMan
         <div
           key={i}
           style={{
-            display:       "grid",
+            display:             "grid",
             gridTemplateColumns: "1fr 1fr 80px 36px",
-            gap:           8,
-            alignItems:    "center",
-            opacity:       v.id && v.stock === 0 ? 0.5 : 1,
+            gap:                 8,
+            alignItems:          "center",
+            opacity:             v.id && v.stock === 0 ? 0.5 : 1,
           }}
         >
           <Select
@@ -72,20 +73,20 @@ export function VariantManager({ variants, onChange, sizes, colors }: VariantMan
             value={v.stock}
             onChange={e => updateRow(i, { stock: Math.max(0, parseInt(e.target.value) || 0) })}
             style={{
-              height:       42,
-              background:   "var(--surface-2)",
-              border:       "1px solid var(--border)",
-              borderRadius: 8,
+              height:        42,
+              background:    "var(--surface-2)",
+              border:        "1px solid var(--border)",
+              borderRadius:  8,
               paddingInline: 10,
-              fontSize:     13,
-              color:        "var(--text)",
-              outline:      "none",
-              width:        "100%",
+              fontSize:      13,
+              color:         "var(--text)",
+              outline:       "none",
+              width:         "100%",
             }}
           />
           <button
             onClick={() => removeRow(i)}
-            title={v.id ? "Mettre le stock à 0" : "Supprimer"}
+            title={v.id ? tInv("zeroStock") : tCom("delete")}
             style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)", display: "flex", alignItems: "center", justifyContent: "center", height: 42 }}
           >
             <Trash2 size={14} />
@@ -110,7 +111,7 @@ export function VariantManager({ variants, onChange, sizes, colors }: VariantMan
         }}
       >
         <Plus size={13} />
-        Ajouter une variante
+        {tInv("addVariantRow")}
       </button>
     </div>
   )

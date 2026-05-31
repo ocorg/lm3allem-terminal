@@ -2,7 +2,6 @@ import type { ReactNode } from "react"
 import type { Portal, Role } from "@prisma/client"
 import { getTranslations } from "next-intl/server"
 import { buildNavItems } from "@/lib/utils/nav"
-import type { Portal as PortalEnum } from "@prisma/client"
 import LayoutShell from "@/components/layout/LayoutShell"
 
 interface Props {
@@ -10,7 +9,7 @@ interface Props {
   locale:            string
   role:              Role
   userName:          string
-  portalAccess:      PortalEnum[]
+  portalAccess:      Portal[]
   modulePermissions: Record<string, Record<string, boolean>> | null
   children:          ReactNode
 }
@@ -47,6 +46,7 @@ export default async function PortalShell({
       portal={portal}
       locale={locale}
       userName={userName}
+      role={role}
       canSwitchPortal={canSwitchPortal}
       navItems={navItems}
     >

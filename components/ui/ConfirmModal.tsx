@@ -1,8 +1,8 @@
 "use client"
 
-import { Modal } from "./Modal"
-import { Button } from "./Button"
-import { useTranslations } from "next-intl"
+import { Modal }             from "./Modal"
+import { Button }            from "./Button"
+import { useTranslations }   from "next-intl"
 
 export interface ConfirmOptions {
   title:         string
@@ -21,8 +21,8 @@ export function ConfirmModal({
   isOpen,
   title,
   message,
-  confirmLabel = "Confirmer",
-  variant      = "danger",
+  confirmLabel,
+  variant = "danger",
   onConfirm,
   onCancel,
 }: ConfirmModalProps) {
@@ -41,7 +41,7 @@ export function ConfirmModal({
             {tUi("cancel")}
           </Button>
           <Button variant={variant} onClick={onConfirm}>
-            {confirmLabel}
+            {confirmLabel ?? tUi("confirm")}
           </Button>
         </div>
       </div>

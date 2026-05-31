@@ -1,11 +1,11 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { useTranslations }  from "next-intl"
-import { Modal }  from "@/components/ui/Modal"
-import { Button } from "@/components/ui/Button"
-import PinPad from "@/components/ui/PinPad"
-import { verifyAdminPin } from "@/lib/actions/auth"
+import { useState, useEffect }  from "react"
+import { useTranslations }      from "next-intl"
+import { Modal }                from "@/components/ui/Modal"
+import { Button }               from "@/components/ui/Button"
+import PinPad                   from "@/components/ui/PinPad"
+import { verifyAdminPin }       from "@/lib/actions/auth"
 
 export interface BelowMinItem {
   name:           string
@@ -26,7 +26,9 @@ export function BelowMinModal({
   onAuthorized,
   onCancel,
 }: BelowMinModalProps) {
-  const t = useTranslations("belowMin")
+  const t     = useTranslations("belowMin")
+  const tAuth = useTranslations("auth")
+  const tUi   = useTranslations("ui")
 
   const [pin,         setPin]         = useState("")
   const [error,       setError]       = useState("")
@@ -34,7 +36,6 @@ export function BelowMinModal({
   const [lockedUntil, setLockedUntil] = useState<number | null>(null)
   const [secondsLeft, setSecondsLeft] = useState(0)
 
-  // Live countdown when locked
   useEffect(() => {
     if (!lockedUntil) return
     const tick = () => {
@@ -66,7 +67,7 @@ export function BelowMinModal({
         setPin("")
       }
     } catch {
-      setError("Erreur inattendue.")
+      setError(tUi("error"))
       setPin("")
     } finally {
       setLoading(false)
@@ -87,13 +88,7 @@ export function BelowMinModal({
         </p>
 
         {/* Items summary table */}
-        <div
-          style={{
-            border:       "1px solid var(--border)",
-            borderRadius: 8,
-            overflow:     "hidden",
-          }}
-        >
+        <div style={{ border: "1px solid var(--border)", borderRadius: 8, overflow: "hidden" }}>
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr style={{ background: "var(--surface-2)" }}>
@@ -150,7 +145,7 @@ export function BelowMinModal({
               textAlign:    "center",
             }}
           >
-            Trop de tentatives. Réessayez dans {secondsLeft}s.
+            {tAuth("lockedOut", { seconds: secondsLeft })}
           </div>
         )}
 
