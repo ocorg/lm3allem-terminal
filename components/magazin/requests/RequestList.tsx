@@ -12,14 +12,15 @@ import { Select }    from "@/components/ui/Select"
 import { toast }     from "@/hooks/useToast"
 import { createRequest, updateRequestStatus } from "@/lib/actions/magazin/requests"
 import { formatDate } from "@/lib/utils/date"
+import { useTranslations } from "next-intl"
 import type { ProductRequestForList } from "@/lib/actions/magazin/requests"
 
 type LookupItem = { id: string; label_fr: string; label_ar: string }
 
-const STATUS_CONFIG = {
-  pending:  { label: "EN ATTENTE", variant: "warning" as const },
-  reviewed: { label: "VU",         variant: "info"    as const },
-  ordered:  { label: "COMMANDÉ",   variant: "success" as const },
+const STATUS_CONFIG_KEYS = {
+  pending:  { labelKey: "pending",  variant: "warning" as const },
+  reviewed: { labelKey: "reviewed", variant: "info"    as const },
+  ordered:  { labelKey: "ordered",  variant: "success" as const },
 }
 
 interface RequestListProps {
@@ -30,6 +31,8 @@ interface RequestListProps {
 }
 
 export function RequestList({ requests, categories, role }: RequestListProps) {
+  const t      = useTranslations("magazin.requests")
+  const tCom   = useTranslations("common")
   const router  = useRouter()
   const isAdmin = role === "admin" || role === "superadmin"
   const lookupMap = Object.fromEntries(categories.map(l => [l.id, l]))
@@ -71,7 +74,7 @@ export function RequestList({ requests, categories, role }: RequestListProps) {
 
   const columns: Column<ProductRequestForList>[] = [
     {
-      key: "productName", label: "Produit", sortable: true,
+      key: "productName", label: t("productName"), sortable: true,
       render: (v) => <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>{v as string}</span>,
     },
     {
@@ -79,7 +82,7 @@ export function RequestList({ requests, categories, role }: RequestListProps) {
       render: (v) => <span style={{ fontSize: 12, color: "var(--text-muted)" }}>{v ? (lookupMap[v as string]?.label_fr ?? "—") : "—"}</span>,
     },
     {
-      key: "requestCount", label: "Demandes", align: "center", sortable: true,
+      key: "requestCount", label: t("count"), align: "center", sortable: true,
       render: (v) => (
         <span style={{
           fontSize: 14, fontWeight: 700, color: "var(--primary)",
@@ -91,16 +94,16 @@ export function RequestList({ requests, categories, role }: RequestListProps) {
       ),
     },
     {
-      key: "status", label: "Statut", align: "center",
+      key: "status", label: tCom("status"), align: "center",
       render: (v) => {
-        const cfg = STATUS_CONFIG[v as keyof typeof STATUS_CONFIG]
-        return <Badge variant={cfg?.variant ?? "default"}>{cfg?.label ?? String(v)}</Badge>
+        const cfg = STATUS_CONFIG_KEYS[v as keyof typeof STATUS_CONFIG_KEYS]
+        return <Badge variant={cfg?.variant ?? "default"}>{cfg ? t(cfg.labelKey as any) : String(v)}</Badge>
       },
     },
-    { key: "requestedByName", label: "Demandé par", render: (v) => <span style={{ fontSize: 12, color: "var(--text-muted)" }}>{v as string}</span> },
-    { key: "createdAt",       label: "Date",         render: (v) => <span style={{ fontSize: 12, color: "var(--text-muted)" }}>{formatDate(v as string)}</span> },
+    { key: "requestedByName", label: t("requestedBy"), render: (v) => <span style={{ fontSize: 12, color: "var(--text-muted)" }}>{v as string}</span> },
+    { key: "createdAt",       label: tCom("date"),      render: (v) => <span style={{ fontSize: 12, color: "var(--text-muted)" }}>{formatDate(v as string)}</span> },
     ...(isAdmin ? [{
-      key: "id" as keyof ProductRequestForList, label: "Action",
+      key: "id" as keyof ProductRequestForList, label: t("action"),
       render: (_: unknown, row: ProductRequestForList) => (
         <div style={{ display: "flex", gap: 4 }}>
           {row.status === "pending" && (
@@ -108,7 +111,7 @@ export function RequestList({ requests, categories, role }: RequestListProps) {
               onClick={() => handleStatus(row.id, "reviewed")}
               style={{ fontSize: 11, padding: "3px 8px", borderRadius: 6, border: "1px solid var(--border)", background: "none", cursor: "pointer", color: "var(--text-muted)" }}
             >
-              Vu
+              {t("reviewed")}
             </button>
           )}
           {row.status !== "ordered" && (
@@ -116,7 +119,7 @@ export function RequestList({ requests, categories, role }: RequestListProps) {
               onClick={() => handleStatus(row.id, "ordered")}
               style={{ fontSize: 11, padding: "3px 8px", borderRadius: 6, border: "none", background: "var(--success)", cursor: "pointer", color: "#fff" }}
             >
-              Commandé
+              {t("ordered")}
             </button>
           )}
         </div>
@@ -129,15 +132,15 @@ export function RequestList({ requests, categories, role }: RequestListProps) {
       <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.02em", margin: 0 }}>
-            Produits demandés
+            {t("title")}
           </h1>
           <Button icon={<Plus size={14} />} size="sm" onClick={() => setShowForm(true)}>
-            Nouvelle demande
+            {t("newRequest")}
           </Button>
         </div>
 
         <div style={{ display: "flex", gap: 4 }}>
-          {[{ v: "all", l: "Tous" }, { v: "pending", l: "En attente" }, { v: "reviewed", l: "Vus" }, { v: "ordered", l: "Commandés" }].map(f => (
+          {[{ v: "all", l: tCom("all") }, { v: "pending", l: t("pending") }, { v: "reviewed", l: t("reviewed") }, { v: "ordered", l: t("ordered") }].map(f => (
             <button key={f.v} onClick={() => setStatusFilter(f.v)} style={{
               padding: "6px 14px", borderRadius: 999, fontSize: 12, fontWeight: 600,
               cursor: "pointer", border: "none",
@@ -154,15 +157,15 @@ export function RequestList({ requests, categories, role }: RequestListProps) {
           data={filtered}
           searchable
           searchKeys={["productName"]}
-          emptyMessage="Aucune demande."
+          emptyMessage={t("noRequests")}
         />
       </div>
 
       {/* New request modal */}
-      <Modal isOpen={showForm} onClose={() => setShowForm(false)} title="Nouvelle demande" size="sm">
+      <Modal isOpen={showForm} onClose={() => setShowForm(false)} title={t("newRequest")} size="sm">
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           <Input
-            label="Nom du produit *"
+            label={t("productName")}
             value={prodName}
             onChange={e => { setProdName(e.target.value); setNameError("") }}
             error={nameError}

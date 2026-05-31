@@ -12,12 +12,13 @@ import { toast }        from "@/hooks/useToast"
 import { addCreditPayment } from "@/lib/actions/magazin/credits"
 import { formatMAD }    from "@/lib/utils/currency"
 import { formatDate }   from "@/lib/utils/date"
+import { useTranslations } from "next-intl"
 import type { CreditForList } from "@/lib/actions/magazin/credits"
 
-const STATUS_CONFIG = {
-  open:    { label: "OUVERT",  variant: "danger"  as const },
-  partial: { label: "PARTIEL", variant: "warning" as const },
-  settled: { label: "SOLDÉ",   variant: "success" as const },
+const STATUS_CONFIG_KEYS = {
+  open:    { labelKey: "statusOpen",     variant: "danger"  as const },
+  partial: { labelKey: "statusPartial",  variant: "warning" as const },
+  settled: { labelKey: "statusSettled",  variant: "success" as const },
 }
 
 const PAYMENT_METHODS = [
@@ -33,6 +34,8 @@ interface CreditListProps {
 }
 
 export function CreditList({ credits }: CreditListProps) {
+  const t      = useTranslations("magazin.credits")
+  const tCom   = useTranslations("common")
   const router = useRouter()
   const [statusFilter, setStatusFilter] = useState("all")
   const [selected,     setSelected]     = useState<CreditForList | null>(null)
@@ -68,7 +71,7 @@ export function CreditList({ credits }: CreditListProps) {
 
   const columns: Column<CreditForList>[] = [
     {
-      key: "clientName", label: "Client", sortable: true,
+      key: "clientName", label: t("client"), sortable: true,
       render: (_, row) => (
         <div>
           <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", margin: 0 }}>{row.clientName}</p>
@@ -76,17 +79,17 @@ export function CreditList({ credits }: CreditListProps) {
         </div>
       ),
     },
-    { key: "totalAmount", label: "Total",  align: "right", render: (v) => <span style={{ fontSize: 13 }}>{formatMAD(v as string)}</span> },
-    { key: "amountPaid",  label: "Payé",   align: "right", render: (v) => <span style={{ fontSize: 13, color: "var(--success)" }}>{formatMAD(v as string)}</span> },
+    { key: "totalAmount", label: t("total"),  align: "right", render: (v) => <span style={{ fontSize: 13 }}>{formatMAD(v as string)}</span> },
+    { key: "amountPaid",  label: t("paid"),   align: "right", render: (v) => <span style={{ fontSize: 13, color: "var(--success)" }}>{formatMAD(v as string)}</span> },
     {
-      key: "balance", label: "Solde", align: "right", sortable: true,
+      key: "balance", label: t("balance"), align: "right", sortable: true,
       render: (v) => <span style={{ fontSize: 13, fontWeight: 700, color: parseFloat(v as string) > 0 ? "var(--danger)" : "var(--text-muted)" }}>{formatMAD(v as string)}</span>,
     },
     {
-      key: "status", label: "Statut", align: "center",
+      key: "status", label: tCom("status"), align: "center",
       render: (v) => {
-        const cfg = STATUS_CONFIG[v as keyof typeof STATUS_CONFIG]
-        return <Badge variant={cfg?.variant ?? "default"} dot>{cfg?.label ?? String(v)}</Badge>
+        const cfg = STATUS_CONFIG_KEYS[v as keyof typeof STATUS_CONFIG_KEYS]
+        return <Badge variant={cfg?.variant ?? "default"} dot>{cfg ? t(cfg.labelKey as any) : String(v)}</Badge>
       },
     },
     { key: "createdAt", label: "Date", render: (v) => <span style={{ fontSize: 12, color: "var(--text-muted)" }}>{formatDate(v as string)}</span> },
@@ -95,11 +98,11 @@ export function CreditList({ credits }: CreditListProps) {
   return (
     <>
       <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-        <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.02em", margin: 0 }}>Crédits</h1>
+        <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.02em", margin: 0 }}>{t("title")}</h1>
 
         {/* Status filter tabs */}
         <div style={{ display: "flex", gap: 4 }}>
-          {[{ v: "all", l: "Tous" }, { v: "open", l: "Ouverts" }, { v: "partial", l: "Partiels" }, { v: "settled", l: "Soldés" }].map(f => (
+          {[{ v: "all", l: t("filterAll") }, { v: "open", l: t("filterOpen") }, { v: "partial", l: t("filterPartial") }, { v: "settled", l: t("filterSettled") }].map(f => (
             <button key={f.v} onClick={() => setStatusFilter(f.v)} style={{
               padding: "6px 14px", borderRadius: 999, fontSize: 12, fontWeight: 600,
               cursor: "pointer", border: "none",
@@ -115,7 +118,7 @@ export function CreditList({ credits }: CreditListProps) {
           columns={columns}
           data={filtered}
           onRowClick={openPayment}
-          emptyMessage="Aucun crédit trouvé."
+          emptyMessage={t("noCredits")}
         />
       </div>
 

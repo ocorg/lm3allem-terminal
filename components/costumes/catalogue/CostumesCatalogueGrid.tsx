@@ -9,14 +9,10 @@ import { Button }            from "@/components/ui/Button"
 import { formatMAD }         from "@/lib/utils/currency"
 import type { CostumeItemForCatalogue } from "@/lib/actions/costumes/catalogue"
 import type { LookupItem, LookupById }  from "@/lib/actions/costumes/pos"
+import { useTranslations } from "next-intl"
 import type { CostumeItemType }         from "@prisma/client"
 
-const TYPE_OPTIONS = [
-  { value: "suit",      label: "Costume"    },
-  { value: "vest",      label: "Gilet"      },
-  { value: "shoes",     label: "Chaussures" },
-  { value: "accessory", label: "Accessoire" },
-]
+const TYPE_OPTION_VALUES = ["suit", "vest", "shoes", "accessory"] as const
 
 interface Props {
   items:     CostumeItemForCatalogue[]
@@ -27,6 +23,8 @@ interface Props {
 }
 
 export function CostumesCatalogueGrid({ items, sizes, colors, lookupById, locale }: Props) {
+  const t = useTranslations("costumes")
+  const TYPE_OPTIONS = TYPE_OPTION_VALUES.map(v => ({ value: v, label: t(`itemType.${v}`) }))
   const [search,     setSearch]     = useState("")
   const [typeFilter, setTypeFilter] = useState("")
   const [sizeFilter, setSizeFilter] = useState("")
@@ -46,7 +44,7 @@ export function CostumesCatalogueGrid({ items, sizes, colors, lookupById, locale
     <div style={{ padding: 8 }}>
       {/* Header */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-        <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.02em", margin: 0 }}>Catalogue</h1>
+        <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.02em", margin: 0 }}>{t("catalogue.title")}</h1>
         <span style={{ fontSize: 13, color: "var(--text-muted)" }}>{filtered.length} article(s)</span>
       </div>
 
@@ -57,17 +55,17 @@ export function CostumesCatalogueGrid({ items, sizes, colors, lookupById, locale
         </div>
         <div style={{ flex: "1 1 140px" }}>
           <Select value={typeFilter} onChange={e => setTypeFilter(e.target.value)}
-            placeholder="Tous les types"
+            placeholder={t("catalogue.allTypes")}
             options={TYPE_OPTIONS} />
         </div>
         <div style={{ flex: "1 1 140px" }}>
           <Select value={sizeFilter} onChange={e => setSizeFilter(e.target.value)}
-            placeholder="Toutes les tailles"
+            placeholder={t("catalogue.allSizes")}
             options={sizes.map(s => ({ value: s.id, label: s.label_fr }))} />
         </div>
         <div style={{ flex: "1 1 140px" }}>
           <Select value={colorFilter} onChange={e => setColorFilter(e.target.value)}
-            placeholder="Toutes les couleurs"
+            placeholder={t("catalogue.allColors")}
             options={colors.map(c => ({ value: c.id, label: c.label_fr }))} />
         </div>
         {hasFilters && (
@@ -80,7 +78,7 @@ export function CostumesCatalogueGrid({ items, sizes, colors, lookupById, locale
       {/* Grid */}
       {filtered.length === 0 ? (
         <div style={{ textAlign: "center", color: "var(--text-muted)", paddingTop: 80, fontSize: 14 }}>
-          Aucun article dans le catalogue.
+          {t("catalogue.noItems")}
         </div>
       ) : (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 16 }}>
@@ -104,7 +102,7 @@ export function CostumesCatalogueGrid({ items, sizes, colors, lookupById, locale
                   }
                   <div style={{ position: "absolute", top: 8, insetInlineEnd: 8 }}>
                     <Badge variant={isOut ? "danger" : item.stock <= 2 ? "warning" : "success"}>
-                      {isOut ? "Épuisé" : `×${item.stock}`}
+                      {isOut ? t("catalogue.outOfStock") : `×${item.stock}`}
                     </Badge>
                   </div>
                 </div>

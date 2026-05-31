@@ -155,8 +155,8 @@ export function UsersClient({ initialUsers }: Props) {
                 </td>
                 <td style={{ padding: "12px 16px" }}>
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                    <Button variant="ghost" size="sm" onClick={() => openEdit(u)}>{t("edit")}</Button>
-                    <Button variant="ghost" size="sm" onClick={() => handleResetPin(u)}>{t("resetPin")}</Button>
+                    {!isSuperadmin(u) && <Button variant="ghost" size="sm" onClick={() => openEdit(u)}>{t("edit")}</Button>}
+                    {!isSuperadmin(u) && <Button variant="ghost" size="sm" onClick={() => handleResetPin(u)}>{t("resetPin")}</Button>}
                     {!isSuperadmin(u) && (
                       <Button variant={u.isActive ? "danger" : "primary"} size="sm" onClick={() => handleToggleActive(u)} loading={isToggling}>
                         {u.isActive ? t("deactivate") : t("activate")}

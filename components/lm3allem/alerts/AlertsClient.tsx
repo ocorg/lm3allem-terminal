@@ -171,7 +171,7 @@ export function AlertsClient({ alerts }: Props) {
                   </p>
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
-                  <Badge variant={STATUS_VARIANT[rental.status]}>{statusLabel(rental.status)}</Badge>
+                  <Badge variant={STATUS_VARIANT[rental.status as RentalStatus]}>{statusLabel(rental.status as RentalStatus)}</Badge>
                   <span style={{ fontSize: 12, fontWeight: 600, color: "var(--warning)" }}>
                     {t("balance")}: {formatMAD(rental.balance)}
                   </span>
@@ -201,7 +201,7 @@ export function AlertsClient({ alerts }: Props) {
                 }}
               >
                 <div>
-                  <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", margin: 0 }}>{session.openedBy}</p>
+                  <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", margin: 0 }}>{session.openedByName}</p>
                   <p style={{ fontSize: 11, color: "var(--text-muted)", margin: "2px 0 0" }}>
                     {t("portal")}: {session.portal} · {t("openedAt")}: {formatDate(session.openedAt)}
                   </p>
@@ -234,7 +234,7 @@ export function AlertsClient({ alerts }: Props) {
                 <div>
                   <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", margin: 0 }}>{credit.clientName}</p>
                   <p style={{ fontSize: 11, color: "var(--text-muted)", margin: "2px 0 0" }}>
-                    {t("portal")}: <Badge variant={PORTAL_VARIANT[credit.portal] ?? "default"}>{credit.portal}</Badge>
+                    {t("portal")}: <Badge variant="primary">magazin</Badge>
                   </p>
                 </div>
                 <span style={{ fontSize: 13, fontWeight: 600, color: "var(--danger)" }}>

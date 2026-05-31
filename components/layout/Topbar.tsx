@@ -3,7 +3,7 @@
 import { useTransition, useState, useRef, useEffect } from "react"
 import { useTranslations }     from "next-intl"
 import { usePathname, useRouter } from "next/navigation"
-import { motion, AnimatePresence, useReducedMotion } from "framer-motion"
+import { motion, AnimatePresence, useReducedMotion, type Variants } from "framer-motion"
 import { LogOut, LayoutGrid, Menu, Sun, Moon } from "lucide-react"
 import NotificationBell        from "@/components/layout/NotificationBell"
 import Link                    from "next/link"
@@ -92,8 +92,8 @@ export default function Topbar({
 
   const initials = userName.charAt(0).toUpperCase()
 
-  const dropdownVariants = shouldReduce
-    ? {}
+  const dropdownVariants: Variants | undefined = shouldReduce
+    ? undefined
     : {
         hidden:  { opacity: 0, scale: 0.95, y: -6 },
         visible: { opacity: 1, scale: 1,    y: 0, transition: { duration: 0.15, ease: "easeOut" } },

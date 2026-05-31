@@ -11,6 +11,7 @@ import { toast }       from "@/hooks/useToast"
 import { toggleProductActive } from "@/lib/actions/magazin/inventory"
 import { formatMAD }   from "@/lib/utils/currency"
 import { ProductFormModal } from "./ProductFormModal"
+import { useTranslations } from "next-intl"
 import type { ProductForInventory } from "@/lib/actions/magazin/inventory"
 
 type LookupItem    = { id: string; label_fr: string; label_ar: string }
@@ -31,7 +32,10 @@ export function ProductTable({ products, categories, sizes, colors, lookupById, 
   const { confirm, modal }    = useConfirm()
   const [formMode, setFormMode]       = useState<"create" | "edit" | null>(null)
   const [editProduct, setEditProduct] = useState<ProductForInventory | null>(null)
-  const isAdmin   = role === "admin" || role === "superadmin"
+  const t       = useTranslations("magazin.inventory")
+  const tPos    = useTranslations("magazin.pos")
+  const tCom    = useTranslations("common")
+  const isAdmin = role === "admin" || role === "superadmin"
   const lookupMap = lookupById
 
   const openEdit = (p: ProductForInventory) => { setEditProduct(p); setFormMode("edit") }
@@ -40,18 +44,18 @@ export function ProductTable({ products, categories, sizes, colors, lookupById, 
 
   const handleToggle = async (product: ProductForInventory) => {
     const ok = await confirm({
-      title:        product.isActive ? "Désactiver le produit" : "Activer le produit",
-      message:      product.isActive ? "Ce produit ne sera plus visible au POS." : "Ce produit sera de nouveau visible au POS.",
-      confirmLabel: product.isActive ? "Désactiver" : "Activer",
+      title:        product.isActive ? t("deactivate") : t("activate"),
+      message:      product.isActive ? t("deactivateConfirm") : t("activateConfirm"),
+      confirmLabel: product.isActive ? t("deactivate") : t("activate"),
       variant:      product.isActive ? "danger" : "primary",
     })
     if (!ok) return
     try {
       await toggleProductActive(product.id)
-      toast(product.isActive ? "Produit désactivé" : "Produit activé", "success")
+      toast(t("toggleSuccess"), "success")
       router.refresh()
     } catch {
-      toast("Erreur", "error")
+      toast(tCom("error"), "error")
     }
   }
 
@@ -76,40 +80,39 @@ export function ProductTable({ products, categories, sizes, colors, lookupById, 
         </div>
       ),
     },
-    {
-      key: "categoryId", label: "Catégorie",
+    { key: "categoryId", label: t("category"),
       render: (val) => <span style={{ fontSize: 12, color: "var(--text-muted)" }}>{lookupMap[val as string]?.label_fr ?? "—"}</span>,
     },
     {
-      key: "totalStock", label: "Stock", align: "center", sortable: true,
+      key: "totalStock", label: t("stock"), align: "center", sortable: true,
       render: (val) => {
         const n = val as number
         return (
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3 }}>
             <span style={{ fontSize: 14, fontWeight: 700, color: n === 0 ? "var(--danger)" : "var(--text)" }}>{n}</span>
-            {n > 0 && n <= 3 && <Badge variant="warning">STOCK BAS</Badge>}
-            {n === 0   && <Badge variant="danger">ÉPUISÉ</Badge>}
+            {n > 0 && n <= 3 && <Badge variant="warning">{t("stockBas")}</Badge>}
+            {n === 0   && <Badge variant="danger">{tPos("outOfStock")}</Badge>}
           </div>
         )
       },
     },
     {
-      key: "sellingPrice", label: "Prix vente", align: "right", sortable: true,
+      key: "sellingPrice", label: t("sellingPrice"), align: "right", sortable: true,
       render: (val) => <span style={{ fontSize: 13, fontWeight: 600 }}>{formatMAD(val as string)}</span>,
     },
     ...(isAdmin ? [
       {
-        key: "buyingPrice" as keyof ProductForInventory, label: "Achat", align: "right" as const,
+        key: "buyingPrice" as keyof ProductForInventory, label: t("buyingPrice"), align: "right" as const,
         render: (val: unknown) => <span style={{ fontSize: 12, color: "var(--text-muted)" }}>{formatMAD(val as string)}</span>,
       },
       {
-        key: "minSellingPrice" as keyof ProductForInventory, label: "Min", align: "right" as const,
+        key: "minSellingPrice" as keyof ProductForInventory, label: t("minSellingPrice"), align: "right" as const,
         render: (val: unknown) => <span style={{ fontSize: 12, color: "var(--text-muted)" }}>{formatMAD(val as string)}</span>,
       },
     ] : []),
     {
-      key: "isActive", label: "Statut", align: "center",
-      render: (val) => <Badge variant={val ? "success" : "default"}>{val ? "Actif" : "Inactif"}</Badge>,
+      key: "isActive", label: tCom("status"), align: "center",
+      render: (val) => <Badge variant={val ? "success" : "default"}>{val ? t("active") : t("inactive")}</Badge>,
     },
     {
       key: "id", label: "", width: 72,
@@ -133,11 +136,11 @@ export function ProductTable({ products, categories, sizes, colors, lookupById, 
       <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.02em", margin: 0 }}>
-            Inventaire
+            {t("title")}
           </h1>
           {isAdmin && (
             <Button icon={<Plus size={15} />} onClick={openCreate}>
-              Nouveau produit
+              {t("addProduct")}
             </Button>
           )}
         </div>
@@ -147,7 +150,7 @@ export function ProductTable({ products, categories, sizes, colors, lookupById, 
           data={products}
           searchable
           searchKeys={["name_fr", "name_ar"]}
-          emptyMessage="Aucun produit dans l'inventaire."
+          emptyMessage={t("noProducts")}
         />
       </div>
 

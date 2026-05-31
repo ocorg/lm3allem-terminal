@@ -2,7 +2,7 @@
 
 import { useState, useEffect }  from "react"
 import { useTranslations }      from "next-intl"
-import { motion, useReducedMotion } from "framer-motion"
+import { motion, useReducedMotion, type Variants } from "framer-motion"
 import {
   AreaChart, Area,
   PieChart, Pie, Cell,
@@ -48,17 +48,17 @@ function CustomTooltip({ active, payload, label }: {
 }
 
 // Animation variants
-const containerVariants = {
+const containerVariants: Variants = {
   hidden:   {},
   visible:  { transition: { staggerChildren: 0.06 } },
 }
 
-const itemVariants = {
+const itemVariants: Variants = {
   hidden:   { opacity: 0, y: 16 },
   visible:  { opacity: 1, y: 0, transition: { duration: 0.3, ease: "easeOut" } },
 }
 
-const chartVariants = {
+const chartVariants: Variants = {
   hidden:   { opacity: 0 },
   visible:  { opacity: 1, transition: { duration: 0.4, delay: 0.42 } },
 }
@@ -166,7 +166,7 @@ export function DashboardClient({ stats }: { stats: DashboardStats }) {
                       <Cell fill={C_MAGAZIN}  />
                       <Cell fill={C_COSTUMES} />
                     </Pie>
-                    <Tooltip formatter={(v: unknown) => (typeof v === "number" ? `${v.toLocaleString("fr-MA")} MAD` : v)} contentStyle={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12 }} />
+                    <Tooltip formatter={(v: unknown) => (typeof v === "number" ? `${v.toLocaleString("fr-MA")} MAD` : String(v))} contentStyle={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12 }} />
                   </PieChart>
                 </ResponsiveContainer>
                 <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: "auto" }}>

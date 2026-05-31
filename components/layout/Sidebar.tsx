@@ -3,7 +3,7 @@
 import { usePathname } from "next/navigation"
 import Link            from "next/link"
 import { useEffect, useState } from "react"
-import { motion, useReducedMotion } from "framer-motion"
+import { motion, useReducedMotion, type Variants } from "framer-motion"
 import {
   ShoppingCart, Package, Wallet, CreditCard, ClipboardList,
   BookOpen, Users, LayoutDashboard, TrendingUp, Receipt,
@@ -101,12 +101,12 @@ export default function Sidebar({
   // User initials
   const userInitials = userName.charAt(0).toUpperCase()
 
-  const navContainerVariants = shouldReduce ? {} : {
+  const navContainerVariants: Variants | undefined = shouldReduce ? undefined : {
     hidden:   {},
     visible:  { transition: { staggerChildren: 0.04, delayChildren: 0.05 } },
   }
 
-  const navItemVariants = shouldReduce ? {} : {
+  const navItemVariants: Variants | undefined = shouldReduce ? undefined : {
     hidden:   { opacity: 0, x: isRTL ? 4 : -4 },
     visible:  { opacity: 1, x: 0, transition: { duration: 0.2, ease: "easeOut" } },
   }

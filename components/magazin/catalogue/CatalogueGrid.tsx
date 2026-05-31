@@ -3,6 +3,7 @@
 import { useState, useMemo } from "react"
 import { Select }    from "@/components/ui/Select"
 import { formatMAD } from "@/lib/utils/currency"
+import { useTranslations } from "next-intl"
 import type { ProductForPOS as ProductForCatalogue } from "@/lib/actions/magazin/pos"
 
 type LookupItem    = { id: string; label_fr: string; label_ar: string }
@@ -18,6 +19,7 @@ interface CatalogueGridProps {
 }
 
 export function CatalogueGrid({ products, categories, sizes, colors, lookupById, locale }: CatalogueGridProps) {
+  const t = useTranslations("magazin.catalogue")
   const [catFilter,   setCatFilter]   = useState("")
   const [sizeFilter,  setSizeFilter]  = useState("")
   const [colorFilter, setColorFilter] = useState("")
@@ -36,20 +38,20 @@ export function CatalogueGrid({ products, categories, sizes, colors, lookupById,
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
       <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.02em", margin: 0 }}>
-        Catalogue
+        {t("title")}
       </h1>
 
       {/* Filters */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(175px, 1fr))", gap: 12, alignItems: "end" }}>
-        <Select value={catFilter}   onChange={e => setCatFilter(e.target.value)}   placeholder="Toutes catégories" options={categories.map(c => ({ value: c.id, label: c.label_fr }))} />
-        <Select value={sizeFilter}  onChange={e => setSizeFilter(e.target.value)}  placeholder="Toutes tailles"   options={sizes.map(s => ({ value: s.id, label: s.label_fr }))} />
-        <Select value={colorFilter} onChange={e => setColorFilter(e.target.value)} placeholder="Toutes couleurs"  options={colors.map(c => ({ value: c.id, label: c.label_fr }))} />
+        <Select value={catFilter}   onChange={e => setCatFilter(e.target.value)}   placeholder={t("allCategories")} options={categories.map(c => ({ value: c.id, label: c.label_fr }))} />
+        <Select value={sizeFilter}  onChange={e => setSizeFilter(e.target.value)}  placeholder={t("allSizes")}   options={sizes.map(s => ({ value: s.id, label: s.label_fr }))} />
+        <Select value={colorFilter} onChange={e => setColorFilter(e.target.value)} placeholder={t("allColors")}  options={colors.map(c => ({ value: c.id, label: c.label_fr }))} />
         {anyFilter && (
           <button
             onClick={() => { setCatFilter(""); setSizeFilter(""); setColorFilter("") }}
             style={{ height: 42, borderRadius: 8, border: "1px solid var(--border)", background: "none", cursor: "pointer", fontSize: 12, color: "var(--text-muted)" }}
           >
-            Effacer filtres
+            {t("clearFilters")}
           </button>
         )}
       </div>
@@ -57,7 +59,7 @@ export function CatalogueGrid({ products, categories, sizes, colors, lookupById,
       {/* Grid */}
       {filtered.length === 0 ? (
         <div style={{ textAlign: "center", color: "var(--text-muted)", paddingTop: 64, fontSize: 13 }}>
-          Aucun produit dans le catalogue.
+          {t("noProducts")}
         </div>
       ) : (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 16 }}>
@@ -96,7 +98,7 @@ export function CatalogueGrid({ products, categories, sizes, colors, lookupById,
                   <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", margin: 0, lineHeight: 1.3 }}>{name}</p>
                   <p style={{ fontSize: 14, fontWeight: 700, color: "var(--primary)", margin: 0 }}>{formatMAD(p.sellingPrice)}</p>
                   <p style={{ fontSize: 11, color: isOut ? "var(--danger)" : "var(--success)", fontWeight: 500, margin: 0 }}>
-                    {isOut ? "Épuisé" : `${totalStock} en stock`}
+                    {isOut ? t("outOfStock") : `${totalStock} ${t("inStock")}`}
                   </p>
 
                   {/* Size chips */}
