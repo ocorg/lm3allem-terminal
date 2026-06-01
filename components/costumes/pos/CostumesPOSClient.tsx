@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo }  from "react"
+import { useState, useMemo, useEffect }  from "react"
 import { useRouter }          from "next/navigation"
 import { ShoppingCart, Package } from "lucide-react"
 import { useCaisse }          from "@/components/caisse/CaisseProvider"
@@ -106,6 +106,16 @@ export function CostumesPOSClient({ items, lookupById, locale, role }: Props) {
   const totalQty  = cart.reduce((s, c) => s + c.quantity, 0)
   const isRTL     = locale === "ar"
 
+  const [isMobile,  setIsMobile]  = useState(false)
+  const [mobileTab, setMobileTab] = useState<"products" | "cart">("products")
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768)
+    check()
+    window.addEventListener("resize", check)
+    return () => window.removeEventListener("resize", check)
+  }, [])
+
   const handleCheckout = () => {
     if (!cart.length) return
     const below = cart.filter(c => c.unitPrice < c.minSellingPrice && !authorized[c.costumeItemId])
@@ -143,10 +153,40 @@ export function CostumesPOSClient({ items, lookupById, locale, role }: Props) {
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: isRTL ? "row-reverse" : "row", height: "calc(100vh - 64px)", overflow: "hidden" }}>
+    <div style={{ display: "flex", flexDirection: isMobile ? "column" : (isRTL ? "row-reverse" : "row"), height: "calc(100vh - 64px)", overflow: "hidden" }}>
+
+      {/* Mobile: tab switcher */}
+      {isMobile && (
+        <div style={{ display: "flex", flexShrink: 0, background: "var(--surface)", borderBottom: "1px solid var(--border)" }}>
+          {(["products", "cart"] as const).map(tab => {
+            const active = mobileTab === tab
+            const label  = tab === "products"
+              ? "Articles"
+              : `Panier${totalQty > 0 ? ` (${totalQty})` : ""}`
+            return (
+              <button
+                key={tab}
+                onClick={() => setMobileTab(tab)}
+                style={{
+                  flex: 1, padding: "14px 8px",
+                  border: "none",
+                  borderBottom: `2px solid ${active ? "var(--primary)" : "transparent"}`,
+                  background: "none", cursor: "pointer",
+                  fontSize: 14, fontWeight: active ? 700 : 500,
+                  color: active ? "var(--primary)" : "var(--text-muted)",
+                  transition: "all 0.15s",
+                }}
+              >
+                {label}
+              </button>
+            )
+          })}
+        </div>
+      )}
 
       {/* ── Items panel ── */}
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", borderInlineEnd: "1px solid var(--border)" }}>
+      {(!isMobile || mobileTab === "products") && (
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", borderInlineEnd: isMobile ? "none" : "1px solid var(--border)" }}>
         <div style={{ padding: "12px 16px 0", display: "flex", flexDirection: "column", gap: 10, flexShrink: 0 }}>
           <SearchBar value={search} onChange={setSearch} placeholder="Rechercher..." />
           <div style={{ display: "flex", gap: 6, overflowX: "auto", scrollbarWidth: "none", paddingBottom: 2 }}>
@@ -200,9 +240,11 @@ export function CostumesPOSClient({ items, lookupById, locale, role }: Props) {
           )}
         </div>
       </div>
+      )}
 
       {/* ── Cart panel ── */}
-      <div style={{ width: 340, flexShrink: 0, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+      {(!isMobile || mobileTab === "cart") && (
+      <div style={{ width: isMobile ? "100%" : 340, flexShrink: 0, display: "flex", flexDirection: "column", overflow: "hidden" }}>
         <div style={{ padding: "14px 16px 12px", borderBottom: "1px solid var(--border)", flexShrink: 0, display: "flex", alignItems: "center", gap: 8 }}>
           <ShoppingCart size={16} style={{ color: "var(--text-muted)" }} />
           <span style={{ fontSize: 14, fontWeight: 600, color: "var(--text)" }}>Panier</span>
@@ -257,6 +299,7 @@ export function CostumesPOSClient({ items, lookupById, locale, role }: Props) {
           <Button fullWidth onClick={handleCheckout} disabled={!cart.length} loading={loading}>Encaisser</Button>
         </div>
       </div>
+      )}
 
       {/* ── Modals ── */}
       <BelowMinModal

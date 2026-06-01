@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useCaisse } from "@/components/caisse/CaisseProvider"
 import { BelowMinModal, type BelowMinItem } from "@/components/caisse/BelowMinModal"
@@ -159,43 +159,90 @@ export function POSClient({ products, categories, lookupById, locale, role }: PO
 
   const isRTL = locale === "ar"
 
+  const [isMobile,  setIsMobile]  = useState(false)
+  const [mobileTab, setMobileTab] = useState<"products" | "cart">("products")
+  const totalQty = cart.reduce((s, i) => s + i.quantity, 0)
+  const subtotal  = cart.reduce((s, i) => s + i.unitPrice * i.quantity, 0)
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768)
+    check()
+    window.addEventListener("resize", check)
+    return () => window.removeEventListener("resize", check)
+  }, [])
+
   return (
-    <div
-      style={{
-        display:       "flex",
-        flexDirection: isRTL ? "row-reverse" : "row",
-        height:        "calc(100vh - 64px)",
-        overflow:      "hidden",
-      }}
-    >
-      {/* Left: Products */}
+    <>
       <div
         style={{
-          flex:           1,
-          display:        "flex",
-          flexDirection:  "column",
-          overflow:       "hidden",
-          borderInlineEnd: "1px solid var(--border)",
+          display:       "flex",
+          flexDirection: isMobile ? "column" : (isRTL ? "row-reverse" : "row"),
+          height:        "calc(100vh - 64px)",
+          overflow:      "hidden",
         }}
       >
-        <ProductGrid
-          products={products}
-          categories={categories}
-          locale={locale}
-          onProductClick={handleProductClick}
-        />
-      </div>
+        {/* Mobile: tab switcher */}
+        {isMobile && (
+          <div style={{ display: "flex", flexShrink: 0, background: "var(--surface)", borderBottom: "1px solid var(--border)" }}>
+            {(["products", "cart"] as const).map(tab => {
+              const active = mobileTab === tab
+              const label  = tab === "products"
+                ? "Produits"
+                : `Panier${totalQty > 0 ? ` (${totalQty})` : ""}`
+              return (
+                <button
+                  key={tab}
+                  onClick={() => setMobileTab(tab)}
+                  style={{
+                    flex: 1, padding: "14px 8px",
+                    border: "none",
+                    borderBottom: `2px solid ${active ? "var(--primary)" : "transparent"}`,
+                    background: "none", cursor: "pointer",
+                    fontSize: 14, fontWeight: active ? 700 : 500,
+                    color: active ? "var(--primary)" : "var(--text-muted)",
+                    transition: "all 0.15s",
+                  }}
+                >
+                  {label}
+                </button>
+              )
+            })}
+          </div>
+        )}
 
-      {/* Right: Cart */}
-      <div style={{ width: 360, flexShrink: 0, display: "flex", flexDirection: "column", overflow: "hidden" }}>
-        <CartPanel
-          items={cart}
-          locale={locale}
-          onUpdateItem={updateCartItem}
-          onRemoveItem={removeCartItem}
-          onCheckout={handleCheckout}
-          loading={saleLoading}
-        />
+        {/* Products panel */}
+        {(!isMobile || mobileTab === "products") && (
+          <div
+            style={{
+              flex:            1,
+              display:         "flex",
+              flexDirection:   "column",
+              overflow:        "hidden",
+              borderInlineEnd: isMobile ? "none" : "1px solid var(--border)",
+            }}
+          >
+            <ProductGrid
+              products={products}
+              categories={categories}
+              locale={locale}
+              onProductClick={handleProductClick}
+            />
+          </div>
+        )}
+
+        {/* Cart panel */}
+        {(!isMobile || mobileTab === "cart") && (
+          <div style={{ width: isMobile ? "100%" : 360, flexShrink: 0, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+            <CartPanel
+              items={cart}
+              locale={locale}
+              onUpdateItem={updateCartItem}
+              onRemoveItem={removeCartItem}
+              onCheckout={handleCheckout}
+              loading={saleLoading}
+            />
+          </div>
+        )}
       </div>
 
       {/* Variant picker */}
@@ -230,6 +277,6 @@ export function POSClient({ products, categories, lookupById, locale, role }: PO
           onConfirm={handleSaleComplete}
         />
       )}
-    </div>
+    </>
   )
 }
