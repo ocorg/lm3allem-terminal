@@ -232,6 +232,7 @@
       "pos": "Point de vente",
       "rentals": "Locations",
       "inventory": "Inventaire",
+      "rental_inventory": "Flotte de location",
       "clients": "Clients",
       "catalogue": "Catalogue",
       "caisse": "Caisse"

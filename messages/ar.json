@@ -232,6 +232,7 @@
       "pos": "نقطة البيع",
       "rentals": "التأجيرات",
       "inventory": "المخزون",
+      "rental_inventory": "أسطول التأجير",
       "clients": "العملاء",
       "catalogue": "الكتالوج",
       "caisse": "الصندوق"
