@@ -52,7 +52,7 @@ export async function getItemsForPOS(): Promise<{
 }> {
   const [rawItems, rawLookup] = await Promise.all([
     prisma.costumeItem.findMany({
-      where:   { isActive: true, stock: { gt: 0 } },
+      where:   { isActive: true, stock: { gt: 0 }, segment: "sale" },
       orderBy: { name_fr: "asc" },
     }),
     prisma.lookupValue.findMany({

@@ -1,6 +1,6 @@
 import { withModule }                        from "@/lib/auth/session"
 import { getRentals, getRentalLookups }      from "@/lib/actions/costumes/rentals"
-import { getItemsForPOS }                    from "@/lib/actions/costumes/pos"
+import { getRentalItems }                    from "@/lib/actions/costumes/rentals"
 import { getClients }                        from "@/lib/actions/costumes/clients"
 import { CaisseGuard }                       from "@/components/caisse/CaisseGuard"
 import { RentalsClient }                     from "@/components/costumes/rentals/RentalsClient"
@@ -20,7 +20,7 @@ export default async function RentalsPage({
     { measurementCategories },
   ] = await Promise.all([
     getRentals(),
-    getItemsForPOS(),
+    getRentalItems(),
     getClients(),
     getRentalLookups(),
   ])

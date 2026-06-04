@@ -3,7 +3,7 @@
 import { prisma }      from "@/lib/db/prisma"
 import { auth }        from "@/lib/auth/auth"
 import { logActivity } from "@/lib/activity/logger"
-import type { CostumeItemType } from "@prisma/client"
+import type { CostumeItemType, ItemSegment } from "@prisma/client"
 import type { LookupItem, LookupById } from "./pos"
 
 // ── Shapes ─────────────────────────────────────────────────────
@@ -12,12 +12,14 @@ export interface CostumeItemForInventory {
   name_fr:         string
   name_ar:         string
   type:            CostumeItemType
+  segment:         ItemSegment
   sizeId:          string | null
   colorId:         string | null
   stock:           number
   buyingPrice:     string
   sellingPrice:    string
   minSellingPrice: string
+  refGuidePrice:   string | null
   images:          string[]
   isActive:        boolean
   createdAt:       string
@@ -27,18 +29,21 @@ export interface CostumeItemInput {
   name_fr:         string
   name_ar:         string
   type:            CostumeItemType
+  segment:         ItemSegment
   sizeId:          string | null
   colorId:         string | null
   stock:           number
   buyingPrice:     number
   sellingPrice:    number
   minSellingPrice: number
+  refGuidePrice:   number | null
   images:          string[]
 }
 
 // ── getCostumeItems ────────────────────────────────────────────
-export async function getCostumeItems(): Promise<CostumeItemForInventory[]> {
+export async function getCostumeItems(segment?: ItemSegment): Promise<CostumeItemForInventory[]> {
   const items = await prisma.costumeItem.findMany({
+    where:   segment ? { segment } : undefined,
     orderBy: { createdAt: "desc" },
   })
   return items.map((i) => ({
@@ -46,12 +51,14 @@ export async function getCostumeItems(): Promise<CostumeItemForInventory[]> {
     name_fr:         i.name_fr,
     name_ar:         i.name_ar,
     type:            i.type,
+    segment:         i.segment,
     sizeId:          i.sizeId,
     colorId:         i.colorId,
     stock:           i.stock,
     buyingPrice:     i.buyingPrice.toString(),
     sellingPrice:    i.sellingPrice.toString(),
     minSellingPrice: i.minSellingPrice.toString(),
+    refGuidePrice:   i.refGuidePrice?.toString() ?? null,
     images:          i.images,
     isActive:        i.isActive,
     createdAt:       i.createdAt.toISOString(),
@@ -98,12 +105,14 @@ export async function createCostumeItem(
       name_fr:         input.name_fr,
       name_ar:         input.name_ar,
       type:            input.type,
+      segment:         input.segment,
       sizeId:          input.sizeId,
       colorId:         input.colorId,
       stock:           input.stock,
       buyingPrice:     input.buyingPrice,
-      sellingPrice:    input.sellingPrice,
-      minSellingPrice: input.minSellingPrice,
+      sellingPrice:    input.segment === "sale" ? input.sellingPrice    : 0,
+      minSellingPrice: input.segment === "sale" ? input.minSellingPrice : 0,
+      refGuidePrice:   input.segment === "rental" ? input.refGuidePrice : null,
       images:          input.images,
     },
   })
@@ -134,12 +143,14 @@ export async function updateCostumeItem(
       name_fr:         input.name_fr,
       name_ar:         input.name_ar,
       type:            input.type,
+      segment:         input.segment,
       sizeId:          input.sizeId,
       colorId:         input.colorId,
       stock:           input.stock,
       buyingPrice:     input.buyingPrice,
-      sellingPrice:    input.sellingPrice,
-      minSellingPrice: input.minSellingPrice,
+      sellingPrice:    input.segment === "sale" ? input.sellingPrice    : 0,
+      minSellingPrice: input.segment === "sale" ? input.minSellingPrice : 0,
+      refGuidePrice:   input.segment === "rental" ? input.refGuidePrice : null,
       images:          input.images,
     },
   })

@@ -2,23 +2,23 @@ import { withModule }                          from "@/lib/auth/session"
 import { getCostumeItems, getInventoryLookups } from "@/lib/actions/costumes/inventory"
 import { CostumesInventoryClient }             from "@/components/costumes/inventory/CostumesInventoryClient"
 
-export default async function CostumesInventoryPage({
+export default async function RentalInventoryPage({
   params,
 }: {
   params: Promise<{ locale: string }>
 }) {
-  const { locale }    = await params
-  const authSession   = await withModule("costumes", "inventory")
+  const { locale }  = await params
+  const authSession = await withModule("costumes", "rental_inventory")
 
   const [items, { sizes, colors, lookupById }] = await Promise.all([
-    getCostumeItems("sale"),
+    getCostumeItems("rental"),
     getInventoryLookups(),
   ])
 
   return (
     <CostumesInventoryClient
       items={items}
-      segment="sale"
+      segment="rental"
       sizes={sizes}
       colors={colors}
       lookupById={lookupById}

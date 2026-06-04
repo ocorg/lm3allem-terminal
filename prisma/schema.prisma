@@ -4,8 +4,7 @@ generator client {
 
 datasource db {
   provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DATABASE_URL_UNPOOLED")
+
 }
 
 // ─── ENUMS ────────────────────────────────────────────
@@ -61,6 +60,11 @@ enum CostumeItemType {
   vest
   shoes
   accessory
+}
+
+enum ItemSegment {
+  sale
+  rental
 }
 
 enum TransactionType {
@@ -318,6 +322,8 @@ model CostumeItem {
   buyingPrice     Decimal           @db.Decimal(10, 2)
   sellingPrice    Decimal           @db.Decimal(10, 2)
   minSellingPrice Decimal           @db.Decimal(10, 2)
+  segment         ItemSegment       @default(sale)
+  refGuidePrice   Decimal?          @db.Decimal(10, 2)
   isActive        Boolean           @default(true)
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt

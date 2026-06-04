@@ -8,6 +8,7 @@ import {
   ShoppingCart, Package, Wallet, CreditCard, ClipboardList,
   BookOpen, Users, LayoutDashboard, TrendingUp, Receipt,
   ScrollText, SlidersHorizontal, Settings, Bell,
+  CalendarCheck, Shirt,
   ChevronLeft, ChevronRight, type LucideIcon,
 } from "lucide-react"
 import type { NavItem } from "@/lib/utils/nav"
@@ -15,8 +16,10 @@ import type { Portal } from "@prisma/client"
 import { useBreakpoint } from "@/hooks/useBreakpoint"
 
 const ICON_MAP: Record<string, LucideIcon> = {
-  pos:       ShoppingCart,
-  inventory: Package,
+  pos:              ShoppingCart,
+  inventory:        Package,
+  rentals:          CalendarCheck,
+  rental_inventory: Shirt,
   caisse:    Wallet,
   credits:   CreditCard,
   requests:  ClipboardList,

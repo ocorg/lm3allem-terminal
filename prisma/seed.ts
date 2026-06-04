@@ -101,7 +101,7 @@ async function main() {
       maintenanceMode: false,
       defaultStaffPermissions: {
         magazin:  { pos: true, inventory: false, caisse: false, credits: true, produits_demandes: true },
-        costumes: { pos: true, inventory: false, caisse: false, clients: true },
+        costumes: { pos: true, inventory: false, caisse: false, clients: true, rentals: true, rental_inventory: false },
       },
     },
   })

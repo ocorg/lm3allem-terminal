@@ -15,7 +15,8 @@ import { formatMAD }                    from "@/lib/utils/currency"
 import { ImageUploader }                from "@/components/magazin/inventory/ImageUploader"
 import { createClient }                 from "@/lib/actions/costumes/clients"
 import { createRental }                 from "@/lib/actions/costumes/rentals"
-import type { CostumeItemForPOS, LookupById, LookupItem } from "@/lib/actions/costumes/pos"
+import type { CostumeItemForRental }    from "@/lib/actions/costumes/rentals"
+import type { LookupById, LookupItem }  from "@/lib/actions/costumes/pos"
 import type { ClientForList }           from "@/lib/actions/costumes/clients"
 import type { GuaranteeType, PaymentMethod } from "@prisma/client"
 
@@ -25,7 +26,7 @@ interface KitLine {
   name_fr:       string
   name_ar:       string
   stock:         number
-  sellingPrice:  number
+  refGuidePrice: number | null
 }
 
 interface MeasurementLine {
@@ -69,7 +70,7 @@ const PAYMENT_KEYS:   PaymentMethod[] = ["cash", "tpe", "banque"]
 interface Props {
   isOpen:                boolean
   onClose:               () => void
-  costumeItems:          CostumeItemForPOS[]
+  costumeItems:          CostumeItemForRental[]
   clients:               ClientForList[]
   measurementCategories: LookupItem[]
   lookupById:            LookupById
@@ -302,7 +303,7 @@ function StepClient({ data, upd, clients, errors }: { data: WizardData; upd: (p:
 }
 
 // ── Step 2: Kit ────────────────────────────────────────────────
-function StepKit({ data, upd, costumeItems, lookupById, locale, errors }: { data: WizardData; upd: (p: Partial<WizardData>) => void; costumeItems: CostumeItemForPOS[]; lookupById: LookupById; locale: string; errors: Record<string, string> }) {
+function StepKit({ data, upd, costumeItems, lookupById, locale, errors }: { data: WizardData; upd: (p: Partial<WizardData>) => void; costumeItems: CostumeItemForRental[]; lookupById: LookupById; locale: string; errors: Record<string, string> }) {
   const tRental = useTranslations("costumes.rental")
   const tUi     = useTranslations("ui")
   const [search, setSearch] = useState("")
@@ -312,14 +313,14 @@ function StepKit({ data, upd, costumeItems, lookupById, locale, errors }: { data
     return q ? costumeItems.filter(i => i.name_fr.toLowerCase().includes(q) || i.name_ar.includes(q)) : costumeItems
   }, [costumeItems, search])
 
-  const addItem = (item: CostumeItemForPOS) => {
+  const addItem = (item: CostumeItemForRental) => {
     if (data.kitItems.some(k => k.costumeItemId === item.id)) return
-    upd({ kitItems: [...data.kitItems, { costumeItemId: item.id, quantity: 1, name_fr: item.name_fr, name_ar: item.name_ar, stock: item.stock, sellingPrice: parseFloat(item.sellingPrice) }] })
+    upd({ kitItems: [...data.kitItems, { costumeItemId: item.id, quantity: 1, name_fr: item.name_fr, name_ar: item.name_ar, stock: item.stock, refGuidePrice: item.refGuidePrice ? parseFloat(item.refGuidePrice) : null }] })
   }
   const removeItem = (id: string) => upd({ kitItems: data.kitItems.filter(k => k.costumeItemId !== id) })
   const setQty     = (id: string, q: number) => upd({ kitItems: data.kitItems.map(k => k.costumeItemId === id ? { ...k, quantity: Math.max(1, Math.min(q, k.stock)) } : k) })
 
-  const itemLabel = (item: CostumeItemForPOS) => {
+  const itemLabel = (item: CostumeItemForRental) => {
     const parts: string[] = []
     if (item.sizeId  && lookupById[item.sizeId])  parts.push(lookupById[item.sizeId].label_fr)
     if (item.colorId && lookupById[item.colorId]) parts.push(lookupById[item.colorId].label_fr)
@@ -392,11 +393,11 @@ function StepKit({ data, upd, costumeItems, lookupById, locale, errors }: { data
             ))
           }
         </div>
-        {data.kitItems.length > 0 && (
+        {data.kitItems.length > 0 && data.kitItems.some(k => k.refGuidePrice !== null) && (
           <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0" }}>
             <span style={{ fontSize: 12, color: "var(--text-muted)" }}>{tRental("suggestedTotal")}</span>
             <span style={{ fontSize: 13, fontWeight: 700, color: "var(--text)" }}>
-              {formatMAD(data.kitItems.reduce((s, k) => s + k.sellingPrice * k.quantity, 0))}
+              {formatMAD(data.kitItems.reduce((s, k) => s + (k.refGuidePrice ?? 0) * k.quantity, 0))}
             </span>
           </div>
         )}
@@ -489,7 +490,11 @@ function StepPayment({ data, upd, errors }: { data: WizardData; upd: (p: Partial
   const tRental = useTranslations("costumes.rental")
   const PAYMENT_OPTIONS = PAYMENT_KEYS.map(v => ({ value: v, label: tP(v as Parameters<typeof tP>[0]) }))
 
-  const suggested = useMemo(() => data.kitItems.reduce((s, k) => s + k.sellingPrice * k.quantity, 0), [data.kitItems])
+  const suggested = useMemo(() =>
+    data.kitItems.some(k => k.refGuidePrice !== null)
+      ? data.kitItems.reduce((s, k) => s + (k.refGuidePrice ?? 0) * k.quantity, 0)
+      : null
+  , [data.kitItems])
 
   useEffect(() => {
     if (!data.totalAmount && suggested) upd({ totalAmount: suggested.toFixed(2) })
@@ -507,7 +512,7 @@ function StepPayment({ data, upd, errors }: { data: WizardData; upd: (p: Partial
         value={data.totalAmount}
         onChange={e => upd({ totalAmount: e.target.value })}
         error={errors.totalAmount}
-        hint={suggested ? tRental("suggestedHint", { amount: formatMAD(suggested) }) : undefined}
+        hint={suggested !== null && suggested > 0 ? tRental("suggestedHint", { amount: formatMAD(suggested) }) : undefined}
       />
       <Input
         label={tRental("advanceAmountLabel")}
@@ -540,7 +545,7 @@ function StepPayment({ data, upd, errors }: { data: WizardData; upd: (p: Partial
 }
 
 // ── Step 7: Confirm ────────────────────────────────────────────
-function StepConfirm({ data, clients, costumeItems: _ci, lookupById: _lb, measurementCategories: _mc }: { data: WizardData; clients: ClientForList[]; costumeItems: CostumeItemForPOS[]; lookupById: LookupById; measurementCategories: LookupItem[] }) {
+function StepConfirm({ data, clients, costumeItems: _ci, lookupById: _lb, measurementCategories: _mc }: { data: WizardData; clients: ClientForList[]; costumeItems: CostumeItemForRental[]; lookupById: LookupById; measurementCategories: LookupItem[] }) {
   const tG      = useTranslations("costumes.guarantee")
   const tP      = useTranslations("payment")
   const tRental = useTranslations("costumes.rental")

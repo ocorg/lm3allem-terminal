@@ -12,6 +12,7 @@ import type {
   GuaranteeType,
   PaymentMethod,
   TransactionType,
+  CostumeItemType,
 } from "@prisma/client"
 
 // ── Shapes ─────────────────────────────────────────────────────
@@ -337,9 +338,59 @@ export async function createRental(
   return { rentalId: result.id }
 }
 
+// ── getRentalItems ─────────────────────────────────────────────
+export interface CostumeItemForRental {
+  id:            string
+  name_fr:       string
+  name_ar:       string
+  type:          CostumeItemType
+  sizeId:        string | null
+  colorId:       string | null
+  stock:         number
+  refGuidePrice: string | null
+  images:        string[]
+}
+
+export async function getRentalItems(): Promise<{
+  items:      CostumeItemForRental[]
+  lookupById: LookupById
+}> {
+  const [rawItems, rawLookup] = await Promise.all([
+    prisma.costumeItem.findMany({
+      where:   { isActive: true, stock: { gt: 0 }, segment: "rental" },
+      orderBy: { name_fr: "asc" },
+    }),
+    prisma.lookupValue.findMany({
+      where:   { isActive: true },
+      include: { category: { select: { slug: true } } },
+      orderBy: { order: "asc" },
+    }),
+  ])
+
+  const lookupById: LookupById = {}
+  for (const lv of rawLookup) {
+    lookupById[lv.id] = { label_fr: lv.label_fr, label_ar: lv.label_ar }
+  }
+
+  return {
+    items: rawItems.map((i) => ({
+      id:            i.id,
+      name_fr:       i.name_fr,
+      name_ar:       i.name_ar,
+      type:          i.type,
+      sizeId:        i.sizeId,
+      colorId:       i.colorId,
+      stock:         i.stock,
+      refGuidePrice: i.refGuidePrice?.toString() ?? null,
+      images:        i.images,
+    })),
+    lookupById,
+  }
+}
+
 // ── getRentalLookups ───────────────────────────────────────────
 // Returns measurement category lookup values for the rental wizard Step 4.
-import type { LookupItem } from "./pos"
+import type { LookupItem, LookupById } from "./pos"
 
 export async function getRentalLookups(): Promise<{
   measurementCategories: LookupItem[]

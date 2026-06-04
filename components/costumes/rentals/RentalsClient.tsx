@@ -9,7 +9,8 @@ import { formatMAD }            from "@/lib/utils/currency"
 import { RentalWizard }         from "./RentalWizard"
 import { RentalDetailModal }    from "./RentalDetailModal"
 import type { RentalForList }   from "@/lib/actions/costumes/rentals"
-import type { CostumeItemForPOS, LookupById } from "@/lib/actions/costumes/pos"
+import type { CostumeItemForRental }   from "@/lib/actions/costumes/rentals"
+import type { LookupById }             from "@/lib/actions/costumes/pos"
 import type { ClientForList }   from "@/lib/actions/costumes/clients"
 import type { LookupItem }      from "@/lib/actions/costumes/pos"
 import type { RentalStatus }    from "@prisma/client"
@@ -17,7 +18,7 @@ import type { RentalStatus }    from "@prisma/client"
 // ── Types ──────────────────────────────────────────────────────
 interface Props {
   rentals:               RentalForList[]
-  costumeItems:          CostumeItemForPOS[]
+  costumeItems:          CostumeItemForRental[]
   clients:               ClientForList[]
   measurementCategories: LookupItem[]
   lookupById:            LookupById

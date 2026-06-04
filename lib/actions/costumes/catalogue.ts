@@ -26,7 +26,7 @@ export async function getCostumeCatalogue(): Promise<{
 }> {
   const [rawItems, rawLookup] = await Promise.all([
     prisma.costumeItem.findMany({
-      where:   { isActive: true },
+      where:   { isActive: true, segment: "sale" },
       orderBy: { name_fr: "asc" },
     }),
     prisma.lookupValue.findMany({

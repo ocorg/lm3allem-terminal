@@ -16,10 +16,11 @@ import { ImageUploader }        from "@/components/magazin/inventory/ImageUpload
 import { createCostumeItem, updateCostumeItem } from "@/lib/actions/costumes/inventory"
 import type { CostumeItemForInventory, CostumeItemInput } from "@/lib/actions/costumes/inventory"
 import type { LookupItem, LookupById } from "@/lib/actions/costumes/pos"
-import type { CostumeItemType } from "@prisma/client"
+import type { CostumeItemType, ItemSegment } from "@prisma/client"
 
 interface Props {
   items:      CostumeItemForInventory[]
+  segment:    "sale" | "rental"
   sizes:      LookupItem[]
   colors:     LookupItem[]
   lookupById: LookupById
@@ -27,7 +28,7 @@ interface Props {
   locale:     string
 }
 
-export function CostumesInventoryClient({ items, sizes, colors, lookupById, role }: Props) {
+export function CostumesInventoryClient({ items, segment, sizes, colors, lookupById, role }: Props) {
   const router   = useRouter()
   const tInv     = useTranslations("costumes.inventory")
   const tType    = useTranslations("costumes.itemType")
@@ -80,8 +81,12 @@ export function CostumesInventoryClient({ items, sizes, colors, lookupById, role
         </span>
       ),
     },
-    { key: "sellingPrice",    label: tInv("colSellingPrice"), render: (_, row) => formatMAD(row.sellingPrice) },
-    { key: "minSellingPrice", label: tInv("colMinPrice"),     render: (_, row) => formatMAD(row.minSellingPrice) },
+    ...(segment === "sale" ? [
+      { key: "sellingPrice"    as const, label: tInv("colSellingPrice"), render: (_: unknown, row: CostumeItemForInventory) => formatMAD(row.sellingPrice) },
+      { key: "minSellingPrice" as const, label: tInv("colMinPrice"),     render: (_: unknown, row: CostumeItemForInventory) => formatMAD(row.minSellingPrice) },
+    ] : [
+      { key: "refGuidePrice"   as const, label: "Prix guide",            render: (_: unknown, row: CostumeItemForInventory) => row.refGuidePrice ? formatMAD(row.refGuidePrice) : <span style={{ color: "var(--text-muted)" }}>—</span> },
+    ]),
     {
       key: "isActive", label: tCom("status"),
       render: (_, row) => (
@@ -128,6 +133,7 @@ export function CostumesInventoryClient({ items, sizes, colors, lookupById, role
         isOpen={creating || !!editing}
         mode={editing ? "edit" : "create"}
         item={editing}
+        defaultSegment={segment}
         sizes={sizes}
         colors={colors}
         onClose={() => { setCreating(false); setEditing(null) }}
@@ -138,16 +144,17 @@ export function CostumesInventoryClient({ items, sizes, colors, lookupById, role
 }
 
 interface FormModalProps {
-  isOpen:    boolean
-  mode:      "create" | "edit"
-  item:      CostumeItemForInventory | null
-  sizes:     LookupItem[]
-  colors:    LookupItem[]
-  onClose:   () => void
-  onSuccess: () => void
+  isOpen:          boolean
+  mode:            "create" | "edit"
+  item:            CostumeItemForInventory | null
+  defaultSegment:  "sale" | "rental"
+  sizes:           LookupItem[]
+  colors:          LookupItem[]
+  onClose:         () => void
+  onSuccess:       () => void
 }
 
-function CostumeItemFormModal({ isOpen, mode, item, sizes, colors, onClose, onSuccess }: FormModalProps) {
+function CostumeItemFormModal({ isOpen, mode, item, defaultSegment, sizes, colors, onClose, onSuccess }: FormModalProps) {
   const isEdit = mode === "edit"
   const tInv   = useTranslations("costumes.inventory")
   const tType  = useTranslations("costumes.itemType")
@@ -159,30 +166,36 @@ function CostumeItemFormModal({ isOpen, mode, item, sizes, colors, onClose, onSu
     label: tType(v as Parameters<typeof tType>[0]),
   }))
 
-  const [nameFr,   setNameFr]   = useState("")
-  const [nameAr,   setNameAr]   = useState("")
-  const [type,     setType]     = useState<CostumeItemType>("suit")
-  const [sizeId,   setSizeId]   = useState("")
-  const [colorId,  setColorId]  = useState("")
-  const [stock,    setStock]    = useState("")
-  const [buying,   setBuying]   = useState("")
-  const [selling,  setSelling]  = useState("")
-  const [minSell,  setMinSell]  = useState("")
-  const [images,   setImages]   = useState<string[]>([])
-  const [loading,  setLoading]  = useState(false)
-  const [errors,   setErrors]   = useState<Record<string, string>>({})
+  const [nameFr,    setNameFr]    = useState("")
+  const [nameAr,    setNameAr]    = useState("")
+  const [type,      setType]      = useState<CostumeItemType>("suit")
+  const [segment,   setSegment]   = useState<ItemSegment>(defaultSegment)
+  const [sizeId,    setSizeId]    = useState("")
+  const [colorId,   setColorId]   = useState("")
+  const [stock,     setStock]     = useState("")
+  const [buying,    setBuying]    = useState("")
+  const [selling,   setSelling]   = useState("")
+  const [minSell,   setMinSell]   = useState("")
+  const [guidePrice, setGuidePrice] = useState("")
+  const [images,    setImages]    = useState<string[]>([])
+  const [loading,   setLoading]   = useState(false)
+  const [errors,    setErrors]    = useState<Record<string, string>>({})
 
   useEffect(() => {
     if (!isOpen) return
     if (isEdit && item) {
       setNameFr(item.name_fr); setNameAr(item.name_ar); setType(item.type)
+      setSegment(item.segment)
       setSizeId(item.sizeId ?? ""); setColorId(item.colorId ?? "")
       setStock(String(item.stock)); setBuying(item.buyingPrice)
       setSelling(item.sellingPrice); setMinSell(item.minSellingPrice)
+      setGuidePrice(item.refGuidePrice ?? "")
       setImages(item.images)
     } else {
-      setNameFr(""); setNameAr(""); setType("suit"); setSizeId(""); setColorId("")
-      setStock(""); setBuying(""); setSelling(""); setMinSell(""); setImages([])
+      setNameFr(""); setNameAr(""); setType("suit")
+      setSegment(defaultSegment)
+      setSizeId(""); setColorId("")
+      setStock(""); setBuying(""); setSelling(""); setMinSell(""); setGuidePrice(""); setImages([])
     }
     setErrors({})
   }, [isOpen]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -193,9 +206,10 @@ function CostumeItemFormModal({ isOpen, mode, item, sizes, colors, onClose, onSu
     if (!nameFr.trim())          e.nameFr  = tCom("required")
     if (!nameAr.trim())          e.nameAr  = tCom("required")
     if (isNaN(+stock) || +stock < 0) e.stock   = inv
-    if (isNaN(+buying))          e.buying  = inv
-    if (isNaN(+selling))         e.selling = inv
-    if (isNaN(+minSell))         e.minSell = inv
+    if (isNaN(+buying))                                          e.buying  = inv
+    if (segment === "sale" && isNaN(+selling))                   e.selling = inv
+    if (segment === "sale" && isNaN(+minSell))                   e.minSell = inv
+    if (segment === "rental" && guidePrice && isNaN(+guidePrice)) e.guidePrice = inv
     return e
   }
 
@@ -206,13 +220,14 @@ function CostumeItemFormModal({ isOpen, mode, item, sizes, colors, onClose, onSu
 
     setLoading(true)
     const input: CostumeItemInput = {
-      name_fr: nameFr, name_ar: nameAr, type,
+      name_fr: nameFr, name_ar: nameAr, type, segment,
       sizeId:  sizeId  || null,
       colorId: colorId || null,
       stock:   parseInt(stock),
-      buyingPrice:     parseFloat(buying),
-      sellingPrice:    parseFloat(selling),
-      minSellingPrice: parseFloat(minSell),
+      buyingPrice:     parseFloat(buying) || 0,
+      sellingPrice:    segment === "sale"   ? parseFloat(selling)   : 0,
+      minSellingPrice: segment === "sale"   ? parseFloat(minSell)   : 0,
+      refGuidePrice:   segment === "rental" ? (parseFloat(guidePrice) || null) : null,
       images,
     }
 
@@ -254,11 +269,30 @@ function CostumeItemFormModal({ isOpen, mode, item, sizes, colors, onClose, onSu
             options={colors.map(c => ({ value: c.id, label: c.label_fr }))}
           />
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 12 }}>
-          <Input label={tInv("stock")}          type="number" value={stock}   onChange={e => setStock(e.target.value)}   error={errors.stock}   />
-          <Input label={tInv("buyingPrice")}    type="number" value={buying}  onChange={e => setBuying(e.target.value)}  error={errors.buying}  />
-          <Input label={tInv("sellingPrice")}   type="number" value={selling} onChange={e => setSelling(e.target.value)} error={errors.selling} />
-          <Input label={tInv("minSellingPrice")} type="number" value={minSell} onChange={e => setMinSell(e.target.value)} error={errors.minSell} />
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <Select
+            label="Segment"
+            value={segment}
+            onChange={e => setSegment(e.target.value as ItemSegment)}
+            disabled={isEdit}
+            options={[
+              { value: "sale",   label: "Vente" },
+              { value: "rental", label: "Location (flotte)" },
+            ]}
+          />
+          <Input label={tInv("stock")} type="number" value={stock} onChange={e => setStock(e.target.value)} error={errors.stock} />
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
+          <Input label={tInv("buyingPrice")} type="number" value={buying} onChange={e => setBuying(e.target.value)} error={errors.buying} />
+          {segment === "sale" && (
+            <>
+              <Input label={tInv("sellingPrice")}    type="number" value={selling}    onChange={e => setSelling(e.target.value)}    error={errors.selling} />
+              <Input label={tInv("minSellingPrice")} type="number" value={minSell}    onChange={e => setMinSell(e.target.value)}    error={errors.minSell} />
+            </>
+          )}
+          {segment === "rental" && (
+            <Input label="Prix guide (optionnel)" type="number" value={guidePrice} onChange={e => setGuidePrice(e.target.value)} error={errors.guidePrice} hint="Référence interne pour négociation — non affiché au client" />
+          )}
         </div>
         <div>
           <p style={{ fontSize: 12, fontWeight: 600, color: "var(--text-muted)", marginBottom: 8 }}>
