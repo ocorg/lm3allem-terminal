@@ -47,7 +47,7 @@ export default async function LocaleLayout({
   const messages = await getMessages()
   const session = await auth()
 
-  const theme = session?.user?.preferredTheme ?? "dark"
+  const theme = session?.user?.preferredTheme ?? "light"
   const dir = locale === "ar" ? "rtl" : "ltr"
 
   return (
