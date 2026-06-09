@@ -12,6 +12,7 @@ import { toggleProductActive } from "@/lib/actions/magazin/inventory"
 import { formatMAD }   from "@/lib/utils/currency"
 import { ProductFormModal } from "./ProductFormModal"
 import { useTranslations } from "next-intl"
+import Image from "next/image"
 import type { ProductForInventory } from "@/lib/actions/magazin/inventory"
 
 type LookupItem    = { id: string; label_fr: string; label_ar: string }
@@ -27,7 +28,7 @@ interface ProductTableProps {
   locale:     string
 }
 
-export function ProductTable({ products, categories, sizes, colors, lookupById, role }: ProductTableProps) {
+export function ProductTable({ products, categories, sizes, colors, lookupById, role, locale }: ProductTableProps) {
   const router                = useRouter()
   const { confirm, modal }    = useConfirm()
   const [formMode, setFormMode]       = useState<"create" | "edit" | null>(null)
@@ -65,7 +66,7 @@ export function ProductTable({ products, categories, sizes, colors, lookupById, 
       render: (_, row) => (
         <div style={{ width: 40, height: 40, borderRadius: 6, overflow: "hidden", background: "var(--surface-2)" }}>
           {row.images[0]
-            ? <img src={row.images[0]} style={{ width: "100%", height: "100%", objectFit: "cover" }} alt="" />
+            ? <Image src={row.images[0]} width={40} height={40} style={{ objectFit: "cover" }} alt="" />
             : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18 }}>🧳</div>
           }
         </div>
@@ -81,7 +82,7 @@ export function ProductTable({ products, categories, sizes, colors, lookupById, 
       ),
     },
     { key: "categoryId", label: t("category"),
-      render: (val) => <span style={{ fontSize: 12, color: "var(--text-muted)" }}>{lookupMap[val as string]?.label_fr ?? "—"}</span>,
+      render: (val) => <span style={{ fontSize: 12, color: "var(--text-muted)" }}>{(locale === "ar" ? lookupMap[val as string]?.label_ar : lookupMap[val as string]?.label_fr) ?? "—"}</span>,
     },
     {
       key: "totalStock", label: t("stock"), align: "center", sortable: true,
@@ -146,7 +147,7 @@ export function ProductTable({ products, categories, sizes, colors, lookupById, 
         </div>
 
         <DataTable
-          columns={columns as any}
+          columns={columns as Column<ProductForInventory>[]}
           data={products}
           searchable
           searchKeys={["name_fr", "name_ar"]}
@@ -157,6 +158,7 @@ export function ProductTable({ products, categories, sizes, colors, lookupById, 
       {modal}
 
       <ProductFormModal
+        key={`${formMode ?? "closed"}-${editProduct?.id ?? "new"}`}
         isOpen={formMode !== null}
         mode={formMode ?? "create"}
         product={editProduct}

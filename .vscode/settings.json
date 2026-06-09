@@ -7,5 +7,12 @@
   },
   "tailwindCSS.includeLanguages": {
     "plaintext": "html"
-  }
+  },
+  "i18n-ally.localesPaths": [
+    "messages",
+    "lib/i18n"
+  ],
+  "i18n-ally.locales": ["fr", "ar"],
+  "i18n-ally.sourceLanguage": "fr",
+  "i18n-ally.displayLanguage": "fr"
 }

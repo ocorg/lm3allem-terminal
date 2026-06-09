@@ -1,7 +1,7 @@
 "use client"
 
-import { useState, useEffect }  from "react"
-import { useTranslations }      from "next-intl"
+import { useState } from "react"
+import { useTranslations, useLocale } from "next-intl"
 import { Modal }                from "@/components/ui/Modal"
 import { Input }                from "@/components/ui/Input"
 import { Select }               from "@/components/ui/Select"
@@ -27,38 +27,24 @@ interface ProductFormModalProps {
   onSuccess:  () => void
 }
 
-export function ProductFormModal({ isOpen, mode, product, categories, sizes, colors, lookupById, onClose, onSuccess }: ProductFormModalProps) {
+export function ProductFormModal({ isOpen, mode, product, categories, sizes, colors, onClose, onSuccess }: ProductFormModalProps) {
   const isEdit = mode === "edit"
   const tInv   = useTranslations("magazin.inventory")
   const tCom   = useTranslations("common")
+  const locale = useLocale()
 
-  const [nameFr,   setNameFr]   = useState("")
-  const [nameAr,   setNameAr]   = useState("")
-  const [catId,    setCatId]    = useState("")
-  const [buying,   setBuying]   = useState("")
-  const [selling,  setSelling]  = useState("")
-  const [minSell,  setMinSell]  = useState("")
-  const [images,   setImages]   = useState<string[]>([])
-  const [variants, setVariants] = useState<VariantInput[]>([])
+  const [nameFr,   setNameFr]   = useState(product?.name_fr ?? "")
+  const [nameAr,   setNameAr]   = useState(product?.name_ar ?? "")
+  const [catId,    setCatId]    = useState(product?.categoryId ?? "")
+  const [buying,   setBuying]   = useState(product?.buyingPrice ?? "")
+  const [selling,  setSelling]  = useState(product?.sellingPrice ?? "")
+  const [minSell,  setMinSell]  = useState(product?.minSellingPrice ?? "")
+  const [images,   setImages]   = useState<string[]>(product?.images ?? [])
+  const [variants, setVariants] = useState<VariantInput[]>(
+    product?.variants.map(v => ({ id: v.id, sizeId: v.sizeId, colorId: v.colorId, stock: v.stock })) ?? []
+  )
   const [loading,  setLoading]  = useState(false)
   const [errors,   setErrors]   = useState<Record<string, string>>({})
-
-  useEffect(() => {
-    if (!isOpen) return
-    if (isEdit && product) {
-      setNameFr(product.name_fr)
-      setNameAr(product.name_ar)
-      setCatId(product.categoryId)
-      setBuying(product.buyingPrice)
-      setSelling(product.sellingPrice)
-      setMinSell(product.minSellingPrice)
-      setImages(product.images)
-      setVariants(product.variants.map(v => ({ id: v.id, sizeId: v.sizeId, colorId: v.colorId, stock: v.stock })))
-    } else {
-      setNameFr(""); setNameAr(""); setCatId(""); setBuying(""); setSelling(""); setMinSell(""); setImages([]); setVariants([])
-    }
-    setErrors({})
-  }, [isOpen, product?.id, mode]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const validate = () => {
     const e: Record<string, string> = {}
@@ -118,7 +104,7 @@ export function ProductFormModal({ isOpen, mode, product, categories, sizes, col
           onChange={e => setCatId(e.target.value)}
           error={errors.catId}
           placeholder={tInv("chooseCategory")}
-          options={categories.map(c => ({ value: c.id, label: c.label_fr }))}
+          options={categories.map(c => ({ value: c.id, label: locale === "ar" ? c.label_ar : c.label_fr }))}
         />
 
         {/* Prices */}

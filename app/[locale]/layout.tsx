@@ -7,6 +7,7 @@ import { routing } from "@/lib/i18n/routing"
 import { auth } from "@/lib/auth/auth"
 import "@/app/globals.css"
 import { Toaster } from "@/components/ui/Toaster"
+import LocaleHtmlAttributes from "@/components/LocaleHtmlAttributes"
 
 export const viewport = {
   themeColor: "#C9A84C",
@@ -28,6 +29,11 @@ export const metadata: Metadata = {
       { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
     ],
     shortcut: "/icons/icon-192.png",
+  },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Lm3allem",
   },
 }
 
@@ -51,23 +57,12 @@ export default async function LocaleLayout({
   const dir = locale === "ar" ? "rtl" : "ltr"
 
   return (
-    <html
-      lang={locale}
-      dir={dir}
-      data-theme={theme}
-      className={theme === "dark" ? "dark" : "light"}
-    >
-      <head>
-        <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-        <meta name="apple-mobile-web-app-title" content="Lm3allem" />
-      </head>
-    <body>
-        <NextIntlClientProvider messages={messages}>
-          <Toaster />
-          {children}
-        </NextIntlClientProvider>
-      </body>
-    </html>
+    <>
+      <LocaleHtmlAttributes locale={locale} dir={dir} theme={theme} />
+      <NextIntlClientProvider messages={messages}>
+        <Toaster />
+        {children}
+      </NextIntlClientProvider>
+    </>
   )
 }

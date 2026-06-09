@@ -1,6 +1,6 @@
 "use client"
 
-import { useTranslations } from "next-intl"
+import { useTranslations, useLocale } from "next-intl"
 import { Plus, Trash2 }    from "lucide-react"
 import { Select }          from "@/components/ui/Select"
 import type { VariantInput } from "@/lib/actions/magazin/inventory"
@@ -17,6 +17,7 @@ interface VariantManagerProps {
 export function VariantManager({ variants, onChange, sizes, colors }: VariantManagerProps) {
   const tInv = useTranslations("magazin.inventory")
   const tCom = useTranslations("common")
+  const locale = useLocale()
 
   const addRow = () =>
     onChange([...variants, { sizeId: null, colorId: null, stock: 1 }])
@@ -59,13 +60,13 @@ export function VariantManager({ variants, onChange, sizes, colors }: VariantMan
             value={v.sizeId ?? ""}
             onChange={e => updateRow(i, { sizeId: e.target.value || null })}
             placeholder="—"
-            options={sizes.map(s => ({ value: s.id, label: s.label_fr }))}
+            options={sizes.map(s => ({ value: s.id, label: locale === "ar" ? s.label_ar : s.label_fr }))}
           />
           <Select
             value={v.colorId ?? ""}
             onChange={e => updateRow(i, { colorId: e.target.value || null })}
             placeholder="—"
-            options={colors.map(c => ({ value: c.id, label: c.label_fr }))}
+            options={colors.map(c => ({ value: c.id, label: locale === "ar" ? c.label_ar : c.label_fr }))}
           />
           <input
             type="number"
