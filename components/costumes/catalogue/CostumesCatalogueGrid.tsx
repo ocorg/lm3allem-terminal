@@ -10,21 +10,18 @@ import { formatMAD }         from "@/lib/utils/currency"
 import type { CostumeItemForCatalogue } from "@/lib/actions/costumes/catalogue"
 import type { LookupItem, LookupById }  from "@/lib/actions/costumes/pos"
 import { useTranslations } from "next-intl"
-import type { CostumeItemType }         from "@prisma/client"
-
-const TYPE_OPTION_VALUES = ["suit", "vest", "shoes", "accessory"] as const
-
 interface Props {
-  items:     CostumeItemForCatalogue[]
-  sizes:     LookupItem[]
-  colors:    LookupItem[]
-  lookupById: LookupById
-  locale:    string
+  items:        CostumeItemForCatalogue[]
+  sizes:        LookupItem[]
+  colors:       LookupItem[]
+  costumeTypes: LookupItem[]
+  lookupById:   LookupById
+  locale:       string
 }
 
-export function CostumesCatalogueGrid({ items, sizes, colors, lookupById, locale }: Props) {
+export function CostumesCatalogueGrid({ items, sizes, colors, costumeTypes, lookupById, locale }: Props) {
   const t = useTranslations("costumes")
-  const TYPE_OPTIONS = TYPE_OPTION_VALUES.map(v => ({ value: v, label: t(`itemType.${v}`) }))
+  const TYPE_OPTIONS = costumeTypes.map(t => ({ value: t.id, label: t.label_fr }))
   const [search,       setSearch]       = useState("")
   const [selectedItem, setSelectedItem] = useState<CostumeItemForCatalogue | null>(null)
   const [selectedImgIdx, setSelectedImgIdx] = useState(0)
@@ -34,7 +31,7 @@ export function CostumesCatalogueGrid({ items, sizes, colors, lookupById, locale
 
   const filtered = useMemo(() => items.filter(i => {
     const q = search.trim().toLowerCase()
-    return (!typeFilter  || i.type    === typeFilter)
+    return (!typeFilter  || i.typeId  === typeFilter)
       &&   (!sizeFilter  || i.sizeId  === sizeFilter)
       &&   (!colorFilter || i.colorId === colorFilter)
       &&   (!q || i.name_fr.toLowerCase().includes(q) || i.name_ar.includes(q))
@@ -121,7 +118,7 @@ export function CostumesCatalogueGrid({ items, sizes, colors, lookupById, locale
                   {lbl && <p style={{ fontSize: 11, color: "var(--text-muted)", margin: "0 0 8px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{lbl}</p>}
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                     <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text)" }}>{formatMAD(item.sellingPrice)}</span>
-                    <Badge variant="default">{TYPE_OPTIONS.find(t => t.value === item.type)?.label ?? item.type}</Badge>
+                    <Badge variant="default">{item.typeLabelFr}</Badge>
                   </div>
                 </div>
               </div>
@@ -138,7 +135,7 @@ export function CostumesCatalogueGrid({ items, sizes, colors, lookupById, locale
           si.sizeId  && lookupById[si.sizeId]  ? lookupById[si.sizeId].label_fr  : null,
           si.colorId && lookupById[si.colorId] ? lookupById[si.colorId].label_fr : null,
         ].filter(Boolean).join(" · ")
-        const siType = TYPE_OPTIONS.find(t => t.value === si.type)?.label ?? si.type
+        const siType = si.typeLabelFr
         const isOut  = si.stock === 0
         const imgs   = si.images.length > 0 ? si.images : []
         const imgIdx = Math.min(selectedImgIdx, Math.max(0, imgs.length - 1))

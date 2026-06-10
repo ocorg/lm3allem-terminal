@@ -10,13 +10,14 @@ export default async function CostumesCataloguePage({
   const { locale }  = await params
   await withModule("costumes", "catalogue")
 
-  const { items, sizes, colors, lookupById } = await getCostumeCatalogue()
+  const { items, sizes, colors, costumeTypes, lookupById } = await getCostumeCatalogue()
 
   return (
     <CostumesCatalogueGrid
       items={items}
       sizes={sizes}
       colors={colors}
+      costumeTypes={costumeTypes}
       lookupById={lookupById}
       locale={locale}
     />

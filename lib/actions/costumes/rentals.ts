@@ -12,7 +12,6 @@ import type {
   GuaranteeType,
   PaymentMethod,
   TransactionType,
-  CostumeItemType,
 } from "@prisma/client"
 
 // ── Shapes ─────────────────────────────────────────────────────
@@ -343,7 +342,8 @@ export interface CostumeItemForRental {
   id:            string
   name_fr:       string
   name_ar:       string
-  type:          CostumeItemType
+  typeId:        string
+  typeLabelFr:   string
   sizeId:        string | null
   colorId:       string | null
   stock:         number
@@ -358,6 +358,7 @@ export async function getRentalItems(): Promise<{
   const [rawItems, rawLookup] = await Promise.all([
     prisma.costumeItem.findMany({
       where:   { isActive: true, stock: { gt: 0 }, segment: "rental" },
+      include: { costumeType: true },
       orderBy: { name_fr: "asc" },
     }),
     prisma.lookupValue.findMany({
@@ -377,7 +378,8 @@ export async function getRentalItems(): Promise<{
       id:            i.id,
       name_fr:       i.name_fr,
       name_ar:       i.name_ar,
-      type:          i.type,
+      typeId:        i.typeId,
+      typeLabelFr:   i.costumeType.label_fr,
       sizeId:        i.sizeId,
       colorId:       i.colorId,
       stock:         i.stock,

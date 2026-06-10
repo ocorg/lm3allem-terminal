@@ -55,13 +55,6 @@ enum RentalStatus {
   available
 }
 
-enum CostumeItemType {
-  suit
-  vest
-  shoes
-  accessory
-}
-
 enum ItemSegment {
   sale
   rental
@@ -131,7 +124,8 @@ model LookupValue {
   isActive   Boolean        @default(true)
   createdAt  DateTime       @default(now())
   updatedAt  DateTime       @updatedAt
-  expenses   Expense[]
+  expenses     Expense[]
+  costumeItems CostumeItem[]
 }
 
 // ─── SYSTEM SETTINGS ─────────────────────────────────
@@ -314,7 +308,8 @@ model CostumeItem {
   id              String            @id @default(cuid())
   name_fr         String
   name_ar         String
-  type            CostumeItemType
+  typeId          String
+  costumeType     LookupValue       @relation(fields: [typeId], references: [id])
   sizeId          String?
   colorId         String?
   stock           Int               @default(1)

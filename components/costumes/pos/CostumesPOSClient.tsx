@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect }  from "react"
 import { useRouter }          from "next/navigation"
 import { ShoppingCart, Package } from "lucide-react"
+import Image                     from "next/image"
 import { useCaisse }          from "@/components/caisse/CaisseProvider"
 import { BelowMinModal, type BelowMinItem } from "@/components/caisse/BelowMinModal"
 import { Modal }              from "@/components/ui/Modal"
@@ -11,7 +12,8 @@ import { SearchBar }          from "@/components/ui/SearchBar"
 import { toast }              from "@/hooks/useToast"
 import { formatMAD }          from "@/lib/utils/currency"
 import { createCostumeSale }  from "@/lib/actions/costumes/pos"
-import type { CostumeItemForPOS, LookupById } from "@/lib/actions/costumes/pos"
+import type { CostumeItemForPOS, LookupById, LookupItem } from "@/lib/actions/costumes/pos"
+import type { PaymentMethod }                              from "@prisma/client"
 
 // ── Types ──────────────────────────────────────────────────────
 interface CartEntry {
@@ -26,27 +28,21 @@ interface CartEntry {
 }
 
 interface Props {
-  items:      CostumeItemForPOS[]
-  lookupById: LookupById
-  locale:     string
-  role:       string
+  items:        CostumeItemForPOS[]
+  costumeTypes: LookupItem[]
+  lookupById:   LookupById
+  locale:       string
+  role:         string
 }
 
-const ITEM_TYPES = [
-  { value: "suit",      label: "Costume"    },
-  { value: "vest",      label: "Gilet"      },
-  { value: "shoes",     label: "Chaussures" },
-  { value: "accessory", label: "Accessoire" },
-]
-
-const PAYMENT_METHODS = [
+const PAYMENT_METHODS: { value: PaymentMethod; label: string }[] = [
   { value: "cash",   label: "Espèces"  },
   { value: "tpe",    label: "TPE"      },
   { value: "banque", label: "Virement" },
 ]
 
 // ── Component ──────────────────────────────────────────────────
-export function CostumesPOSClient({ items, lookupById, locale, role }: Props) {
+export function CostumesPOSClient({ items, costumeTypes, lookupById, locale }: Props) {
   const { session } = useCaisse()
   const router      = useRouter()
 
@@ -57,19 +53,19 @@ export function CostumesPOSClient({ items, lookupById, locale, role }: Props) {
   const [showBelowMin, setShowBelowMin] = useState(false)
   const [pendingItems, setPendingItems] = useState<BelowMinItem[]>([])
   const [authorized,   setAuthorized]   = useState<Record<string, string>>({})
-  const [payMethod,    setPayMethod]    = useState("cash")
+  const [payMethod,    setPayMethod]    = useState<PaymentMethod>("cash")
   const [loading,      setLoading]      = useState(false)
 
   const label = (item: CostumeItemForPOS) => {
     const parts: string[] = []
     if (item.sizeId  && lookupById[item.sizeId])  parts.push(lookupById[item.sizeId].label_fr)
     if (item.colorId && lookupById[item.colorId]) parts.push(lookupById[item.colorId].label_fr)
-    return (parts.join(" — ") || ITEM_TYPES.find(t => t.value === item.type)?.label) ?? item.type
+    return parts.join(" — ") || item.typeLabelFr
   }
 
   const filtered = useMemo(() => items.filter(i => {
     const q = search.trim().toLowerCase()
-    return (!typeFilter || i.type === typeFilter)
+    return (!typeFilter || i.typeId === typeFilter)
       && (!q || i.name_fr.toLowerCase().includes(q) || i.name_ar.includes(q))
   }), [items, typeFilter, search])
 
@@ -132,7 +128,7 @@ export function CostumesPOSClient({ items, lookupById, locale, role }: Props) {
     try {
       await createCostumeSale({
         caisseSessionId: session.id,
-        paymentMethod:   payMethod as any,
+        paymentMethod:   payMethod,
         totalAmount:     subtotal,
         items: cart.map(c => ({
           costumeItemId:   c.costumeItemId,
@@ -145,8 +141,8 @@ export function CostumesPOSClient({ items, lookupById, locale, role }: Props) {
       toast("Vente enregistrée", "success")
       setCart([]); setAuthorized({}); setShowPayment(false)
       router.refresh()
-    } catch (e: any) {
-      toast(e.message ?? "Erreur", "error")
+    } catch (e) {
+      toast(e instanceof Error ? e.message : "Erreur", "error")
     } finally {
       setLoading(false)
     }
@@ -191,8 +187,8 @@ export function CostumesPOSClient({ items, lookupById, locale, role }: Props) {
           <SearchBar value={search} onChange={setSearch} placeholder="Rechercher..." />
           <div style={{ display: "flex", gap: 6, overflowX: "auto", scrollbarWidth: "none", paddingBottom: 2 }}>
             <Chip label="Tous"  active={!typeFilter}   onClick={() => setTypeFilter(null)} />
-            {ITEM_TYPES.map(t => (
-              <Chip key={t.value} label={t.label} active={typeFilter === t.value} onClick={() => setTypeFilter(t.value)} />
+            {costumeTypes.map(t => (
+              <Chip key={t.id} label={t.label_fr} active={typeFilter === t.id} onClick={() => setTypeFilter(f => f === t.id ? null : t.id)} />
             ))}
           </div>
         </div>
@@ -213,9 +209,9 @@ export function CostumesPOSClient({ items, lookupById, locale, role }: Props) {
                     borderRadius: 10, padding: 0, cursor: isOut ? "not-allowed" : "pointer",
                     textAlign: "left", overflow: "hidden", opacity: isOut ? 0.5 : 1, transition: "border-color 0.15s",
                   }}>
-                    <div style={{ width: "100%", aspectRatio: "1", overflow: "hidden", background: "var(--surface-2)" }}>
+                    <div style={{ position: "relative", width: "100%", aspectRatio: "1", overflow: "hidden", background: "var(--surface-2)" }}>
                       {item.images[0]
-                        ? <img src={item.images[0]} alt={name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                        ? <Image src={item.images[0]} alt={name} fill style={{ objectFit: "cover" }} />
                         : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}><Package size={28} style={{ color: "var(--border)" }} /></div>
                       }
                     </div>

@@ -4,7 +4,7 @@ import { prisma }      from "@/lib/db/prisma"
 import { auth }        from "@/lib/auth/auth"
 import { logActivity }         from "@/lib/activity/logger"
 import { createNotification }   from "@/lib/notifications/create"
-import type { CostumeItemType, PaymentMethod } from "@prisma/client"
+import type { PaymentMethod } from "@prisma/client"
 
 // ── Shared lookup types (re-exported for costumes components) ──
 export interface LookupItem {
@@ -20,7 +20,8 @@ export interface CostumeItemForPOS {
   id:              string
   name_fr:         string
   name_ar:         string
-  type:            CostumeItemType
+  typeId:          string
+  typeLabelFr:     string
   sizeId:          string | null
   colorId:         string | null
   stock:           number
@@ -47,12 +48,14 @@ export interface CreateCostumeSaleInput {
 
 // ── getItemsForPOS ─────────────────────────────────────────────
 export async function getItemsForPOS(): Promise<{
-  items:     CostumeItemForPOS[]
-  lookupById: LookupById
+  items:        CostumeItemForPOS[]
+  costumeTypes: LookupItem[]
+  lookupById:   LookupById
 }> {
   const [rawItems, rawLookup] = await Promise.all([
     prisma.costumeItem.findMany({
       where:   { isActive: true, stock: { gt: 0 }, segment: "sale" },
+      include: { costumeType: true },
       orderBy: { name_fr: "asc" },
     }),
     prisma.lookupValue.findMany({
@@ -71,7 +74,8 @@ export async function getItemsForPOS(): Promise<{
     id:              i.id,
     name_fr:         i.name_fr,
     name_ar:         i.name_ar,
-    type:            i.type,
+    typeId:          i.typeId,
+    typeLabelFr:     i.costumeType.label_fr,
     sizeId:          i.sizeId,
     colorId:         i.colorId,
     stock:           i.stock,
@@ -80,7 +84,11 @@ export async function getItemsForPOS(): Promise<{
     images:          i.images,
   }))
 
-  return { items, lookupById }
+  const costumeTypes = rawLookup
+    .filter((lv) => lv.category.slug === "costume_item_types")
+    .map(({ id, label_fr, label_ar }) => ({ id, label_fr, label_ar }))
+
+  return { items, costumeTypes, lookupById }
 }
 
 // ── createCostumeSale ──────────────────────────────────────────

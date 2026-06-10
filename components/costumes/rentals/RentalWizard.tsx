@@ -82,16 +82,10 @@ export function RentalWizard({ isOpen, onClose, costumeItems, clients, measureme
   const router      = useRouter()
   const { confirm, modal: confirmModal } = useConfirm()
 
-  const tRental    = useTranslations("costumes.rental")
-  const tGuarantee = useTranslations("costumes.guarantee")
-  const tPayment   = useTranslations("payment")
-  const tClients   = useTranslations("costumes.clients")
-  const tCommon    = useTranslations("common")
-  const tUi        = useTranslations("ui")
+  const tRental = useTranslations("costumes.rental")
+  const tCommon = useTranslations("common")
 
   const STEPS = STEP_KEYS.map(k => tRental(`steps.${k}` as Parameters<typeof tRental>[0]))
-  const GUARANTEE_OPTIONS = GUARANTEE_KEYS.map(v => ({ value: v, label: tGuarantee(v as Parameters<typeof tGuarantee>[0]) }))
-  const PAYMENT_OPTIONS   = PAYMENT_KEYS.map(v => ({ value: v, label: tPayment(v as Parameters<typeof tPayment>[0]) }))
 
   const [step,    setStep]    = useState(0)
   const [data,    setData]    = useState<WizardData>(INITIAL)
@@ -101,9 +95,9 @@ export function RentalWizard({ isOpen, onClose, costumeItems, clients, measureme
   const upd = (patch: Partial<WizardData>) => setData(p => ({ ...p, ...patch }))
 
   useEffect(() => {
-    if (!isOpen) { setStep(0); setData(INITIAL); setErrors({}) }
+    if (!isOpen) { setTimeout(() => { setStep(0); setData(INITIAL); setErrors({}) }, 0) }
     else if (measurementCategories.length && !data.measurements.length) {
-      upd({ measurements: measurementCategories.map(c => ({ categoryId: c.id, value: "", unit: "cm" })) })
+      setTimeout(() => { upd({ measurements: measurementCategories.map(c => ({ categoryId: c.id, value: "", unit: "cm" })) }) }, 0)
     }
   }, [isOpen, measurementCategories]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -209,7 +203,7 @@ export function RentalWizard({ isOpen, onClose, costumeItems, clients, measureme
         {step === 3 && <StepMeasurements data={data} upd={upd} measurementCategories={measurementCategories} lookupById={lookupById} />}
         {step === 4 && <StepGuarantee data={data} upd={upd} />}
         {step === 5 && <StepPayment   data={data} upd={upd} errors={errors} />}
-        {step === 6 && <StepConfirm   data={data} clients={clients} costumeItems={costumeItems} lookupById={lookupById} measurementCategories={measurementCategories} />}
+        {step === 6 && <StepConfirm   data={data} clients={clients} />}
       </div>
 
       {/* Navigation */}
@@ -228,8 +222,8 @@ export function RentalWizard({ isOpen, onClose, costumeItems, clients, measureme
 
 // ── Step 1: Client ─────────────────────────────────────────────
 function StepClient({ data, upd, clients, errors }: { data: WizardData; upd: (p: Partial<WizardData>) => void; clients: ClientForList[]; errors: Record<string, string> }) {
-  const tClients = useTranslations("costumes.clients")
   const tRental  = useTranslations("costumes.rental")
+  const tClients = useTranslations("costumes.clients")
   const tUi      = useTranslations("ui")
   const [search, setSearch] = useState("")
 
@@ -324,7 +318,7 @@ function StepKit({ data, upd, costumeItems, lookupById, locale, errors }: { data
     const parts: string[] = []
     if (item.sizeId  && lookupById[item.sizeId])  parts.push(lookupById[item.sizeId].label_fr)
     if (item.colorId && lookupById[item.colorId]) parts.push(lookupById[item.colorId].label_fr)
-    return parts.join(" — ") || item.type
+    return parts.join(" — ") || item.typeLabelFr
   }
 
   return (
@@ -461,7 +455,8 @@ function StepMeasurements({ data, upd, measurementCategories }: { data: WizardDa
 function StepGuarantee({ data, upd }: { data: WizardData; upd: (p: Partial<WizardData>) => void }) {
   const tG      = useTranslations("costumes.guarantee")
   const tRental = useTranslations("costumes.rental")
-  const GUARANTEE_OPTIONS = GUARANTEE_KEYS.map(v => ({ value: v, label: tG(v as Parameters<typeof tG>[0]) }))
+
+  const GUARANTEE_OPTIONS = GUARANTEE_KEYS.map(k => ({ value: k, label: tG(k as Parameters<typeof tG>[0]) }))
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
@@ -488,7 +483,8 @@ function StepGuarantee({ data, upd }: { data: WizardData; upd: (p: Partial<Wizar
 function StepPayment({ data, upd, errors }: { data: WizardData; upd: (p: Partial<WizardData>) => void; errors: Record<string, string> }) {
   const tP      = useTranslations("payment")
   const tRental = useTranslations("costumes.rental")
-  const PAYMENT_OPTIONS = PAYMENT_KEYS.map(v => ({ value: v, label: tP(v as Parameters<typeof tP>[0]) }))
+
+  const PAYMENT_OPTIONS = PAYMENT_KEYS.map(k => ({ value: k, label: tP(k as Parameters<typeof tP>[0]) }))
 
   const suggested = useMemo(() =>
     data.kitItems.some(k => k.refGuidePrice !== null)
@@ -544,37 +540,40 @@ function StepPayment({ data, upd, errors }: { data: WizardData; upd: (p: Partial
   )
 }
 
-// ── Step 7: Confirm ────────────────────────────────────────────
-function StepConfirm({ data, clients, costumeItems: _ci, lookupById: _lb, measurementCategories: _mc }: { data: WizardData; clients: ClientForList[]; costumeItems: CostumeItemForRental[]; lookupById: LookupById; measurementCategories: LookupItem[] }) {
-  const tG      = useTranslations("costumes.guarantee")
-  const tP      = useTranslations("payment")
-  const tRental = useTranslations("costumes.rental")
-  const tCommon = useTranslations("common")
-  const GUARANTEE_OPTIONS = GUARANTEE_KEYS.map(v => ({ value: v, label: tG(v as Parameters<typeof tG>[0]) }))
-  const PAYMENT_OPTIONS   = PAYMENT_KEYS.map(v => ({ value: v, label: tP(v as Parameters<typeof tP>[0]) }))
-
-  const client     = clients.find(c => c.id === data.clientId)
-  const clientName = data.isNewClient ? data.newClientName : (client?.name ?? "—")
-  const kitPieces  = data.kitItems.reduce((s, k) => s + k.quantity, 0)
-
-  const Row = ({ label, value }: { label: string; value: React.ReactNode }) => (
+function ConfirmRow({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", padding: "6px 0", borderBottom: "1px solid var(--border)" }}>
       <span style={{ fontSize: 12, color: "var(--text-muted)" }}>{label}</span>
       <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>{value}</span>
     </div>
   )
+}
+
+// ── Step 7: Confirm ────────────────────────────────────────────
+function StepConfirm({ data, clients }: { data: WizardData; clients: ClientForList[] }) {
+  const tG      = useTranslations("costumes.guarantee")
+  const tP      = useTranslations("payment")
+  const tRental = useTranslations("costumes.rental")
+  const tCommon = useTranslations("common")
+
+  const GUARANTEE_OPTIONS = GUARANTEE_KEYS.map(k => ({ value: k, label: tG(k as Parameters<typeof tG>[0]) }))
+  const PAYMENT_OPTIONS   = PAYMENT_KEYS.map(k => ({ value: k, label: tP(k as Parameters<typeof tP>[0]) }))
+
+  const client     = clients.find(c => c.id === data.clientId)
+  const clientName = data.isNewClient ? data.newClientName : (client?.name ?? "—")
+  const kitPieces  = data.kitItems.reduce((s, k) => s + k.quantity, 0)
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
-      <Row label={tRental("confirmClientRow")}  value={clientName} />
-      <Row label={tRental("confirmPickup")}     value={data.scheduledPickupDate ? new Date(data.scheduledPickupDate).toLocaleDateString("fr-MA") : "—"} />
-      <Row label={tRental("confirmReturn")}     value={data.scheduledReturnDate ? new Date(data.scheduledReturnDate).toLocaleDateString("fr-MA") : "—"} />
-      <Row label={tRental("confirmKitItems")}   value={tRental("kitSummary", { items: data.kitItems.length, pieces: kitPieces })} />
-      <Row label={tRental("confirmGuarantee")}  value={GUARANTEE_OPTIONS.find(g => g.value === data.guaranteeType)?.label ?? data.guaranteeType} />
-      <Row label={tCommon("total")}             value={formatMAD(data.totalAmount)} />
-      <Row label={tRental("acompteLabel")}      value={formatMAD(data.amountPaid)} />
-      <Row label={tRental("balance")}           value={formatMAD(Math.max(0, parseFloat(data.totalAmount || "0") - parseFloat(data.amountPaid || "0")))} />
-      <Row label={tRental("paymentMethodColumn")} value={PAYMENT_OPTIONS.find(p => p.value === data.paymentMethod)?.label ?? data.paymentMethod} />
+      <ConfirmRow label={tRental("confirmClientRow")}  value={clientName} />
+      <ConfirmRow label={tRental("confirmPickup")}     value={data.scheduledPickupDate ? new Date(data.scheduledPickupDate).toLocaleDateString("fr-MA") : "—"} />
+      <ConfirmRow label={tRental("confirmReturn")}     value={data.scheduledReturnDate ? new Date(data.scheduledReturnDate).toLocaleDateString("fr-MA") : "—"} />
+      <ConfirmRow label={tRental("confirmKitItems")}   value={tRental("kitSummary", { items: data.kitItems.length, pieces: kitPieces })} />
+      <ConfirmRow label={tRental("confirmGuarantee")}  value={GUARANTEE_OPTIONS.find(g => g.value === data.guaranteeType)?.label ?? data.guaranteeType} />
+      <ConfirmRow label={tCommon("total")}             value={formatMAD(data.totalAmount)} />
+      <ConfirmRow label={tRental("acompteLabel")}      value={formatMAD(data.amountPaid)} />
+      <ConfirmRow label={tRental("balance")}           value={formatMAD(Math.max(0, parseFloat(data.totalAmount || "0") - parseFloat(data.amountPaid || "0")))} />
+      <ConfirmRow label={tRental("paymentMethodColumn")} value={PAYMENT_OPTIONS.find(p => p.value === data.paymentMethod)?.label ?? data.paymentMethod} />
       <div style={{ marginTop: 12, padding: "10px 0" }}>
         <p style={{ fontSize: 12, color: "var(--success)", fontWeight: 600, margin: 0 }}>
           ✓ {tRental("readyToConfirm")}

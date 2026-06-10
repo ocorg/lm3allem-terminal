@@ -77,6 +77,15 @@ const LOOKUP_DATA = [
     ],
   },
   {
+    slug: "costume_item_types", name_fr: "Types d'articles costumes", name_ar: "أنواع عناصر الأزياء",
+    values: [
+      { fr: "Costume",    ar: "بدلة"    },
+      { fr: "Gilet",      ar: "صديري"   },
+      { fr: "Chaussures", ar: "أحذية"   },
+      { fr: "Accessoire", ar: "إكسسوار" },
+    ],
+  },
+  {
     slug: "guarantee_types", name_fr: "Types de garantie", name_ar: "أنواع الضمان",
     values: [
       { fr: "Dépôt en espèces",   ar: "وديعة نقدية"              },

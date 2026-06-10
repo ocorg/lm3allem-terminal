@@ -1,9 +1,10 @@
 "use client"
 
-import { useState, useEffect }  from "react"
+import { useState }  from "react"
 import { useRouter }            from "next/navigation"
 import { useTranslations }      from "next-intl"
 import { PencilLine, Plus }     from "lucide-react"
+import Image                    from "next/image"
 import { DataTable, type Column } from "@/components/ui/DataTable"
 import { Badge }                from "@/components/ui/Badge"
 import { Button }               from "@/components/ui/Button"
@@ -16,36 +17,34 @@ import { ImageUploader }        from "@/components/magazin/inventory/ImageUpload
 import { createCostumeItem, updateCostumeItem } from "@/lib/actions/costumes/inventory"
 import type { CostumeItemForInventory, CostumeItemInput } from "@/lib/actions/costumes/inventory"
 import type { LookupItem, LookupById } from "@/lib/actions/costumes/pos"
-import type { CostumeItemType, ItemSegment } from "@prisma/client"
+import type { ItemSegment } from "@prisma/client"
 
 interface Props {
-  items:      CostumeItemForInventory[]
-  segment:    "sale" | "rental"
-  sizes:      LookupItem[]
-  colors:     LookupItem[]
-  lookupById: LookupById
-  role:       string
-  locale:     string
+  items:        CostumeItemForInventory[]
+  segment:      "sale" | "rental"
+  sizes:        LookupItem[]
+  colors:       LookupItem[]
+  costumeTypes: LookupItem[]
+  lookupById:   LookupById
+  role:         string
+  locale:       string
 }
 
-export function CostumesInventoryClient({ items, segment, sizes, colors, lookupById, role }: Props) {
+export function CostumesInventoryClient({ items, segment, sizes, colors, costumeTypes, lookupById, role }: Props) {
   const router   = useRouter()
   const tInv     = useTranslations("costumes.inventory")
-  const tType    = useTranslations("costumes.itemType")
   const tCom     = useTranslations("common")
   const tUi      = useTranslations("ui")
   const isAdmin  = role === "admin" || role === "superadmin"
   const [editing,  setEditing]  = useState<CostumeItemForInventory | null>(null)
   const [creating, setCreating] = useState(false)
 
-  const typeLabel = (t: CostumeItemType) =>
-    tType(t as Parameters<typeof tType>[0])
 
   const columns: Column<CostumeItemForInventory>[] = [
     {
       key: "images", label: tInv("colPhoto"), width: 56,
       render: (_, row) => row.images[0]
-        ? <img src={row.images[0]} alt="" style={{ width: 40, height: 40, borderRadius: 6, objectFit: "cover" }} />
+        ? <Image src={row.images[0]} alt="" width={40} height={40} style={{ borderRadius: 6, objectFit: "cover" }} />
         : <div style={{ width: 40, height: 40, borderRadius: 6, background: "var(--surface-2)" }} />,
     },
     {
@@ -59,7 +58,7 @@ export function CostumesInventoryClient({ items, segment, sizes, colors, lookupB
     },
     {
       key: "type", label: tInv("type"),
-      render: (_, row) => <Badge variant="default">{typeLabel(row.type)}</Badge>,
+      render: (_, row) => <Badge variant="default">{row.typeLabelFr}</Badge>,
     },
     {
       key: "sizeId", label: tInv("size"),
@@ -130,12 +129,14 @@ export function CostumesInventoryClient({ items, segment, sizes, colors, lookupB
       />
 
       <CostumeItemFormModal
+        key={editing?.id ?? (creating ? "new" : "closed")}
         isOpen={creating || !!editing}
         mode={editing ? "edit" : "create"}
         item={editing}
         defaultSegment={segment}
         sizes={sizes}
         colors={colors}
+        costumeTypes={costumeTypes}
         onClose={() => { setCreating(false); setEditing(null) }}
         onSuccess={() => { setCreating(false); setEditing(null); router.refresh() }}
       />
@@ -150,55 +151,33 @@ interface FormModalProps {
   defaultSegment:  "sale" | "rental"
   sizes:           LookupItem[]
   colors:          LookupItem[]
+  costumeTypes:    LookupItem[]
   onClose:         () => void
   onSuccess:       () => void
 }
 
-function CostumeItemFormModal({ isOpen, mode, item, defaultSegment, sizes, colors, onClose, onSuccess }: FormModalProps) {
+function CostumeItemFormModal({ isOpen, mode, item, defaultSegment, sizes, colors, costumeTypes, onClose, onSuccess }: FormModalProps) {
   const isEdit = mode === "edit"
   const tInv   = useTranslations("costumes.inventory")
-  const tType  = useTranslations("costumes.itemType")
   const tCom   = useTranslations("common")
   const tRent  = useTranslations("costumes.rental")
 
-  const TYPE_OPTIONS = (["suit", "vest", "shoes", "accessory"] as CostumeItemType[]).map(v => ({
-    value: v,
-    label: tType(v as Parameters<typeof tType>[0]),
-  }))
+  const TYPE_OPTIONS = costumeTypes.map(t => ({ value: t.id, label: t.label_fr }))
 
-  const [nameFr,    setNameFr]    = useState("")
-  const [nameAr,    setNameAr]    = useState("")
-  const [type,      setType]      = useState<CostumeItemType>("suit")
-  const [segment,   setSegment]   = useState<ItemSegment>(defaultSegment)
-  const [sizeId,    setSizeId]    = useState("")
-  const [colorId,   setColorId]   = useState("")
-  const [stock,     setStock]     = useState("")
-  const [buying,    setBuying]    = useState("")
-  const [selling,   setSelling]   = useState("")
-  const [minSell,   setMinSell]   = useState("")
-  const [guidePrice, setGuidePrice] = useState("")
-  const [images,    setImages]    = useState<string[]>([])
-  const [loading,   setLoading]   = useState(false)
-  const [errors,    setErrors]    = useState<Record<string, string>>({})
-
-  useEffect(() => {
-    if (!isOpen) return
-    if (isEdit && item) {
-      setNameFr(item.name_fr); setNameAr(item.name_ar); setType(item.type)
-      setSegment(item.segment)
-      setSizeId(item.sizeId ?? ""); setColorId(item.colorId ?? "")
-      setStock(String(item.stock)); setBuying(item.buyingPrice)
-      setSelling(item.sellingPrice); setMinSell(item.minSellingPrice)
-      setGuidePrice(item.refGuidePrice ?? "")
-      setImages(item.images)
-    } else {
-      setNameFr(""); setNameAr(""); setType("suit")
-      setSegment(defaultSegment)
-      setSizeId(""); setColorId("")
-      setStock(""); setBuying(""); setSelling(""); setMinSell(""); setGuidePrice(""); setImages([])
-    }
-    setErrors({})
-  }, [isOpen]) // eslint-disable-line react-hooks/exhaustive-deps
+  const [nameFr,     setNameFr]     = useState(item?.name_fr          ?? "")
+  const [nameAr,     setNameAr]     = useState(item?.name_ar          ?? "")
+  const [typeId,     setTypeId]     = useState(item?.typeId            ?? costumeTypes[0]?.id ?? "")
+  const [segment,    setSegment]    = useState<ItemSegment>(item?.segment ?? defaultSegment)
+  const [sizeId,     setSizeId]     = useState(item?.sizeId            ?? "")
+  const [colorId,    setColorId]    = useState(item?.colorId           ?? "")
+  const [stock,      setStock]      = useState(item ? String(item.stock) : "")
+  const [buying,     setBuying]     = useState(item?.buyingPrice       ?? "")
+  const [selling,    setSelling]    = useState(item?.sellingPrice      ?? "")
+  const [minSell,    setMinSell]    = useState(item?.minSellingPrice   ?? "")
+  const [guidePrice, setGuidePrice] = useState(item?.refGuidePrice     ?? "")
+  const [images,     setImages]     = useState<string[]>(item?.images  ?? [])
+  const [loading,    setLoading]    = useState(false)
+  const [errors,     setErrors]     = useState<Record<string, string>>({})
 
   const validate = () => {
     const e: Record<string, string> = {}
@@ -220,7 +199,7 @@ function CostumeItemFormModal({ isOpen, mode, item, defaultSegment, sizes, color
 
     setLoading(true)
     const input: CostumeItemInput = {
-      name_fr: nameFr, name_ar: nameAr, type, segment,
+      name_fr: nameFr, name_ar: nameAr, typeId, segment,
       sizeId:  sizeId  || null,
       colorId: colorId || null,
       stock:   parseInt(stock),
@@ -252,8 +231,8 @@ function CostumeItemFormModal({ isOpen, mode, item, defaultSegment, sizes, color
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
           <Select
-            label={tInv("type")} value={type}
-            onChange={e => setType(e.target.value as CostumeItemType)}
+            label={tInv("type")} value={typeId}
+            onChange={e => setTypeId(e.target.value)}
             options={TYPE_OPTIONS}
           />
           <Select

@@ -10,7 +10,7 @@ export default async function CostumesInventoryPage({
   const { locale }    = await params
   const authSession   = await withModule("costumes", "inventory")
 
-  const [items, { sizes, colors, lookupById }] = await Promise.all([
+  const [items, { sizes, colors, costumeTypes, lookupById }] = await Promise.all([
     getCostumeItems("sale"),
     getInventoryLookups(),
   ])
@@ -21,6 +21,7 @@ export default async function CostumesInventoryPage({
       segment="sale"
       sizes={sizes}
       colors={colors}
+      costumeTypes={costumeTypes}
       lookupById={lookupById}
       role={authSession.user.role}
       locale={locale}

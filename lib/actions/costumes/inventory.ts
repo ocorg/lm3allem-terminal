@@ -3,7 +3,7 @@
 import { prisma }      from "@/lib/db/prisma"
 import { auth }        from "@/lib/auth/auth"
 import { logActivity } from "@/lib/activity/logger"
-import type { CostumeItemType, ItemSegment } from "@prisma/client"
+import type { ItemSegment } from "@prisma/client"
 import type { LookupItem, LookupById } from "./pos"
 
 // ── Shapes ─────────────────────────────────────────────────────
@@ -11,7 +11,8 @@ export interface CostumeItemForInventory {
   id:              string
   name_fr:         string
   name_ar:         string
-  type:            CostumeItemType
+  typeId:          string
+  typeLabelFr:     string
   segment:         ItemSegment
   sizeId:          string | null
   colorId:         string | null
@@ -28,7 +29,7 @@ export interface CostumeItemForInventory {
 export interface CostumeItemInput {
   name_fr:         string
   name_ar:         string
-  type:            CostumeItemType
+  typeId:          string
   segment:         ItemSegment
   sizeId:          string | null
   colorId:         string | null
@@ -44,13 +45,15 @@ export interface CostumeItemInput {
 export async function getCostumeItems(segment?: ItemSegment): Promise<CostumeItemForInventory[]> {
   const items = await prisma.costumeItem.findMany({
     where:   segment ? { segment } : undefined,
+    include: { costumeType: true },
     orderBy: { createdAt: "desc" },
   })
   return items.map((i) => ({
     id:              i.id,
     name_fr:         i.name_fr,
     name_ar:         i.name_ar,
-    type:            i.type,
+    typeId:          i.typeId,
+    typeLabelFr:     i.costumeType.label_fr,
     segment:         i.segment,
     sizeId:          i.sizeId,
     colorId:         i.colorId,
@@ -67,9 +70,10 @@ export async function getCostumeItems(segment?: ItemSegment): Promise<CostumeIte
 
 // ── getInventoryLookups ────────────────────────────────────────
 export async function getInventoryLookups(): Promise<{
-  sizes:      LookupItem[]
-  colors:     LookupItem[]
-  lookupById: LookupById
+  sizes:        LookupItem[]
+  colors:       LookupItem[]
+  costumeTypes: LookupItem[]
+  lookupById:   LookupById
 }> {
   const rawLookup = await prisma.lookupValue.findMany({
     where:   { isActive: true },
@@ -90,7 +94,11 @@ export async function getInventoryLookups(): Promise<{
     lookupById[lv.id] = { label_fr: lv.label_fr, label_ar: lv.label_ar }
   }
 
-  return { sizes, colors, lookupById }
+  const costumeTypes = rawLookup
+    .filter((lv) => lv.category.slug === "costume_item_types")
+    .map(({ id, label_fr, label_ar }) => ({ id, label_fr, label_ar }))
+
+  return { sizes, colors, costumeTypes, lookupById }
 }
 
 // ── createCostumeItem ──────────────────────────────────────────
@@ -104,7 +112,7 @@ export async function createCostumeItem(
     data: {
       name_fr:         input.name_fr,
       name_ar:         input.name_ar,
-      type:            input.type,
+      typeId:          input.typeId,
       segment:         input.segment,
       sizeId:          input.sizeId,
       colorId:         input.colorId,
@@ -123,7 +131,7 @@ export async function createCostumeItem(
     entityId:   item.id,
     actorId:    authSession.user.id,
     action:     "costume_item.created",
-    diff:       { name_fr: input.name_fr, type: input.type, stock: input.stock },
+    diff:       { name_fr: input.name_fr, typeId: input.typeId, stock: input.stock },
   })
 
   return { id: item.id }
@@ -142,7 +150,7 @@ export async function updateCostumeItem(
     data: {
       name_fr:         input.name_fr,
       name_ar:         input.name_ar,
-      type:            input.type,
+      typeId:          input.typeId,
       segment:         input.segment,
       sizeId:          input.sizeId,
       colorId:         input.colorId,
@@ -161,6 +169,6 @@ export async function updateCostumeItem(
     entityId:   id,
     actorId:    authSession.user.id,
     action:     "costume_item.updated",
-    diff:       { name_fr: input.name_fr, type: input.type, stock: input.stock },
+    diff:       { name_fr: input.name_fr, typeId: input.typeId, stock: input.stock },
   })
 }
