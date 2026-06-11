@@ -116,11 +116,11 @@ export async function getSizesAndColors(): Promise<{
   })
 
   const sizes  = rawLookup
-    .filter((lv) => lv.category.slug.endsWith("_sizes"))
+    .filter((lv) => lv.category.slug === "product_sizes")
     .map(({ id, label_fr, label_ar }) => ({ id, label_fr, label_ar }))
 
   const colors = rawLookup
-    .filter((lv) => lv.category.slug.endsWith("_colors"))
+    .filter((lv) => lv.category.slug === "product_colors")
     .map(({ id, label_fr, label_ar }) => ({ id, label_fr, label_ar }))
 
   return { sizes, colors }

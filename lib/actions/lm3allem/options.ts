@@ -71,6 +71,7 @@ export async function createLookupValue(
 ): Promise<SerializedLookupValue> {
   const session = await auth()
   if (!session?.user) throw new Error("Unauthorized")
+  if (!input.label_fr.trim()) throw new Error("Le libellé en français est obligatoire")
 
   // Compute next order OUTSIDE transaction (avoids lock during count)
   const maxResult = await prisma.lookupValue.aggregate({

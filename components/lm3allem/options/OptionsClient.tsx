@@ -49,6 +49,10 @@ export function OptionsClient({ categories }: Props) {
 
   function handleSave() {
     if (!selectedCat) return
+    if (!form.label_fr.trim()) {
+      toast(t("labelRequired"), "error")
+      return
+    }
     startTransition(async () => {
       try {
         if (editTarget) {

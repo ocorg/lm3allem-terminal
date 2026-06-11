@@ -1,7 +1,16 @@
-import { PrismaClient } from "@prisma/client"
+import "dotenv/config"
+import { PrismaClient }   from "@prisma/client"
+import { PrismaNeon }     from "@prisma/adapter-neon"
+import { neonConfig }     from "@neondatabase/serverless"
 import bcrypt from "bcryptjs"
+import ws from "ws"
 
-const prisma = new PrismaClient()
+neonConfig.webSocketConstructor = ws
+
+const connectionString = process.env.DATABASE_URL_UNPOOLED ?? process.env.DATABASE_URL
+if (!connectionString) throw new Error("[seed] DATABASE_URL is not set — check your .env file.")
+const adapter = new PrismaNeon({ connectionString })
+const prisma  = new PrismaClient({ adapter })
 
 const PEPPER    = process.env.PIN_HASH_PEPPER ?? ""
 const SALT_ROUNDS = 12
@@ -92,6 +101,24 @@ const LOOKUP_DATA = [
       { fr: "CIN",                ar: "بطاقة التعريف الوطنية"     },
       { fr: "Passeport",          ar: "جواز السفر"                },
       { fr: "Permis de conduire", ar: "رخصة السياقة"              },
+    ],
+  },
+  {
+    slug: "product_colors", name_fr: "Couleurs produits (Magazin)", name_ar: "ألوان المنتجات",
+    values: [
+      { fr: "Noir",    ar: "أسود"   }, { fr: "Blanc",   ar: "أبيض"  },
+      { fr: "Bleu",    ar: "أزرق"   }, { fr: "Rouge",   ar: "أحمر"  },
+      { fr: "Vert",    ar: "أخضر"   }, { fr: "Gris",    ar: "رمادي" },
+      { fr: "Beige",   ar: "بيج"    }, { fr: "Marron",  ar: "بني"   },
+      { fr: "Orange",  ar: "برتقالي" }, { fr: "Violet",  ar: "بنفسجي" },
+    ],
+  },
+  {
+    slug: "product_sizes", name_fr: "Tailles produits (Magazin)", name_ar: "مقاسات المنتجات",
+    values: [
+      { fr: "XS",  ar: "XS"  }, { fr: "S",   ar: "S"   },
+      { fr: "M",   ar: "M"   }, { fr: "L",   ar: "L"   },
+      { fr: "XL",  ar: "XL"  }, { fr: "XXL", ar: "XXL" },
     ],
   },
 ] as const

@@ -86,7 +86,7 @@ export async function getInventoryLookups(): Promise<{
     .map(({ id, label_fr, label_ar }) => ({ id, label_fr, label_ar }))
 
   const colors = rawLookup
-    .filter((lv) => lv.category.slug.endsWith("_colors"))
+    .filter((lv) => lv.category.slug === "suit_colors")
     .map(({ id, label_fr, label_ar }) => ({ id, label_fr, label_ar }))
 
   const lookupById: LookupById = {}

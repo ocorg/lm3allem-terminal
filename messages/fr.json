@@ -562,7 +562,8 @@
       "updateSuccess": "Valeur mise à jour",
       "addSuccess": "Valeur ajoutée",
       "saveError": "Erreur lors de l'enregistrement",
-      "reorderError": "Erreur lors du réordonnancement"
+      "reorderError": "Erreur lors du réordonnancement",
+      "labelRequired": "Nom requise"
     },
     "settings": {
       "title": "Paramètres",
