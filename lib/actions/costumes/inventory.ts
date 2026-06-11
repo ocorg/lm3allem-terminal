@@ -137,6 +137,47 @@ export async function createCostumeItem(
   return { id: item.id }
 }
 
+// ── addCostumeType ─────────────────────────────────────────────
+export async function addCostumeType(
+  labelFr: string,
+  labelAr: string
+): Promise<LookupItem> {
+  const authSession = await auth()
+  if (!authSession?.user) throw new Error("Unauthorized")
+  if (authSession.user.role !== "admin" && authSession.user.role !== "superadmin")
+    throw new Error("Forbidden")
+
+  const category = await prisma.lookupCategory.findUniqueOrThrow({
+    where: { slug: "costume_item_types" },
+  })
+
+  const maxResult = await prisma.lookupValue.aggregate({
+    where: { categoryId: category.id },
+    _max:  { order: true },
+  })
+
+  const value = await prisma.lookupValue.create({
+    data: {
+      categoryId: category.id,
+      label_fr:   labelFr,
+      label_ar:   labelAr,
+      order:      (maxResult._max.order ?? 0) + 1,
+      isActive:   true,
+    },
+  })
+
+  await logActivity({
+    portal:     "costumes",
+    entityType: "lookup_value",
+    entityId:   value.id,
+    actorId:    authSession.user.id,
+    action:     "lookup_value.created",
+    diff:       { label_fr: labelFr, categoryId: category.id },
+  })
+
+  return { id: value.id, label_fr: value.label_fr, label_ar: value.label_ar }
+}
+
 // ── updateCostumeItem ──────────────────────────────────────────
 export async function updateCostumeItem(
   id: string,

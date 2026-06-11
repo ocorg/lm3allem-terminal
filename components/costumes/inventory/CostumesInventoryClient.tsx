@@ -14,7 +14,7 @@ import { Select }               from "@/components/ui/Select"
 import { toast }                from "@/hooks/useToast"
 import { formatMAD }            from "@/lib/utils/currency"
 import { ImageUploader }        from "@/components/magazin/inventory/ImageUploader"
-import { createCostumeItem, updateCostumeItem } from "@/lib/actions/costumes/inventory"
+import { createCostumeItem, updateCostumeItem, addCostumeType } from "@/lib/actions/costumes/inventory"
 import type { CostumeItemForInventory, CostumeItemInput } from "@/lib/actions/costumes/inventory"
 import type { LookupItem, LookupById } from "@/lib/actions/costumes/pos"
 import type { ItemSegment } from "@prisma/client"
@@ -137,6 +137,7 @@ export function CostumesInventoryClient({ items, segment, sizes, colors, costume
         sizes={sizes}
         colors={colors}
         costumeTypes={costumeTypes}
+        role={role}
         onClose={() => { setCreating(false); setEditing(null) }}
         onSuccess={() => { setCreating(false); setEditing(null); router.refresh() }}
       />
@@ -152,17 +153,16 @@ interface FormModalProps {
   sizes:           LookupItem[]
   colors:          LookupItem[]
   costumeTypes:    LookupItem[]
+  role:            string
   onClose:         () => void
   onSuccess:       () => void
 }
 
-function CostumeItemFormModal({ isOpen, mode, item, defaultSegment, sizes, colors, costumeTypes, onClose, onSuccess }: FormModalProps) {
+function CostumeItemFormModal({ isOpen, mode, item, defaultSegment, sizes, colors, costumeTypes, role, onClose, onSuccess }: FormModalProps) {
   const isEdit = mode === "edit"
   const tInv   = useTranslations("costumes.inventory")
   const tCom   = useTranslations("common")
   const tRent  = useTranslations("costumes.rental")
-
-  const TYPE_OPTIONS = costumeTypes.map(t => ({ value: t.id, label: t.label_fr }))
 
   const [nameFr,     setNameFr]     = useState(item?.name_fr          ?? "")
   const [nameAr,     setNameAr]     = useState(item?.name_ar          ?? "")
@@ -179,11 +179,39 @@ function CostumeItemFormModal({ isOpen, mode, item, defaultSegment, sizes, color
   const [loading,    setLoading]    = useState(false)
   const [errors,     setErrors]     = useState<Record<string, string>>({})
 
+  // ── Inline type creation ──────────────────────────────────────
+  const isAdminInModal = role === "admin" || role === "superadmin"
+  const [localTypes,  setLocalTypes]  = useState<LookupItem[]>(costumeTypes)
+  const TYPE_OPTIONS                  = localTypes.map(t => ({ value: t.id, label: t.label_fr }))
+  const [addTypeOpen, setAddTypeOpen] = useState(false)
+  const [newTypeFr,   setNewTypeFr]   = useState("")
+  const [newTypeAr,   setNewTypeAr]   = useState("")
+  const [addingType,  setAddingType]  = useState(false)
+
+  const handleAddType = async () => {
+    if (!newTypeFr.trim()) return
+    setAddingType(true)
+    try {
+      const created = await addCostumeType(newTypeFr.trim(), newTypeAr.trim())
+      setLocalTypes(prev => [...prev, created])
+      setTypeId(created.id)
+      setNewTypeFr("")
+      setNewTypeAr("")
+      setAddTypeOpen(false)
+      toast("Type ajouté avec succès", "success")
+    } catch (err: unknown) {
+      toast(err instanceof Error ? err.message : tCom("error"), "error")
+    } finally {
+      setAddingType(false)
+    }
+  }
+
   const validate = () => {
     const e: Record<string, string> = {}
     const inv = tRent("validation.invalidAmount")
-    if (!nameFr.trim())          e.nameFr  = tCom("required")
-    if (!nameAr.trim())          e.nameAr  = tCom("required")
+    if (!nameFr.trim())              e.nameFr  = tCom("required")
+    if (!nameAr.trim())              e.nameAr  = tCom("required")
+    if (!typeId)                     e.typeId  = tCom("required")
     if (isNaN(+stock) || +stock < 0) e.stock   = inv
     if (isNaN(+buying))                                          e.buying  = inv
     if (segment === "sale" && isNaN(+selling))                   e.selling = inv
@@ -223,18 +251,37 @@ function CostumeItemFormModal({ isOpen, mode, item, defaultSegment, sizes, color
   }
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={isEdit ? tInv("editItem") : tInv("addItem")} size="lg">
+    <>
+      <Modal isOpen={isOpen} onClose={onClose} title={isEdit ? tInv("editItem") : tInv("addItem")} size="lg">
       <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
           <Input label="Nom (FR)" value={nameFr} onChange={e => setNameFr(e.target.value)} error={errors.nameFr} />
           <Input label="Nom (AR)" value={nameAr} onChange={e => setNameAr(e.target.value)} dir="rtl" error={errors.nameAr} />
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
-          <Select
-            label={tInv("type")} value={typeId}
-            onChange={e => setTypeId(e.target.value)}
-            options={TYPE_OPTIONS}
-          />
+          <div style={{ position: "relative" }}>
+            <Select
+              label={tInv("type")} value={typeId}
+              onChange={e => setTypeId(e.target.value)}
+              options={TYPE_OPTIONS}
+              error={errors.typeId}
+            />
+            {isAdminInModal && (
+              <button
+                type="button"
+                onClick={() => setAddTypeOpen(true)}
+                title="Ajouter un nouveau type"
+                style={{
+                  position: "absolute", top: 2, right: 2,
+                  background: "none", border: "none", cursor: "pointer",
+                  color: "var(--primary)", fontSize: 11, fontWeight: 700,
+                  display: "flex", alignItems: "center", gap: 2,
+                }}
+              >
+                + nouveau
+              </button>
+            )}
+          </div>
           <Select
             label={tInv("size")} value={sizeId}
             onChange={e => setSizeId(e.target.value)}
@@ -285,5 +332,29 @@ function CostumeItemFormModal({ isOpen, mode, item, defaultSegment, sizes, color
         </div>
       </div>
     </Modal>
+
+      <Modal isOpen={addTypeOpen} onClose={() => setAddTypeOpen(false)} title="Ajouter un type d'article">
+        <div style={{ display: "flex", flexDirection: "column", gap: 14, minWidth: 300 }}>
+          <Input
+            label="Nom en Français"
+            value={newTypeFr}
+            onChange={e => setNewTypeFr(e.target.value)}
+            placeholder="ex: Cravate, Chapeau, Nœud papillon..."
+          />
+          <Input
+            label="الاسم بالعربية (اختياري)"
+            value={newTypeAr}
+            onChange={e => setNewTypeAr(e.target.value)}
+            dir="rtl"
+          />
+          <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+            <Button variant="secondary" onClick={() => setAddTypeOpen(false)}>{tCom("cancel")}</Button>
+            <Button onClick={handleAddType} loading={addingType} disabled={!newTypeFr.trim()}>
+              Ajouter le type
+            </Button>
+          </div>
+        </div>
+      </Modal>
+    </>
   )
 }

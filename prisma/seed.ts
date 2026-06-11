@@ -77,7 +77,7 @@ const LOOKUP_DATA = [
     ],
   },
   {
-    slug: "costume_item_types", name_fr: "Types d'articles costumes", name_ar: "أنواع عناصر الأزياء",
+    slug: "costume_item_types", name_fr: "Types d'articles costumes", name_ar: "أنواع عناصر البدلات",
     values: [
       { fr: "Costume",    ar: "بدلة"    },
       { fr: "Gilet",      ar: "صديري"   },

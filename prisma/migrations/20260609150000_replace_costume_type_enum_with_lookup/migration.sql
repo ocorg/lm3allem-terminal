@@ -3,7 +3,7 @@ ALTER TABLE "CostumeItem" ADD COLUMN "typeId" TEXT;
 
 -- Step 2: Create the new costume_item_types lookup category
 INSERT INTO "LookupCategory" (id, slug, name_fr, name_ar, "createdAt")
-VALUES ('ctype_cat_001', 'costume_item_types', 'Types d''articles costumes', 'أنواع عناصر الأزياء', NOW());
+VALUES ('ctype_cat_001', 'costume_item_types', 'Types d''articles costumes', 'أنواع عناصر البدلات', NOW());
 
 -- Step 3: Seed the 4 base type values
 INSERT INTO "LookupValue" (id, "categoryId", label_fr, label_ar, "order", "isActive", "createdAt", "updatedAt") VALUES

@@ -1,6 +1,6 @@
 {
   "auth": {
-    "title": "محطة المعلم",
+    "title": "محطة الإدارة",
     "enterPin": "أدخل رمز PIN",
     "confirm": "تأكيد",
     "backspace": "حذف",
@@ -11,11 +11,11 @@
   },
   "portal": {
     "select": "اختر الفضاء الخاص بك",
-    "magazin": "المجزن",
-    "costumes": "الأزياء",
+    "magazin": "المحل",
+    "costumes": "البدلات",
     "lm3allem": "المعلم",
     "magazinDesc": "البيع بالتجزئة والمخزون",
-    "costumesDesc": "تأجير وإدارة الأزياء",
+    "costumesDesc": "تأجير وإدارة البدلات",
     "lm3allemDesc": "لوحة تحكم المالك"
   },
   "common": {
@@ -422,7 +422,7 @@
       "stats": {
         "totalRevenue": "إجمالي الإيرادات",
         "magazinRevenue": "إيرادات المتجر",
-        "costumesRevenue": "إيرادات الأزياء",
+        "costumesRevenue": "إيرادات البدلات",
         "openRentals": "الإيجارات النشطة",
         "activeUsers": "المستخدمون النشطون",
         "openCaisseSessions": "الصناديق المفتوحة"
@@ -447,7 +447,7 @@
       "to": "إلى",
       "apply": "تطبيق",
       "magazinSales": "مبيعات المتجر",
-      "costumesSales": "مبيعات الأزياء",
+      "costumesSales": "مبيعات البدلات",
       "rentalRevenue": "الإيجارات",
       "expenses": "المصروفات",
       "net": "الصافي",
@@ -514,8 +514,8 @@
       "pinWarning": "احفظ هذا الرمز — لن يُعرض مجدداً.",
       "noUsers": "لا يوجد مستخدمون",
       "roles": {
-        "superadmin": "مدير عام",
-        "admin": "مدير",
+        "superadmin": "تقني",
+        "admin": "المدير العام",
         "staff": "موظف"
       },
       "permissions": "صلاحيات الوحدات",
@@ -622,7 +622,7 @@
     "credit": "دين"
   },
   "roles": {
-    "superadmin": "المدير العام",
+    "superadmin": "الالمدير العام العام",
     "admin": "مسؤول",
     "staff": "موظف"
   },
@@ -659,7 +659,7 @@
     "item": "المنتج",
     "requestedPrice": "السعر المطلوب",
     "minPrice": "الحد الأدنى",
-    "enterAdminPin": "أدخل رمز PIN الخاص بمدير للموافقة.",
+    "enterAdminPin": "أدخل رمز PIN الخاص بالمدير العام للموافقة.",
     "unauthorized": "رمز PIN غير صحيح.",
     "cancel": "إلغاء البيع"
   }
