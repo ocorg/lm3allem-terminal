@@ -224,7 +224,8 @@
       "noProducts": "Aucun produit dans le catalogue",
       "inStock": "En stock",
       "outOfStock": "Épuisé",
-      "variants": "variante(s)"
+      "variants": "variante(s)",
+      "clearFilters": "Supprimer Filtre"
     }
   },
   "costumes": {

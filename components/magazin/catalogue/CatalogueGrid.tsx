@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useMemo } from "react"
+import Image         from "next/image"
 import { Select }    from "@/components/ui/Select"
 import { formatMAD } from "@/lib/utils/currency"
 import { useTranslations } from "next-intl"
@@ -93,9 +94,9 @@ export function CatalogueGrid({ products, categories, sizes, colors, lookupById,
                 onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.boxShadow = "none"; (e.currentTarget as HTMLDivElement).style.transform = "none" }}
               >
                 {/* Image */}
-                <div style={{ aspectRatio: "4/3", background: "var(--surface-2)", overflow: "hidden" }}>
+                <div style={{ aspectRatio: "4/3", background: "var(--surface-2)", overflow: "hidden", position: "relative" }}>
                   {p.images[0]
-                    ? <img src={p.images[0]} alt={name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                    ? <Image src={p.images[0]} alt={name} fill style={{ objectFit: "cover" }} />
                     : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 36 }}>🧳</div>
                   }
                 </div>
@@ -189,7 +190,7 @@ export function CatalogueGrid({ products, categories, sizes, colors, lookupById,
               <div style={{ width: "100%", aspectRatio: "4/3", background: "var(--surface-2)", overflow: "hidden", flexShrink: 0, position: "relative" }}>
                 {imgs.length > 0 ? (
                   <>
-                    <img src={imgs[imgIdx]} alt={spName} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                    <Image src={imgs[imgIdx]} alt={spName} fill style={{ objectFit: "cover" }} />
                     {imgs.length > 1 && (
                       <>
                         <button
@@ -248,6 +249,53 @@ export function CatalogueGrid({ products, categories, sizes, colors, lookupById,
                       {spColors.map(c => (
                         <span key={c} style={{ fontSize: 12, padding: "5px 13px", borderRadius: 6, background: "var(--surface-2)", color: "var(--text)", border: "1px solid var(--border)", fontWeight: 500 }}>{c}</span>
                       ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* ── Variant stock breakdown ── */}
+                {sp.variants.length > 0 && (
+                  <div>
+                    <p style={{ fontSize: 11, fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", margin: "0 0 8px" }}>
+                      Stock par variante
+                    </p>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+                      {sp.variants.map((v, i) => {
+                        const sizeLabel  = v.sizeId  ? (locale === "ar" ? lookupMap[v.sizeId]?.label_ar  : lookupMap[v.sizeId]?.label_fr)  ?? "?" : null
+                        const colorLabel = v.colorId ? (locale === "ar" ? lookupMap[v.colorId]?.label_ar : lookupMap[v.colorId]?.label_fr) ?? "?" : null
+                        const label      = [sizeLabel, colorLabel].filter(Boolean).join(" / ") || "Variante"
+                        const isOut      = v.stock === 0
+                        const isLow      = v.stock > 0 && v.stock <= 2
+                        return (
+                          <div
+                            key={i}
+                            style={{
+                              display:        "flex",
+                              alignItems:     "center",
+                              justifyContent: "space-between",
+                              padding:        "7px 12px",
+                              borderRadius:   8,
+                              background:     "var(--surface-2)",
+                              border:         "1px solid var(--border)",
+                              opacity:        isOut ? 0.55 : 1,
+                            }}
+                          >
+                            <span style={{ fontSize: 12, color: "var(--text)", fontWeight: 500 }}>{label}</span>
+                            <span style={{
+                              fontSize:   12,
+                              fontWeight: 700,
+                              padding:    "2px 10px",
+                              borderRadius: 999,
+                              color:      isOut ? "var(--danger)" : isLow ? "var(--warning)" : "var(--success)",
+                              background: isOut ? "color-mix(in srgb,var(--danger)  12%,transparent)"
+                                        : isLow ? "color-mix(in srgb,var(--warning) 12%,transparent)"
+                                        :         "color-mix(in srgb,var(--success) 12%,transparent)",
+                            }}>
+                              {isOut ? "Épuisé" : `${v.stock} pcs`}
+                            </span>
+                          </div>
+                        )
+                      })}
                     </div>
                   </div>
                 )}

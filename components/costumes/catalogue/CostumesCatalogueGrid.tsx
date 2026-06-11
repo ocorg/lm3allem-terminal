@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useMemo } from "react"
+import Image                 from "next/image"
 import { Package }           from "lucide-react"
 import { SearchBar }         from "@/components/ui/SearchBar"
 import { Select }            from "@/components/ui/Select"
@@ -104,7 +105,7 @@ export function CostumesCatalogueGrid({ items, sizes, colors, costumeTypes, look
               >
                 <div style={{ width: "100%", aspectRatio: "4/5", overflow: "hidden", background: "var(--surface-2)", position: "relative" }}>
                   {item.images[0]
-                    ? <img src={item.images[0]} alt={name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                    ? <Image src={item.images[0]} alt={name} fill style={{ objectFit: "cover" }} />
                     : <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}><Package size={32} style={{ color: "var(--border)" }} /></div>
                   }
                   <div style={{ position: "absolute", top: 8, insetInlineEnd: 8 }}>
@@ -180,7 +181,7 @@ export function CostumesCatalogueGrid({ items, sizes, colors, costumeTypes, look
               <div style={{ width: "100%", aspectRatio: "4/5", background: "var(--surface-2)", overflow: "hidden", flexShrink: 0, position: "relative" }}>
                 {imgs.length > 0 ? (
                   <>
-                    <img src={imgs[imgIdx]} alt={siName} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                    <Image src={imgs[imgIdx]} alt={siName} fill style={{ objectFit: "cover" }} />
                     {imgs.length > 1 && (
                       <>
                         <button
@@ -226,6 +227,33 @@ export function CostumesCatalogueGrid({ items, sizes, colors, costumeTypes, look
                 <p style={{ fontSize: 26, fontWeight: 700, color: "var(--text)", margin: 0, letterSpacing: "-0.02em" }}>
                   {formatMAD(si.sellingPrice)}
                 </p>
+
+                {/* ── Stock display ── */}
+                <div style={{
+                  display:        "flex",
+                  alignItems:     "center",
+                  justifyContent: "space-between",
+                  padding:        "10px 14px",
+                  borderRadius:   10,
+                  background:     "var(--surface-2)",
+                  border:         "1px solid var(--border)",
+                }}>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                    Stock disponible
+                  </span>
+                  <span style={{
+                    fontSize:     13,
+                    fontWeight:   700,
+                    padding:      "3px 12px",
+                    borderRadius: 999,
+                    color:      isOut        ? "var(--danger)"  : si.stock <= 2 ? "var(--warning)"  : "var(--success)",
+                    background: isOut        ? "color-mix(in srgb,var(--danger)  12%,transparent)"
+                              : si.stock <= 2 ? "color-mix(in srgb,var(--warning) 12%,transparent)"
+                              :                 "color-mix(in srgb,var(--success) 12%,transparent)",
+                  }}>
+                    {isOut ? t("catalogue.outOfStock") : `${si.stock} pcs`}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
