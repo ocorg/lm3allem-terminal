@@ -4,7 +4,6 @@ import { useEffect, useState, useTransition } from "react"
 import { useTranslations } from "next-intl"
 import PinPad from "@/components/ui/PinPad"
 import ThemeToggle from "@/components/ui/ThemeToggle"
-import LanguageToggle from "@/components/ui/LanguageToggle"
 import { authenticateWithPin } from "@/lib/auth/actions"
 
 interface LockState {
@@ -31,32 +30,33 @@ export default function PinEntryScreen({ locale, initialLockState }: Props) {
   )
   const [attemptsLeft, setAttemptsLeft] = useState(initialLockState.attemptsLeft)
   const [errorMsg, setErrorMsg]         = useState<string | null>(null)
-  const [countdown, setCountdown]       = useState(0)
+  const [countdown, setCountdown]       = useState(() => {
+    if (!initialLockState.lockedUntil) return 0
+    return Math.max(0, Math.ceil((initialLockState.lockedUntil - Date.now()) / 1000))
+  })
+  const [isLocked, setIsLocked] = useState(() => {
+    return lockedUntil !== null && Date.now() < lockedUntil
+  })
 
   // Countdown timer — derived from lockedUntil timestamp
   useEffect(() => {
-    if (!lockedUntil) return
+    if (!lockedUntil) {
+      return
+    }
+
     const iv = setInterval(() => {
       const rem = Math.ceil((lockedUntil - Date.now()) / 1000)
       if (rem <= 0) {
         setLockedUntil(null)
         setCountdown(0)
+        setIsLocked(false)
       } else {
         setCountdown(rem)
+        setIsLocked(true)
       }
     }, 500)
     return () => clearInterval(iv)
   }, [lockedUntil])
-
-  // Initialise countdown on mount if already locked
-  useEffect(() => {
-    if (initialLockState.lockedUntil) {
-      const rem = Math.ceil((initialLockState.lockedUntil - Date.now()) / 1000)
-      setCountdown(Math.max(0, rem))
-    }
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
-
-  const isLocked = lockedUntil !== null && Date.now() < lockedUntil
 
   function handleSubmit(submittedPin: string) {
     if (isLocked || isPending) return
@@ -104,7 +104,6 @@ export default function PinEntryScreen({ locale, initialLockState }: Props) {
         }}
       >
         <ThemeToggle />
-        <LanguageToggle currentLocale={locale} />
       </div>
 
       {/* Logo */}

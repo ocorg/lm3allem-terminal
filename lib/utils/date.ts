@@ -15,7 +15,7 @@ function locale(lang: Language) {
 export function formatDate(
   date: Date | string | null | undefined,
   pattern = "dd/MM/yyyy",
-  lang: Language = "fr"
+  lang: Language = "ar"
 ): string {
   const d = toDate(date)
   return d ? format(d, pattern, { locale: locale(lang) }) : "—"
@@ -23,14 +23,14 @@ export function formatDate(
 
 export function formatDateTime(
   date: Date | string | null | undefined,
-  lang: Language = "fr"
+  lang: Language = "ar"
 ): string {
   return formatDate(date, "dd/MM/yyyy HH:mm", lang)
 }
 
 export function formatRelative(
   date: Date | string | null | undefined,
-  lang: Language = "fr"
+  lang: Language = "ar"
 ): string {
   const d = toDate(date)
   if (!d) return "—"

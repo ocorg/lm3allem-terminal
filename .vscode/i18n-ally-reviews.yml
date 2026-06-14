@@ -23,3 +23,12 @@ reviews:
             suggestion: ''
             type: approve
             time: '2026-06-11T21:12:50.206Z'
+            resolved: true
+          - user:
+              name: Jack998899
+              email: oussamachbr@gmail.com
+            id: f66CsR_g125Wc75WBOAgR
+            type: approve
+            comment: ''
+            time: '2026-06-14T09:43:54.146Z'
+            resolved: true

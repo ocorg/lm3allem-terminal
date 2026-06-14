@@ -29,8 +29,7 @@ export default async function Lm3allemLayout({
   if (role !== "superadmin") {
     const maintenance = await checkMaintenanceMode()
     if (maintenance.isActive) {
-      const message =
-        locale === "ar" ? maintenance.message_ar : maintenance.message_fr
+      const message = maintenance.message_ar ?? ""
       return <MaintenanceScreen locale={locale} message={message} />
     }
   }

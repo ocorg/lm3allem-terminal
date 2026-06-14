@@ -2,7 +2,6 @@
 
 import { useTransition, useState, useRef, useEffect } from "react"
 import { useTranslations }     from "next-intl"
-import { usePathname, useRouter } from "next/navigation"
 import { motion, AnimatePresence, useReducedMotion, type Variants } from "framer-motion"
 import { LogOut, LayoutGrid, Menu, Sun, Moon } from "lucide-react"
 import NotificationBell        from "@/components/layout/NotificationBell"
@@ -37,21 +36,16 @@ export default function Topbar({
 }: Props) {
   const [isPending, startTransition] = useTransition()
   const [menuOpen, setMenuOpen]      = useState(false)
-  const [theme, setTheme]            = useState<"dark" | "light">("dark")
+  const [theme, setTheme]            = useState<"dark" | "light">(() => {
+    const current = document.documentElement.dataset.theme
+    return (current === "light" || current === "dark") ? current : "dark"
+  })
   const menuRef                      = useRef<HTMLDivElement>(null)
   const shouldReduce                 = useReducedMotion()
-  const pathname                     = usePathname()
-  const router                       = useRouter()
 
   const tCommon = useTranslations("common")
   const tTheme  = useTranslations("theme")
   const tRoles  = useTranslations("roles")
-
-  // Read current theme from DOM
-  useEffect(() => {
-    const current = document.documentElement.dataset.theme
-    if (current === "light" || current === "dark") setTheme(current)
-  }, [])
 
   // Close menu on outside click
   useEffect(() => {
@@ -80,14 +74,6 @@ export default function Topbar({
     html.classList.remove(theme)
     html.classList.add(next)
     try { localStorage.setItem("lm3allem-theme", next) } catch { /* noop */ }
-  }
-
-  function toggleLocale() {
-    const nextLocale = locale === "fr" ? "ar" : "fr"
-    const prefix = `/${locale}`
-    const rest   = pathname.startsWith(prefix) ? pathname.slice(prefix.length) : ""
-    router.push(`/${nextLocale}${rest}`)
-    setMenuOpen(false)
   }
 
   const initials = userName.charAt(0).toUpperCase()
@@ -319,33 +305,6 @@ export default function Topbar({
                     : <Moon size={15} strokeWidth={1.75} style={{ color: "var(--primary)", flexShrink: 0 }} />
                   }
                   <span>{theme === "dark" ? tTheme("light") : tTheme("dark")}</span>
-                </button>
-
-                {/* Language toggle */}
-                <button
-                  onClick={toggleLocale}
-                  style={menuItemStyle}
-                  onMouseEnter={e => { e.currentTarget.style.background = "var(--surface-2)" }}
-                  onMouseLeave={e => { e.currentTarget.style.background = "transparent" }}
-                >
-                  <span style={{
-                    width:          20,
-                    height:         20,
-                    borderRadius:   4,
-                    background:     "var(--surface-2)",
-                    border:         "1px solid var(--border)",
-                    display:        "flex",
-                    alignItems:     "center",
-                    justifyContent: "center",
-                    fontSize:       11,
-                    fontWeight:     700,
-                    color:          "var(--primary)",
-                    flexShrink:     0,
-                    fontFamily:     "var(--font-display)",
-                  }}>
-                    {locale === "fr" ? "ع" : "FR"}
-                  </span>
-                  <span>{locale === "fr" ? "العربية" : "Français"}</span>
                 </button>
 
                 {/* Portal switcher */}

@@ -4,7 +4,6 @@ import { useState, useTransition } from "react"
 import { useTranslations } from "next-intl"
 import { Button } from "@/components/ui/Button"
 import { Input } from "@/components/ui/Input"
-import { Textarea } from "@/components/ui/Textarea"
 import { toast } from "@/hooks/useToast"
 import { updateSystemSettings, type SerializedSettings } from "@/lib/actions/lm3allem/settings"
 
@@ -18,7 +17,6 @@ export function SettingsClient({ settings, role }: Props) {
   const [isPending, startTransition] = useTransition()
 
   const [maintenanceMode, setMaintenanceMode] = useState(settings.maintenanceMode)
-  const [msgFr, setMsgFr] = useState(settings.maintenanceMessage_fr ?? "")
   const [msgAr, setMsgAr] = useState(settings.maintenanceMessage_ar ?? "")
   const [perms, setPerms] = useState<Record<string, unknown>>(settings.defaultStaffPermissions)
 
@@ -32,7 +30,6 @@ export function SettingsClient({ settings, role }: Props) {
         await updateSystemSettings({
           id: settings.id,
           maintenanceMode,
-          maintenanceMessage_fr: msgFr || null,
           maintenanceMessage_ar: msgAr || null,
           defaultStaffPermissions: perms,
         })
@@ -77,7 +74,6 @@ export function SettingsClient({ settings, role }: Props) {
             {t("maintenanceWarning")}
           </p>
         )}
-        <Input label={t("maintenanceMessageFr")} value={msgFr} onChange={(e) => setMsgFr(e.target.value)} />
         <Input label={t("maintenanceMessageAr")} value={msgAr} onChange={(e) => setMsgAr(e.target.value)} dir="rtl" />
       </section>}
 

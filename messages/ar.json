@@ -527,7 +527,12 @@
       "activated": "تم تفعيل المستخدم",
       "saveError": "خطأ في الحفظ",
       "pinResetError": "خطأ في إعادة التعيين",
-      "toggleError": "خطأ"
+      "toggleError": "خطأ",
+      "confirmResetPin": "إعادة تعيين رمز PIN لـ {name}؟",
+      "cancel": "إلغاء",
+      "save": "حفظ",
+      "copyPin": "نسخ رمز PIN",
+      "pinConfirm": "حسناً، تم التسجيل"
     },
     "logs": {
       "title": "سجل النشاط",

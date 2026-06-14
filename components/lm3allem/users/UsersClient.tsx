@@ -31,7 +31,7 @@ export function UsersClient({ initialUsers }: Props) {
   const { confirm, modal } = useConfirm()
   const [isSaving,   startSave]   = useTransition()
   const [isToggling, startToggle] = useTransition()
-  const [isResetting, startReset] = useTransition()
+  const [, startReset] = useTransition()
 
   const [formOpen, setFormOpen]   = useState(false)
   const [pinModal, setPinModal]   = useState<{ name: string; pin: string } | null>(null)
@@ -46,24 +46,25 @@ export function UsersClient({ initialUsers }: Props) {
 
   function openEdit(u: SerializedUser) {
     setEditTarget(u)
-    setForm({ name: u.name, role: u.role as CreateUserInput["role"], portalAccess: u.portalAccess, modulePermissions: u.modulePermissions })
+    setForm({ name: u.name, role: u.role as CreateUserInput["role"], portalAccess: u.portalAccess as CreateUserInput["portalAccess"], modulePermissions: u.modulePermissions as CreateUserInput["modulePermissions"] })
     setFormOpen(true)
   }
 
   function togglePortal(portal: string) {
+    const p = portal as CreateUserInput["portalAccess"][number]
     setForm((f) => ({
       ...f,
-      portalAccess: f.portalAccess.includes(portal)
-        ? f.portalAccess.filter((p) => p !== portal)
-        : [...f.portalAccess, portal],
+      portalAccess: f.portalAccess.includes(p)
+        ? f.portalAccess.filter((x) => x !== p)
+        : [...f.portalAccess, p],
     }))
   }
 
   function toggleModule(module: string) {
     setForm((f) => {
-      const perms = { ...f.modulePermissions }
+      const perms = { ...(f.modulePermissions as Record<string, unknown>) }
       perms[module] = !perms[module]
-      return { ...f, modulePermissions: perms }
+      return { ...f, modulePermissions: perms as CreateUserInput["modulePermissions"] }
     })
   }
 
@@ -96,14 +97,14 @@ export function UsersClient({ initialUsers }: Props) {
         await toggleUserActive(u.id)
         toast(u.isActive ? t("deactivated") : t("activated"), "success")
         router.refresh()
-      } catch (e: any) {
-        toast(e?.message ?? t("toggleError"), "error")
+      } catch (e: unknown) {
+        toast((e instanceof Error ? e.message : null) ?? t("toggleError"), "error")
       }
     })
   }
 
   async function handleResetPin(u: SerializedUser) {
-    const ok = await confirm({ title: `Réinitialiser le PIN de ${u.name} ?`, message: "", variant: "primary" })
+    const ok = await confirm({ title: t("confirmResetPin", { name: u.name }), message: "", variant: "primary" })
     if (!ok) return
     startReset(async () => {
       try {
@@ -189,11 +190,14 @@ export function UsersClient({ initialUsers }: Props) {
           <div>
             <p style={{ fontSize: 12, fontWeight: 600, color: "var(--text-muted)", marginBottom: 8, textTransform: "uppercase" }}>{t("portals")}</p>
             <div style={{ display: "flex", gap: 8 }}>
-              {ALL_PORTALS.map((p) => (
-                <button key={p} onClick={() => togglePortal(p)} style={{ padding: "0.25rem 0.75rem", borderRadius: "4px", border: "1px solid var(--border)", background: form.portalAccess.includes(p) ? "var(--primary)" : "var(--surface-2)", color: form.portalAccess.includes(p) ? "#000" : "var(--text)", cursor: "pointer", fontSize: 13 }}>
-                  {p}
-                </button>
-              ))}
+              {ALL_PORTALS.map((p) => {
+                const portalVal = p as CreateUserInput["portalAccess"][number]
+                return (
+                  <button key={p} onClick={() => togglePortal(p)} style={{ padding: "0.25rem 0.75rem", borderRadius: "4px", border: "1px solid var(--border)", background: form.portalAccess.includes(portalVal) ? "var(--primary)" : "var(--surface-2)", color: form.portalAccess.includes(portalVal) ? "#000" : "var(--text)", cursor: "pointer", fontSize: 13 }}>
+                    {p}
+                  </button>
+                )
+              })}
             </div>
           </div>
 
@@ -204,7 +208,7 @@ export function UsersClient({ initialUsers }: Props) {
                 <p style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 4 }}>MAGAZIN</p>
                 {MAG_MODULES.map((m) => (
                   <label key={m} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, marginBottom: 4, cursor: "pointer" }}>
-                    <input type="checkbox" checked={!!form.modulePermissions[m]} onChange={() => toggleModule(m)} />
+                    <input type="checkbox" checked={!!(form.modulePermissions as Record<string, unknown>)[m]} onChange={() => toggleModule(m)} />
                     {m}
                   </label>
                 ))}
@@ -213,7 +217,7 @@ export function UsersClient({ initialUsers }: Props) {
                 <p style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 4 }}>COSTUMES</p>
                 {COS_MODULES.map((m) => (
                   <label key={m} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, marginBottom: 4, cursor: "pointer" }}>
-                    <input type="checkbox" checked={!!form.modulePermissions[m]} onChange={() => toggleModule(m)} />
+                    <input type="checkbox" checked={!!(form.modulePermissions as Record<string, unknown>)[m]} onChange={() => toggleModule(m)} />
                     {m}
                   </label>
                 ))}
@@ -222,8 +226,8 @@ export function UsersClient({ initialUsers }: Props) {
           </div>
 
           <div style={{ display: "flex", gap: 12, justifyContent: "flex-end" }}>
-            <Button variant="ghost" onClick={() => setFormOpen(false)}>Annuler</Button>
-            <Button variant="primary" onClick={handleSave} loading={isSaving}>Enregistrer</Button>
+            <Button variant="ghost" onClick={() => setFormOpen(false)}>{t("cancel")}</Button>
+            <Button variant="primary" onClick={handleSave} loading={isSaving}>{t("save")}</Button>
           </div>
         </div>
       </Modal>
@@ -243,9 +247,9 @@ export function UsersClient({ initialUsers }: Props) {
                 size="sm"
                 onClick={() => { navigator.clipboard.writeText(pinModal.pin).catch(() => {}) }}
               >
-                Copier le PIN
+                {t("copyPin")}
               </Button>
-              <Button variant="primary" onClick={() => setPinModal(null)}>OK, noté</Button>
+              <Button variant="primary" onClick={() => setPinModal(null)}>{t("pinConfirm")}</Button>
             </div>
           </div>
         )}

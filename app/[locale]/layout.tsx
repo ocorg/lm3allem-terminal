@@ -19,7 +19,7 @@ export const viewport = {
 
 export const metadata: Metadata = {
   title: "Lm3allem Terminal",
-  description: "Plateforme de gestion interne — Lm3allem Clothing",
+  description: "منصة الإدارة الداخلية — Lm3allem Clothing",
   icons: {
     icon: [
       { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
@@ -46,7 +46,7 @@ export default async function LocaleLayout({
 }) {
   const { locale } = await params
 
-  if (!routing.locales.includes(locale as "fr" | "ar")) {
+  if (!routing.locales.includes(locale as "ar")) {
     notFound()
   }
 

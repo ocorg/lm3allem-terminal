@@ -2,6 +2,7 @@
 
 import { auth } from "@/lib/auth/auth"
 import { prisma } from "@/lib/db/prisma"
+import type { Portal, Prisma } from "@prisma/client"
 import { hashPin } from "@/lib/auth/pin"
 import { logActivity }      from "@/lib/activity/logger"
 import { sendMail }          from "@/lib/email/mailer"
@@ -15,7 +16,7 @@ export interface SerializedUser {
   id: string
   name: string
   role: string
-  portalAccess: string[]
+  portalAccess: Portal[]
   modulePermissions: Record<string, unknown>
   isActive: boolean
   preferredLanguage: string
@@ -44,10 +45,10 @@ export async function getUsers(): Promise<SerializedUser[]> {
     id: u.id,
     name: u.name,
     role: u.role,
-    portalAccess: u.portalAccess as string[],
+    portalAccess: u.portalAccess as Portal[],
     modulePermissions: (u.modulePermissions ?? {}) as Record<string, unknown>,
     isActive: u.isActive,
-    preferredLanguage: (u.preferredLanguage as string) ?? "fr",
+    preferredLanguage: (u.preferredLanguage as string) ?? "ar",
     preferredTheme: (u.preferredTheme as string) ?? "dark",
   }))
 }
@@ -55,8 +56,8 @@ export async function getUsers(): Promise<SerializedUser[]> {
 export interface CreateUserInput {
   name: string
   role: "admin" | "staff"
-  portalAccess: string[]
-  modulePermissions: Record<string, unknown>
+  portalAccess: Portal[]
+  modulePermissions: Prisma.InputJsonValue
 }
 
 export async function createUser(
@@ -71,14 +72,13 @@ export async function createUser(
   const user = await prisma.user.create({
     data: {
       name: input.name,
-      role: input.role as any,
-      portalAccess: input.portalAccess as any,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      modulePermissions: input.modulePermissions as any,
+      role: input.role,
+      portalAccess: input.portalAccess,
+      modulePermissions: input.modulePermissions,
       pin: hashedPin,
       isActive: true,
-      preferredLanguage: "fr" as any,
-      preferredTheme: "dark" as any,
+      preferredLanguage: "ar",
+      preferredTheme: "light",
     },
     select: {
       id: true,
@@ -120,11 +120,11 @@ export async function createUser(
       id: user.id,
       name: user.name,
       role: user.role,
-      portalAccess: user.portalAccess as string[],
+      portalAccess: user.portalAccess,
       modulePermissions: (user.modulePermissions ?? {}) as Record<string, unknown>,
       isActive: user.isActive,
-      preferredLanguage: (user.preferredLanguage as string) ?? "fr",
-      preferredTheme: (user.preferredTheme as string) ?? "dark",
+      preferredLanguage: (user.preferredLanguage as string) ?? "ar",
+      preferredTheme: (user.preferredTheme as string) ?? "light",
     },
     plainPin,
   }
@@ -134,8 +134,8 @@ export interface UpdateUserInput {
   id: string
   name?: string
   role?: "admin" | "staff"
-  portalAccess?: string[]
-  modulePermissions?: Record<string, unknown>
+  portalAccess?: Portal[]
+  modulePermissions?: Prisma.InputJsonValue
 }
 
 export async function updateUser(input: UpdateUserInput): Promise<void> {
@@ -146,11 +146,10 @@ export async function updateUser(input: UpdateUserInput): Promise<void> {
     where: { id: input.id },
     data: {
       ...(input.name !== undefined && { name: input.name }),
-      ...(input.role !== undefined && { role: input.role as any }),
-      ...(input.portalAccess !== undefined && { portalAccess: input.portalAccess as any }),
+      ...(input.role !== undefined && { role: input.role }),
+      ...(input.portalAccess !== undefined && { portalAccess: input.portalAccess }),
       ...(input.modulePermissions !== undefined && {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        modulePermissions: input.modulePermissions as any,
+        modulePermissions: input.modulePermissions as Prisma.InputJsonValue,
       }),
     },
   })
