@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { Minus, Plus, Trash2 } from "lucide-react"
 import { formatMAD } from "@/lib/utils/currency"
 import type { CartItem } from "./POSClient"
+import React from "react"
 
 interface CartItemProps {
   item:          CartItem

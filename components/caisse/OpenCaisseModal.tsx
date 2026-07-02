@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/Button"
 import { openCaisseSession } from "@/lib/actions/caisse"
 import { toast } from "@/hooks/useToast"
 import type { Portal } from "@prisma/client"
+import React from "react"
 
 interface OpenCaisseModalProps {
   portal:  Portal

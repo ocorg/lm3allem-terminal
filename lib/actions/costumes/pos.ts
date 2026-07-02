@@ -164,7 +164,7 @@ export async function createCostumeSale(
     for (const item of lowItems) {
       await createNotification({
         title:  "Stock bas",
-        body:   `${item.name_fr} — Stock restant: ${item.stock}`,
+        body:   `${item.name_fr} - Stock restant: ${item.stock}`,
         type:   "low_stock",
         portal: "costumes",
       })

@@ -14,7 +14,7 @@ export function overdueAlertHtml(data: OverdueAlertData): string {
           LOCATION EN RETARD
         </h1>
         <p style="color:#8a8a8a;margin:6px 0 0;font-size:13px;">
-          Alerte automatique — Lm3allem Terminal
+          Alerte automatique - Lm3allem Terminal
         </p>
       </div>
 

@@ -1,5 +1,5 @@
 "use client"
-import { useState, useEffect, type ReactNode } from "react"
+import React, { useState, useEffect, type ReactNode } from "react"
 import Sidebar  from "@/components/layout/Sidebar"
 import Topbar   from "@/components/layout/Topbar"
 import { useBreakpoint } from "@/hooks/useBreakpoint"

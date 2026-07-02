@@ -203,7 +203,7 @@ export async function createRental(
   const createdById = authSession.user.id
   const balance = Math.round((input.totalAmount - input.amountPaid) * 100) / 100
 
-  // generateKitReference uses a count query — call outside the transaction
+  // generateKitReference uses a count query - call outside the transaction
   const kitRef = await generateKitReference()
 
   const result = await prisma.$transaction(async (tx) => {
@@ -299,13 +299,13 @@ export async function createRental(
   try {
     await createNotification({
       title:  "Nouvelle location",
-      body:   `Kit ${kitRef} — ${input.totalAmount} MAD`,
+      body:   `Kit ${kitRef} - ${input.totalAmount} MAD`,
       type:   "rental",
       portal: "costumes",
     })
   } catch { /* non-critical */ }
 
-  // Email — rental confirmation to admin (non-blocking)
+  // Email - rental confirmation to admin (non-blocking)
   try {
     const adminEmail = process.env.ADMIN_EMAIL
     if (adminEmail) {
@@ -316,7 +316,7 @@ export async function createRental(
       if (client) {
         await sendMail(
           adminEmail,
-          `Nouvelle location — ${client.name} · ${kitRef}`,
+          `Nouvelle location - ${client.name} · ${kitRef}`,
           rentalConfirmationHtml({
             clientName:  client.name,
             clientPhone: client.phone,
@@ -495,7 +495,7 @@ export async function addRentalPayment(
   const isDepositReturn = input.type === "deposit_returned"
   const isDeposit       = input.type === "deposit_collected"
 
-  // deposit_returned does not count toward amountPaid — it is a caisse outflow only
+  // deposit_returned does not count toward amountPaid - it is a caisse outflow only
   const newAmountPaid = isDepositReturn
     ? Number(rental.amountPaid)
     : Math.round((Number(rental.amountPaid) + input.amount) * 100) / 100

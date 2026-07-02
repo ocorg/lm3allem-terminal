@@ -11,6 +11,7 @@ import { formatMAD }         from "@/lib/utils/currency"
 import type { CostumeItemForCatalogue } from "@/lib/actions/costumes/catalogue"
 import type { LookupItem, LookupById }  from "@/lib/actions/costumes/pos"
 import { useTranslations } from "next-intl"
+import React from "react"
 interface Props {
   items:        CostumeItemForCatalogue[]
   sizes:        LookupItem[]

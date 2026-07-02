@@ -3,6 +3,7 @@
 import { useRef, useState } from "react"
 import { Upload, X, ImageIcon } from "lucide-react"
 import { toast } from "@/hooks/useToast"
+import React from "react"
 
 interface ImageUploaderProps {
   images:   string[]

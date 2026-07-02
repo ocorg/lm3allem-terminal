@@ -3,6 +3,7 @@ import { auth, signOut }         from "@/lib/auth/auth"
 import { getTranslations }       from "next-intl/server"
 import type { Portal }           from "@prisma/client"
 import { PortalCardsClient }     from "./PortalCardsClient"
+import React from "react"
 
 async function handleSignOut(locale: string) {
   "use server"

@@ -4,6 +4,7 @@ import { useTranslations, useLocale } from "next-intl"
 import { Plus, Trash2 }    from "lucide-react"
 import { Select }          from "@/components/ui/Select"
 import type { VariantInput } from "@/lib/actions/magazin/inventory"
+import React from "react"
 
 type LookupItem = { id: string; label_fr: string; label_ar: string }
 
@@ -59,13 +60,13 @@ export function VariantManager({ variants, onChange, sizes, colors }: VariantMan
           <Select
             value={v.sizeId ?? ""}
             onChange={e => updateRow(i, { sizeId: e.target.value || null })}
-            placeholder="—"
+            placeholder="-"
             options={sizes.map(s => ({ value: s.id, label: locale === "ar" ? s.label_ar : s.label_fr }))}
           />
           <Select
             value={v.colorId ?? ""}
             onChange={e => updateRow(i, { colorId: e.target.value || null })}
-            placeholder="—"
+            placeholder="-"
             options={colors.map(c => ({ value: c.id, label: locale === "ar" ? c.label_ar : c.label_fr }))}
           />
           <input

@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl"
 import PinPad from "@/components/ui/PinPad"
 import ThemeToggle from "@/components/ui/ThemeToggle"
 import { authenticateWithPin } from "@/lib/auth/actions"
+import React from "react"
 
 interface LockState {
   isLocked: boolean
@@ -21,10 +22,10 @@ export default function PinEntryScreen({ locale, initialLockState }: Props) {
   const t = useTranslations("auth")
   const [isPending, startTransition] = useTransition()
 
-  // Pin digits — lifted here so PinPad is fully controlled
+  // Pin digits - lifted here so PinPad is fully controlled
   const [pin, setPin] = useState("")
 
-  // Lockout — initialised from server (survives language switch)
+  // Lockout - initialised from server (survives language switch)
   const [lockedUntil, setLockedUntil] = useState<number | null>(
     initialLockState.lockedUntil
   )
@@ -38,7 +39,7 @@ export default function PinEntryScreen({ locale, initialLockState }: Props) {
     return lockedUntil !== null && Date.now() < lockedUntil
   })
 
-  // Countdown timer — derived from lockedUntil timestamp
+  // Countdown timer - derived from lockedUntil timestamp
   useEffect(() => {
     if (!lockedUntil) {
       return
@@ -76,7 +77,7 @@ export default function PinEntryScreen({ locale, initialLockState }: Props) {
           setErrorMsg(t("invalidPin"))
         }
       }
-      // On success: server throws redirect — nothing to handle
+      // On success: server throws redirect - nothing to handle
     })
   }
 
@@ -141,7 +142,7 @@ export default function PinEntryScreen({ locale, initialLockState }: Props) {
         loading={isPending}
       />
 
-      {/* Status area — fixed height prevents layout shift */}
+      {/* Status area - fixed height prevents layout shift */}
       <div
         style={{
           marginTop: 28,

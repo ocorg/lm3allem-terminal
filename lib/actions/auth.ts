@@ -53,7 +53,7 @@ export async function verifyAdminPin(
     if (Date.now() < state.lockedUntil) {
       return { error: "locked", lockedUntil: state.lockedUntil }
     }
-    // Lockout expired — reset and continue
+    // Lockout expired - reset and continue
     state.attempts    = 0
     state.lockedUntil = null
     await writeLock(state)
@@ -74,7 +74,7 @@ export async function verifyAdminPin(
     }
   }
 
-  // Wrong PIN — record failure
+  // Wrong PIN - record failure
   const next = state.attempts + 1
   if (next >= MAX_ATTEMPTS) {
     const until = Date.now() + LOCKOUT_MS

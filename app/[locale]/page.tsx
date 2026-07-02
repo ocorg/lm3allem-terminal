@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth/auth"
 import PinEntryScreen from "@/components/ui/PinEntryScreen"
 import { getInitialLockoutState } from "@/lib/auth/pin-lockout"
 import type { Portal } from "@prisma/client"
+import React from "react"
 
 export default async function PinPage({
   params,

@@ -2,6 +2,7 @@ import { DollarSign, ShoppingBag, TrendingUp, Hash } from "lucide-react"
 import { StatCard }  from "@/components/ui/StatCard"
 import { formatMAD } from "@/lib/utils/currency"
 import type { SessionStats } from "@/lib/actions/magazin/caisse"
+import React from "react"
 
 export function SessionStats({ stats }: { stats: SessionStats }) {
   return (

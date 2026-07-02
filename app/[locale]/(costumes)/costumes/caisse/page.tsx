@@ -3,6 +3,7 @@ import { getActiveSession }         from "@/lib/actions/caisse"
 import { getCostumesSessionStats }  from "@/lib/actions/costumes/caisse"
 import { CaisseGuard }              from "@/components/caisse/CaisseGuard"
 import { CostumesCaisseClient }     from "@/components/costumes/caisse/CostumesCaisseClient"
+import React from "react"
 
 export default async function CostumesCaissePage({
   params,

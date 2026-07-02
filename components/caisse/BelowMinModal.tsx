@@ -6,6 +6,7 @@ import { Modal }                from "@/components/ui/Modal"
 import { Button }               from "@/components/ui/Button"
 import PinPad                   from "@/components/ui/PinPad"
 import { verifyAdminPin }       from "@/lib/actions/auth"
+import React from "react"
 
 export interface BelowMinItem {
   name:           string
@@ -48,7 +49,7 @@ export function BelowMinModal({
     return () => clearInterval(id)
   }, [lockedUntil])
 
-  const isLocked = lockedUntil !== null && Date.now() < lockedUntil
+  const isLocked = lockedUntil !== null
 
   const handleSubmit = async (submittedPin: string) => {
     if (isLocked) return

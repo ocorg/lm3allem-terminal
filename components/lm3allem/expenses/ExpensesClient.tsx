@@ -18,6 +18,7 @@ import {
   type SerializedExpense, type CreateExpenseInput,
 } from "@/lib/actions/lm3allem/expenses"
 import type { SerializedCategory, SerializedLookupValue } from "@/lib/actions/lm3allem/options"
+import React from "react"
 
 const PORTAL_VARIANT: Record<string, "primary" | "info" | "success"> = {
   magazin:  "primary",
@@ -162,7 +163,7 @@ export function ExpensesClient({ initialExpenses, expenseValues }: Props) {
             value={form.categoryId}
             onChange={(e) => setForm((f) => ({ ...f, categoryId: e.target.value }))}
             options={[
-              { value: "", label: "—" },
+              { value: "", label: "-" },
               ...expenseValues.map((v) => ({ value: v.id, label: v.label_fr })),
             ]}
           />

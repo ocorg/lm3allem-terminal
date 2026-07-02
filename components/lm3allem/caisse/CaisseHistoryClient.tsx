@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/Button"
 import { formatMAD } from "@/lib/utils/currency"
 import { formatDate } from "@/lib/utils/date"
 import type { SessionsResult } from "@/lib/actions/lm3allem/caisse"
+import React from "react"
 
 const PORTAL_VARIANT: Record<string, "primary" | "info" | "success"> = {
   magazin:  "primary",
@@ -104,10 +105,10 @@ export function CaisseHistoryClient({ result, filters }: Props) {
                       <td style={{ padding: "12px 16px" }}>{s.openedByName}</td>
                       <td style={{ padding: "12px 16px", color: "var(--text-muted)" }}>{formatDate(s.openedAt)}</td>
                       <td style={{ padding: "12px 16px" }}>{formatMAD(s.openingAmount)}</td>
-                      <td style={{ padding: "12px 16px" }}>{s.closingAmount ? formatMAD(s.closingAmount) : "—"}</td>
-                      <td style={{ padding: "12px 16px" }}>{s.expectedAmount ? formatMAD(s.expectedAmount) : "—"}</td>
+                      <td style={{ padding: "12px 16px" }}>{s.closingAmount ? formatMAD(s.closingAmount) : "-"}</td>
+                      <td style={{ padding: "12px 16px" }}>{s.expectedAmount ? formatMAD(s.expectedAmount) : "-"}</td>
                       <td style={{ padding: "12px 16px", fontWeight: 600, color: diff === null ? "var(--text-muted)" : diff >= 0 ? "var(--success)" : "var(--danger)" }}>
-                        {diff === null ? "—" : formatMAD(diff.toString())}
+                        {diff === null ? "-" : formatMAD(diff.toString())}
                       </td>
                       <td style={{ padding: "12px 16px" }}>
                         <Badge variant={isOpen ? "warning" : "success"}>{isOpen ? t("open") : t("closed")}</Badge>

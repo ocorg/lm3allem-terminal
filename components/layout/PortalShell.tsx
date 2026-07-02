@@ -3,6 +3,7 @@ import type { Portal, Role } from "@prisma/client"
 import { getTranslations } from "next-intl/server"
 import { buildNavItems } from "@/lib/utils/nav"
 import LayoutShell from "@/components/layout/LayoutShell"
+import React from "react"
 
 interface Props {
   portal:            Portal

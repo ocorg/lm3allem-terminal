@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth/auth"
 import { checkMaintenanceMode } from "@/lib/utils/maintenance"
 import PortalShell from "@/components/layout/PortalShell"
 import MaintenanceScreen from "@/components/ui/MaintenanceScreen"
+import React from "react"
 
 export default async function CostumesLayout({
   children,

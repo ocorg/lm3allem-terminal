@@ -50,11 +50,11 @@ export async function getAlerts(): Promise<AlertsData> {
     await Promise.all([
       prisma.productVariant.findMany({
         where: { stock: { lte: 2 }, product: { isActive: true } },
-        include: { product: { select: { name_fr: true } } },
+        include: { product: { select: { name_ar: true } } },
       }),
       prisma.costumeItem.findMany({
         where: { stock: { lte: 2 }, isActive: true },
-        select: { id: true, name_fr: true, stock: true },
+        select: { id: true, name_ar: true, stock: true },
       }),
       prisma.rental.findMany({
         where: { balance: { gt: 0 } },
@@ -80,20 +80,20 @@ export async function getAlerts(): Promise<AlertsData> {
     lowStockItems: [
       ...lowVariants.map((v) => ({
         id: v.id,
-        name: v.product.name_fr,
+        name: v.product.name_ar || v.product.name_ar,
         portal: "magazin" as const,
         stock: v.stock,
       })),
       ...lowCostumes.map((c) => ({
         id: c.id,
-        name: c.name_fr,
+        name: c.name_ar || c.name_ar,
         portal: "costumes" as const,
         stock: c.stock,
       })),
     ],
     openRentals: openRentals.map((r) => ({
       id: r.id,
-      reference: r.kit?.reference ?? "—",
+      reference: r.kit?.reference ?? "-",
       clientName: r.client.name,
       balance: r.balance.toString(),
       scheduledReturnDate: r.scheduledReturnDate.toISOString(),
@@ -125,24 +125,24 @@ export async function sendLowStockDigest(): Promise<{ sent: boolean; count: numb
   const [lowVariants, lowCostumes] = await Promise.all([
     prisma.productVariant.findMany({
       where:   { stock: { lte: 2 }, product: { isActive: true } },
-      include: { product: { select: { name_fr: true } } },
+      include: { product: { select: { name_ar: true } } },
     }),
     prisma.costumeItem.findMany({
       where:  { stock: { lte: 2 }, isActive: true },
-      select: { id: true, name_fr: true, stock: true },
+      select: { id: true, name_ar: true, stock: true },
     }),
   ])
 
   const items = [
-    ...lowVariants.map(v => ({ name: v.product.name_fr, portal: "magazin", stock: v.stock })),
-    ...lowCostumes.map(c => ({ name: c.name_fr, portal: "costumes", stock: c.stock })),
+    ...lowVariants.map(v => ({ name: v.product.name_ar, portal: "magazin", stock: v.stock })),
+    ...lowCostumes.map(c => ({ name: c.name_ar, portal: "costumes", stock: c.stock })),
   ]
 
   if (items.length === 0) return { sent: false, count: 0 }
 
   await sendMail(
     adminEmail,
-    `Stock bas — ${items.length} article${items.length > 1 ? "s" : ""} à réapprovisionner`,
+    `مخزون منخفض - ${items.length} ${items.length > 1 ? "منتجات" : "منتج"} تحتاج إلى تموين`,
     lowStockDigestHtml({ items })
   )
 

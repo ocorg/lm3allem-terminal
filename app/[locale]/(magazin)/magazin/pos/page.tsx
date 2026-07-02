@@ -2,6 +2,7 @@ import { withModule }          from "@/lib/auth/session"
 import { getProductsForPOS }   from "@/lib/actions/magazin/pos"
 import { CaisseGuard }         from "@/components/caisse/CaisseGuard"
 import { POSClient }           from "@/components/magazin/pos/POSClient"
+import React from "react"
 
 export default async function POSPage({
   params,

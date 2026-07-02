@@ -10,6 +10,7 @@ import { TransactionList } from "./TransactionList"
 import { ManualEntryModal } from "./ManualEntryModal"
 import { CloseSessionModal } from "./CloseSessionModal"
 import type { SessionStats as SessionStatsType } from "@/lib/actions/magazin/caisse"
+import React from "react"
 
 interface MagazinCaisseClientProps {
   initialStats: SessionStatsType

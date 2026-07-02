@@ -1,5 +1,6 @@
 import { getAlerts, type AlertsData } from "@/lib/actions/lm3allem/alerts"
 import { AlertsClient } from "@/components/lm3allem/alerts/AlertsClient"
+import React from "react"
 
 const EMPTY: AlertsData = { lowStockItems: [], openCaisseSessions: [], openRentals: [], unpaidCredits: [] }
 

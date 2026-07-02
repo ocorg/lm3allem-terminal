@@ -14,6 +14,7 @@ import { createRequest, updateRequestStatus } from "@/lib/actions/magazin/reques
 import { formatDate } from "@/lib/utils/date"
 import { useTranslations } from "next-intl"
 import type { ProductRequestForList } from "@/lib/actions/magazin/requests"
+import React from "react"
 
 type LookupItem = { id: string; label_fr: string; label_ar: string }
 
@@ -79,7 +80,7 @@ export function RequestList({ requests, categories, role }: RequestListProps) {
     },
     {
       key: "categoryId", label: "Catégorie",
-      render: (v) => <span style={{ fontSize: 12, color: "var(--text-muted)" }}>{v ? (lookupMap[v as string]?.label_fr ?? "—") : "—"}</span>,
+      render: (v) => <span style={{ fontSize: 12, color: "var(--text-muted)" }}>{v ? (lookupMap[v as string]?.label_fr ?? "-") : "-"}</span>,
     },
     {
       key: "requestCount", label: t("count"), align: "center", sortable: true,

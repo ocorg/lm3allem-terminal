@@ -1,6 +1,7 @@
 import { withModule }              from "@/lib/auth/session"
 import { getRequests, getRequestCategories } from "@/lib/actions/magazin/requests"
 import { RequestList }             from "@/components/magazin/requests/RequestList"
+import React from "react"
 
 export default async function RequestsPage({
   params,

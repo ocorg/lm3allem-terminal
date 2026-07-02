@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth/auth"
 import { checkMaintenanceMode } from "@/lib/utils/maintenance"
 import PortalShell from "@/components/layout/PortalShell"
 import MaintenanceScreen from "@/components/ui/MaintenanceScreen"
+import React from "react"
 
 export default async function Lm3allemLayout({
   children,
@@ -21,7 +22,7 @@ export default async function Lm3allemLayout({
 
   const { role, name, modulePermissions, portalAccess } = session.user
 
-  // Staff never accesses Lm3allem — hard role guard
+  // Staff never accesses Lm3allem - hard role guard
   if (role === "staff") {
     redirect(`/${locale}/select-portal`)
   }

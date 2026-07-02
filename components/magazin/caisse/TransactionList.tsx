@@ -1,6 +1,7 @@
 import { formatMAD }      from "@/lib/utils/currency"
 import { formatRelative } from "@/lib/utils/date"
 import type { TransactionEntry } from "@/lib/actions/magazin/caisse"
+import React from "react"
 
 export function TransactionList({ transactions }: { transactions: TransactionEntry[] }) {
   if (transactions.length === 0) {

@@ -13,6 +13,7 @@ import {
   toggleLookupValueActive, reorderLookupValues,
   type SerializedCategory, type SerializedLookupValue,
 } from "@/lib/actions/lm3allem/options"
+import React from "react"
 
 interface Props { categories: SerializedCategory[] }
 
@@ -101,7 +102,7 @@ export function OptionsClient({ categories }: Props) {
   return (
     <div style={{ padding: 24, display: "grid", gridTemplateColumns: "280px 1fr", gap: 24, alignItems: "start" }}>
 
-      {/* Title — spans both columns */}
+      {/* Title - spans both columns */}
       <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.02em", margin: 0, gridColumn: "1 / -1" }}>
         {t("title")}
       </h1>

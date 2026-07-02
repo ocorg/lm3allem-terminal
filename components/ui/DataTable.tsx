@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl"
 import { Skeleton } from "./Skeleton"
 import { SearchBar } from "./SearchBar"
 import { Button } from "./Button"
+import React from "react"
 
 export interface Column<T> {
   key:       keyof T | string

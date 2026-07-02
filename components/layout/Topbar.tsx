@@ -8,6 +8,7 @@ import NotificationBell        from "@/components/layout/NotificationBell"
 import Link                    from "next/link"
 import { signOutUser }         from "@/lib/auth/actions"
 import type { Portal, Role }   from "@prisma/client"
+import React from "react"
 
 const PORTAL_LABELS: Record<Portal, string> = {
   magazin:  "MAGAZIN",
@@ -37,6 +38,7 @@ export default function Topbar({
   const [isPending, startTransition] = useTransition()
   const [menuOpen, setMenuOpen]      = useState(false)
   const [theme, setTheme]            = useState<"dark" | "light">(() => {
+    if (typeof document === "undefined") return "dark"
     const current = document.documentElement.dataset.theme
     return (current === "light" || current === "dark") ? current : "dark"
   })

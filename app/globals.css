@@ -1,4 +1,4 @@
-/* Google Fonts — must be first, before Tailwind directives */
+/* Google Fonts - must be first, before Tailwind directives */
 @import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Mono:ital,wght@0,400;0,500;1,400&display=swap');
 
 @tailwind base;
@@ -17,7 +17,7 @@
   --font-mono:    'DM Mono', monospace;
 }
 
-/* ── Dark mode — default ──────────────────────────── */
+/* ── Dark mode - default ──────────────────────────── */
 :root,
 .dark,
 [data-theme="dark"] {

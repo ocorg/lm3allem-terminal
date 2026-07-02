@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useState, useEffect }  from "react"
 import { useTranslations }      from "next-intl"
@@ -18,8 +18,9 @@ import {
   TrendingUp, Store, Shirt, Calendar, Users, Wallet,
 } from "lucide-react"
 import type { DashboardStats } from "@/lib/actions/lm3allem/dashboard"
+import React from "react"
 
-// Recharts can't read CSS vars — hardcode brand colors
+// Recharts can't read CSS vars - hardcode brand colors
 const C_MAGAZIN  = "#D4941F"
 const C_COSTUMES = "#2EBD6E"
 
@@ -68,7 +69,10 @@ export function DashboardClient({ stats }: { stats: DashboardStats }) {
   const shouldReduce  = useReducedMotion()
   const [mounted, setMounted] = useState(false)
 
-  useEffect(() => { setMounted(true) }, [])
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setMounted(true)
+  }, [])
 
   const pieData = [
     { name: "Magazin",  value: Math.round(Number(stats.magazinRevenue)) },
@@ -79,7 +83,7 @@ export function DashboardClient({ stats }: { stats: DashboardStats }) {
   return (
     <div style={{ padding: 24, display: "flex", flexDirection: "column", gap: 32 }}>
 
-      {/* ── KPI Grid — staggered StatCards ──────────────── */}
+      {/* ── KPI Grid - staggered StatCards ──────────────── */}
       <motion.div
         variants={shouldReduce ? {} : containerVariants}
         initial={shouldReduce ? false : "hidden"}
@@ -109,7 +113,7 @@ export function DashboardClient({ stats }: { stats: DashboardStats }) {
         ))}
       </motion.div>
 
-      {/* ── Charts — fade in after stat cards ───────────── */}
+      {/* ── Charts - fade in after stat cards ───────────── */}
       <motion.div
         variants={shouldReduce ? {} : chartVariants}
         initial={shouldReduce ? false : "hidden"}

@@ -2,6 +2,7 @@ import { withModule }         from "@/lib/auth/session"
 import { getItemsForPOS }     from "@/lib/actions/costumes/pos"
 import { CaisseGuard }        from "@/components/caisse/CaisseGuard"
 import { CostumesPOSClient }  from "@/components/costumes/pos/CostumesPOSClient"
+import React from "react"
 
 export default async function CostumesPOSPage({
   params,

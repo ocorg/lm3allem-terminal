@@ -6,6 +6,7 @@ import { Select }    from "@/components/ui/Select"
 import { formatMAD } from "@/lib/utils/currency"
 import { useTranslations } from "next-intl"
 import type { ProductForPOS as ProductForCatalogue } from "@/lib/actions/magazin/pos"
+import React from "react"
 
 type LookupItem    = { id: string; label_fr: string; label_ar: string }
 type LookupMapItem = { label_fr: string; label_ar: string }

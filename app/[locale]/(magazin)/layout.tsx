@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth/auth"
 import { checkMaintenanceMode } from "@/lib/utils/maintenance"
 import PortalShell from "@/components/layout/PortalShell"
 import MaintenanceScreen from "@/components/ui/MaintenanceScreen"
+import React from "react"
 
 export default async function MagazinLayout({
   children,
@@ -26,7 +27,7 @@ export default async function MagazinLayout({
     redirect(`/${locale}/select-portal`)
   }
 
-  // Maintenance gate — superadmin always bypasses
+  // Maintenance gate - superadmin always bypasses
   if (role !== "superadmin") {
     const maintenance = await checkMaintenanceMode()
     if (maintenance.isActive) {

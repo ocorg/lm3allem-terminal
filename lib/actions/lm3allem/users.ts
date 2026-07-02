@@ -101,13 +101,13 @@ export async function createUser(
     diff: { name: input.name, role: input.role },
   })
 
-  // Email — PIN delivery to admin (non-blocking)
+  // Email - PIN delivery to admin (non-blocking)
   try {
     const adminEmail = process.env.ADMIN_EMAIL
     if (adminEmail) {
       await sendMail(
         adminEmail,
-        `Nouveau compte — ${input.name}`,
+        `Nouveau compte - ${input.name}`,
         pinDeliveryHtml({ userName: input.name, pin: plainPin, action: "created" })
       )
     }
@@ -209,7 +209,7 @@ export async function resetUserPin(
     action: "user.pin_reset",
   })
 
-  // Email — PIN reset notification to admin (non-blocking)
+  // Email - PIN reset notification to admin (non-blocking)
   try {
     const adminEmail = process.env.ADMIN_EMAIL
     if (adminEmail) {
@@ -220,7 +220,7 @@ export async function resetUserPin(
       if (userRecord) {
         await sendMail(
           adminEmail,
-          `PIN réinitialisé — ${userRecord.name}`,
+          `PIN réinitialisé - ${userRecord.name}`,
           pinDeliveryHtml({ userName: userRecord.name, pin: plainPin, action: "reset" })
         )
       }

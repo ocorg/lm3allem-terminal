@@ -14,6 +14,7 @@ const PORTAL_VARIANT: Record<string, "primary" | "info" | "success"> = {
 }
 import { formatDate } from "@/lib/utils/date"
 import type { LogsResult } from "@/lib/actions/lm3allem/logs"
+import React from "react"
 
 const PORTALS     = ["magazin", "costumes", "lm3allem"]
 const ENTITY_TYPES = ["sale", "rental", "expense", "user", "lookup_value", "lookup_category", "settings", "credit"]
@@ -70,7 +71,7 @@ export function LogsClient({ result, actors, currentFilters }: Props) {
           onChange={(e) => push({ entityType: e.target.value || undefined })}
           style={{ minWidth: "150px" }}
           options={[
-            { value: "", label: "—" },
+            { value: "", label: "-" },
             ...ENTITY_TYPES.map((e) => ({ value: e, label: e })),
           ]}
         />

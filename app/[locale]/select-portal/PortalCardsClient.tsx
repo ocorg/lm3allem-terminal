@@ -6,6 +6,7 @@ import { motion, useReducedMotion } from "framer-motion"
 import { Store, Shirt, LayoutDashboard } from "lucide-react"
 import type { LucideIcon }         from "lucide-react"
 import type { Portal }             from "@prisma/client"
+import React from "react"
 
 const PORTAL_ICONS: Record<Portal, LucideIcon> = {
   magazin:  Store,

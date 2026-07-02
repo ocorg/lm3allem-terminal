@@ -1,6 +1,7 @@
 import { withModule }  from "@/lib/auth/session"
 import { getClients }  from "@/lib/actions/costumes/clients"
 import { ClientsClient } from "@/components/costumes/clients/ClientsClient"
+import React from "react"
 
 export default async function ClientsPage({
   params,

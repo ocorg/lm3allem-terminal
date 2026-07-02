@@ -6,6 +6,7 @@ import { Input }     from "@/components/ui/Input"
 import { Button }    from "@/components/ui/Button"
 import { formatMAD } from "@/lib/utils/currency"
 import type { CartItem } from "./POSClient"
+import React from "react"
 
 const PAYMENT_METHODS = [
   { value: "cash",   label: "Espèces"  },

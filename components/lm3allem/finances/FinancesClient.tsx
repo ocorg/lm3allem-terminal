@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useState, useTransition } from "react"
 import { useTranslations } from "next-intl"
@@ -10,8 +10,9 @@ import { Button } from "@/components/ui/Button"
 import { StatCard } from "@/components/ui/StatCard"
 import { formatMAD } from "@/lib/utils/currency"
 import { getFinancesData, type FinancesData, type DateRange } from "@/lib/actions/lm3allem/finances"
+import React from "react"
 
-// Recharts renders inside SVG — CSS variables don't resolve there.
+// Recharts renders inside SVG - CSS variables don't resolve there.
 // These values mirror the CSS tokens in globals.css.
 const C_PRIMARY = "#D4941F"   // --primary
 const C_INFO    = "#4A90D9"   // --info
@@ -68,7 +69,7 @@ export function FinancesClient({ initialData }: { initialData: FinancesData }) {
             onClick={() => applyPreset(p.key, p.getRange())}
             loading={isPending && activePreset === p.key}
           >
-            {t(p.key as any)}
+            {t(p.key as Parameters<typeof t>[0])}
           </Button>
         ))}
       </div>
@@ -116,7 +117,7 @@ export function FinancesClient({ initialData }: { initialData: FinancesData }) {
               <tr style={{ background: "var(--surface-2)" }}>
                 {["month","magazinSales","costumesSales","rentalRevenue","expenses","net"].map((k) => (
                   <th key={k} style={{ padding: "12px 16px", textAlign: "start", fontWeight: 600, fontSize: 12, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.04em", borderBottom: "1px solid var(--border)" }}>
-                    {k === "month" ? t("monthColumn") : t(k as any)}
+                    {k === "month" ? t("monthColumn") : t(k as Parameters<typeof t>[0])}
                   </th>
                 ))}
               </tr>

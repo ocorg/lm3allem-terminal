@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { usePathname } from "next/navigation"
 import Link            from "next/link"
@@ -14,6 +14,7 @@ import {
 import type { NavItem } from "@/lib/utils/nav"
 import type { Portal } from "@prisma/client"
 import { useBreakpoint } from "@/hooks/useBreakpoint"
+import React from "react"
 
 const ICON_MAP: Record<string, LucideIcon> = {
   pos:              ShoppingCart,
@@ -77,6 +78,7 @@ export default function Sidebar({
 
   useEffect(() => {
     if (isTablet) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setCollapsed(true)
     } else {
       const stored = localStorage.getItem(STORAGE_KEY)
@@ -86,6 +88,7 @@ export default function Sidebar({
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (isTablet) setCollapsed(true)
   }, [isTablet])
 
@@ -239,7 +242,7 @@ export default function Sidebar({
         })}
       </motion.nav>
 
-      {/* User identity chip — above collapse toggle */}
+      {/* User identity chip - above collapse toggle */}
       {!isMobile && (
         <div style={{
           borderTop:  "1px solid var(--border)",
@@ -270,7 +273,7 @@ export default function Sidebar({
             {userInitials}
           </div>
 
-          {/* Name — hidden when collapsed */}
+          {/* Name - hidden when collapsed */}
           <span style={{
             opacity:      isCollapsed ? 0 : 1,
             maxWidth:     isCollapsed ? 0 : 180,
@@ -287,7 +290,7 @@ export default function Sidebar({
         </div>
       )}
 
-      {/* Collapse toggle — desktop only */}
+      {/* Collapse toggle - desktop only */}
       {!isMobile && (
         <div
           style={{

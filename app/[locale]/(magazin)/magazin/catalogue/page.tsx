@@ -1,6 +1,7 @@
 import { withModule }        from "@/lib/auth/session"
 import { getCatalogueProducts } from "@/lib/actions/magazin/catalogue"
 import { CatalogueGrid }     from "@/components/magazin/catalogue/CatalogueGrid"
+import React from "react"
 
 export default async function CataloguePage({
   params,

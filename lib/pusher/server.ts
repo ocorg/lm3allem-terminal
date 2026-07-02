@@ -16,7 +16,7 @@ export function getPusherServer(): Pusher {
   return pusher
 }
 
-// Typed channel/event constants — prevents typos across the app
+// Typed channel/event constants - prevents typos across the app
 export const PUSHER_CHANNELS = {
   RENTALS:    "private-rentals",
   ALERTS:     "private-alerts",

@@ -1,6 +1,7 @@
 import { withModule }                          from "@/lib/auth/session"
 import { getCostumeItems, getInventoryLookups } from "@/lib/actions/costumes/inventory"
 import { CostumesInventoryClient }             from "@/components/costumes/inventory/CostumesInventoryClient"
+import React from "react"
 
 export default async function CostumesInventoryPage({
   params,

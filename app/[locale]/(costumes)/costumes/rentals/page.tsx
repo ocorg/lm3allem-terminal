@@ -4,6 +4,7 @@ import { getRentalItems }                    from "@/lib/actions/costumes/rental
 import { getClients }                        from "@/lib/actions/costumes/clients"
 import { CaisseGuard }                       from "@/components/caisse/CaisseGuard"
 import { RentalsClient }                     from "@/components/costumes/rentals/RentalsClient"
+import React from "react"
 
 export default async function RentalsPage({
   params,

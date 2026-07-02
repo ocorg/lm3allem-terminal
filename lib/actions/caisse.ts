@@ -67,7 +67,7 @@ export async function openCaisseSession(
   try {
     await createNotification({
       title:  "Caisse ouverte",
-      body:   `${portal} — Ouverture: ${openingAmount} MAD`,
+      body:   `${portal} - Ouverture: ${openingAmount} MAD`,
       type:   "caisse_open",
       portal,
     })
@@ -82,14 +82,14 @@ export async function openCaisseSession(
 //
 //   magazin:
 //     openingAmount
-//     + SUM(sales.amountPaid)          — cash actually received
-//     + SUM(manualEntries.amount)      — positive = in, negative = out
+//     + SUM(sales.amountPaid)          - cash actually received
+//     + SUM(manualEntries.amount)      - positive = in, negative = out
 //
 //   costumes:
 //     openingAmount
 //     + SUM(costumeSales.totalAmount)
 //     + SUM(rentalPayments.amount) where type ≠ deposit_returned
-//     − SUM(rentalPayments.amount) where type = deposit_returned
+//     - SUM(rentalPayments.amount) where type = deposit_returned
 //     + SUM(manualEntries.amount)
 //
 //   lm3allem (no POS):
@@ -149,7 +149,7 @@ export async function closeCaisseSession(
   try {
     await createNotification({
       title:  "Caisse fermée",
-      body:   `${session.portal} — Clôture: ${closingAmount} MAD`,
+      body:   `${session.portal} - Clôture: ${closingAmount} MAD`,
       type:   "caisse_close",
       portal: session.portal,
     })

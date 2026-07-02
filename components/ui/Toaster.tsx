@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from "framer-motion"
 import { useParams } from "next/navigation"
 import { CheckCircle, XCircle, AlertCircle, Info, X } from "lucide-react"
 import { useToast, dismiss, type Toast, type ToastVariant } from "@/hooks/useToast"
+import React from "react"
 
 const config: Record<ToastVariant, { color: string; Icon: React.ElementType }> = {
   success: { color: "var(--success)", Icon: CheckCircle  },

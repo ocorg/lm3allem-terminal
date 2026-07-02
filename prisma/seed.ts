@@ -8,7 +8,7 @@ import ws from "ws"
 neonConfig.webSocketConstructor = ws
 
 const connectionString = process.env.DATABASE_URL_UNPOOLED ?? process.env.DATABASE_URL
-if (!connectionString) throw new Error("[seed] DATABASE_URL is not set — check your .env file.")
+if (!connectionString) throw new Error("[seed] DATABASE_URL is not set - check your .env file.")
 const adapter = new PrismaNeon({ connectionString })
 const prisma  = new PrismaClient({ adapter })
 
@@ -163,7 +163,7 @@ async function main() {
       })
       console.log(`  ✓  ${cat.slug} (${cat.values.length} values)`)
     } else {
-      console.log(`  –  ${cat.slug} already seeded, skipped`)
+      console.log(`  -  ${cat.slug} already seeded, skipped`)
     }
   }
 

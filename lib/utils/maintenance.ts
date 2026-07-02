@@ -25,7 +25,7 @@ export async function checkMaintenanceMode(): Promise<MaintenanceStatus> {
       message_ar: settings?.maintenanceMessage_ar ?? FALLBACK_AR,
     }
   } catch {
-    // DB unreachable — fail open (never lock everyone out)
+    // DB unreachable - fail open (never lock everyone out)
     return {
       isActive: false,
       message_fr: FALLBACK_FR,

@@ -11,6 +11,7 @@ import { PaymentModal } from "./PaymentModal"
 import { toast } from "@/hooks/useToast"
 import { createSale } from "@/lib/actions/magazin/pos"
 import type { ProductForPOS, SaleItemInput } from "@/lib/actions/magazin/pos"
+import React from "react"
 
 type LookupItem    = { id: string; label_fr: string; label_ar: string }
 type LookupMapItem = { label_fr: string; label_ar: string }
@@ -51,7 +52,7 @@ export function POSClient({ products, categories, lookupById, locale, role }: PO
     const parts: string[] = []
     if (v.sizeId  && lookupById[v.sizeId])  parts.push(lookupById[v.sizeId].label_fr)
     if (v.colorId && lookupById[v.colorId]) parts.push(lookupById[v.colorId].label_fr)
-    return parts.join(" — ") || "Standard"
+    return parts.join(" - ") || "Standard"
   }
 
   const addVariantToCart = (product: ProductForPOS, variantId: string) => {

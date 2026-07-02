@@ -6,6 +6,7 @@ import { Input }  from "@/components/ui/Input"
 import { Button } from "@/components/ui/Button"
 import { toast }  from "@/hooks/useToast"
 import { addManualEntry } from "@/lib/actions/magazin/caisse"
+import React from "react"
 
 interface ManualEntryModalProps {
   isOpen:    boolean

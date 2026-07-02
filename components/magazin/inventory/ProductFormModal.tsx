@@ -11,6 +11,7 @@ import { createProduct, updateProduct } from "@/lib/actions/magazin/inventory"
 import { ImageUploader }        from "./ImageUploader"
 import { VariantManager }       from "./VariantManager"
 import type { ProductForInventory, VariantInput } from "@/lib/actions/magazin/inventory"
+import React from "react"
 
 type LookupItem    = { id: string; label_fr: string; label_ar: string }
 type LookupMapItem = { label_fr: string; label_ar: string }

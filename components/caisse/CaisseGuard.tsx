@@ -3,6 +3,7 @@ import type { Portal, Role } from "@prisma/client"
 import { getActiveSession } from "@/lib/actions/caisse"
 import { CaisseProvider }   from "./CaisseProvider"
 import { CaisseClosedView } from "./CaisseClosedView"
+import React from "react"
 
 interface CaisseGuardProps {
   portal:   Portal
@@ -12,7 +13,7 @@ interface CaisseGuardProps {
 }
 
 /**
- * Server component — reads the active caisse session for the given portal.
+ * Server component - reads the active caisse session for the given portal.
  *
  * • No session + admin/superadmin → renders CaisseClosedView with trigger button.
  * • No session + staff           → renders CaisseClosedView with info message only.

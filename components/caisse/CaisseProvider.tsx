@@ -2,6 +2,7 @@
 
 import { createContext, useContext, type ReactNode } from "react"
 import type { SerializedCaisseSession } from "@/lib/actions/caisse"
+import React from "react"
 
 interface CaisseContextValue {
   session: SerializedCaisseSession

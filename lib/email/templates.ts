@@ -22,7 +22,7 @@ function base(title: string, body: string): string {
 
     <!-- Footer -->
     <div style="padding:14px 28px;background:#F7F7FA;border-top:1px solid #EBEBEB;">
-      <p style="margin:0;color:#AAAAAA;font-size:11px;">Lm3allem Terminal — Système interne. Ne pas répondre à cet email.</p>
+      <p style="margin:0;color:#AAAAAA;font-size:11px;">Lm3allem Terminal - Système interne. Ne pas répondre à cet email.</p>
     </div>
 
   </div>
@@ -122,5 +122,5 @@ export function lowStockDigestHtml(d: LowStockDigestData): string {
       </thead>
       <tbody>${tableRows}</tbody>
     </table>`
-  return base("Digest — Stock bas", body)
+  return base("Digest - Stock bas", body)
 }

@@ -3,6 +3,7 @@ import { getActiveSession }    from "@/lib/actions/caisse"
 import { getSessionStats }     from "@/lib/actions/magazin/caisse"
 import { CaisseGuard }         from "@/components/caisse/CaisseGuard"
 import { MagazinCaisseClient } from "@/components/magazin/caisse/MagazinCaisseClient"
+import React from "react"
 
 export default async function CaissePage({
   params,
@@ -19,7 +20,7 @@ export default async function CaissePage({
   )
 }
 
-// Inner server component — runs only when CaisseGuard confirms session is active
+// Inner server component - runs only when CaisseGuard confirms session is active
 async function CaissePageContent({ role }: { role: string }) {
   const session = await getActiveSession("magazin")
   if (!session) return null   // guarded upstream, shouldn't reach here

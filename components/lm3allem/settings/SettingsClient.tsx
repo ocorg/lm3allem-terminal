@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/Button"
 import { Input } from "@/components/ui/Input"
 import { toast } from "@/hooks/useToast"
 import { updateSystemSettings, type SerializedSettings } from "@/lib/actions/lm3allem/settings"
+import React from "react"
 
 const MAG_MODULES = ["pos", "inventory", "caisse", "credits", "requests"]
 const COS_MODULES = ["pos", "inventory", "clients", "rentals", "caisse"]
@@ -47,7 +48,7 @@ export function SettingsClient({ settings, role }: Props) {
         {t("title")}
       </h1>
 
-      {/* Maintenance — superadmin only */}
+      {/* Maintenance - superadmin only */}
       {role === "superadmin" && <section style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "8px", padding: 20, display: "flex", flexDirection: "column", gap: 16 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div>

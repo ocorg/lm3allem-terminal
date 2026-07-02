@@ -1,6 +1,7 @@
 import { withModule }   from "@/lib/auth/session"
 import { getCredits }   from "@/lib/actions/magazin/credits"
 import { CreditList }   from "@/components/magazin/credits/CreditList"
+import React from "react"
 
 export default async function CreditsPage({
   params,

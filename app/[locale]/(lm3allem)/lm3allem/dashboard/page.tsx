@@ -1,5 +1,6 @@
 import { getDashboardStats, type DashboardStats } from "@/lib/actions/lm3allem/dashboard"
 import { DashboardClient } from "@/components/lm3allem/dashboard/DashboardClient"
+import React from "react"
 
 const EMPTY_STATS: DashboardStats = {
   totalRevenue:       "0",

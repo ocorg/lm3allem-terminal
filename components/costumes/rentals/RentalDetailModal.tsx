@@ -15,6 +15,7 @@ import { formatMAD }           from "@/lib/utils/currency"
 import { getRentalById, advanceRentalStatus, addRentalPayment } from "@/lib/actions/costumes/rentals"
 import type { RentalDetail }   from "@/lib/actions/costumes/rentals"
 import type { RentalStatus, TransactionType, PaymentMethod } from "@prisma/client"
+import React from "react"
 
 // ── Config ─────────────────────────────────────────────────────
 const STATUS_ORDER: RentalStatus[] = ["booked", "in_preparation", "ready_for_pickup", "picked_up", "returned", "cleaning", "available"]

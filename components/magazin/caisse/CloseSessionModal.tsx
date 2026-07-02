@@ -7,6 +7,7 @@ import { Button }        from "@/components/ui/Button"
 import { toast }         from "@/hooks/useToast"
 import { closeCaisseSession } from "@/lib/actions/caisse"
 import { formatMAD }     from "@/lib/utils/currency"
+import React from "react"
 
 interface CloseSessionModalProps {
   isOpen:          boolean

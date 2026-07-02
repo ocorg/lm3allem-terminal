@@ -14,6 +14,7 @@ import { formatMAD }    from "@/lib/utils/currency"
 import { formatDate }   from "@/lib/utils/date"
 import { useTranslations } from "next-intl"
 import type { CreditForList } from "@/lib/actions/magazin/credits"
+import React from "react"
 
 const STATUS_CONFIG_KEYS = {
   open:    { labelKey: "statusOpen",     variant: "danger"  as const },
@@ -58,6 +59,7 @@ export function CreditList({ credits }: CreditListProps) {
     if (amount > parseFloat(selected.balance))                  { setPayError("Montant supérieur au solde"); return }
     setLoading(true)
     try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await addCreditPayment(selected.id, amount, payMethod as any)
       toast("Paiement enregistré", "success")
       setSelected(null)
@@ -89,6 +91,7 @@ export function CreditList({ credits }: CreditListProps) {
       key: "status", label: tCom("status"), align: "center",
       render: (v) => {
         const cfg = STATUS_CONFIG_KEYS[v as keyof typeof STATUS_CONFIG_KEYS]
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         return <Badge variant={cfg?.variant ?? "default"} dot>{cfg ? t(cfg.labelKey as any) : String(v)}</Badge>
       },
     },

@@ -19,7 +19,7 @@ export default function LocaleHtmlAttributes({
     html.setAttribute("dir", dir)
 
     // Prefer the theme the user manually picked (saved in localStorage)
-    // over the server-side session value — this prevents the theme from
+    // over the server-side session value - this prevents the theme from
     // resetting whenever the language is switched.
     let activeTheme = theme
     try {

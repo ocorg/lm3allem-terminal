@@ -28,6 +28,6 @@ export async function createNotification(input: NotificationInput): Promise<void
       }
     )
   } catch {
-    // Pusher failure is non-critical — notification already saved to DB
+    // Pusher failure is non-critical - notification already saved to DB
   }
 }

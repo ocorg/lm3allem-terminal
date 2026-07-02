@@ -204,7 +204,7 @@ export async function createSale(
     for (const v of lowVariants) {
       await createNotification({
         title:  "Stock bas",
-        body:   `${v.product.name_fr} — Stock restant: ${v.stock}`,
+        body:   `${v.product.name_fr} - Stock restant: ${v.stock}`,
         type:   "low_stock",
         portal: "magazin",
       })

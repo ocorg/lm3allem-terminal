@@ -4,6 +4,7 @@ import { useState, useMemo } from "react"
 import { SearchBar } from "@/components/ui/SearchBar"
 import { formatMAD } from "@/lib/utils/currency"
 import type { ProductForPOS } from "@/lib/actions/magazin/pos"
+import React from "react"
 
 type LookupItem = { id: string; label_fr: string; label_ar: string }
 

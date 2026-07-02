@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl"
 import { OpenCaisseModal } from "./OpenCaisseModal"
 import { Button } from "@/components/ui/Button"
 import type { Portal } from "@prisma/client"
+import React from "react"
 
 interface CaisseClosedViewProps {
   portal: Portal
@@ -70,7 +71,7 @@ export function CaisseClosedView({ portal, locale, role }: CaisseClosedViewProps
             </p>
           </div>
 
-          {/* CTA — admin only */}
+          {/* CTA - admin only */}
           {canOpen && (
             <Button
               size="lg"

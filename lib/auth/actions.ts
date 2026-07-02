@@ -41,7 +41,7 @@ export async function authenticateWithPin(
         attemptsLeft: result.attemptsLeft,
       }
     }
-    // Re-throw — Next.js redirect errors must propagate
+    // Re-throw - Next.js redirect errors must propagate
     throw error
   }
 

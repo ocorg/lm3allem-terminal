@@ -18,7 +18,7 @@ export function formatDate(
   lang: Language = "ar"
 ): string {
   const d = toDate(date)
-  return d ? format(d, pattern, { locale: locale(lang) }) : "—"
+  return d ? format(d, pattern, { locale: locale(lang) }) : "-"
 }
 
 export function formatDateTime(
@@ -33,7 +33,7 @@ export function formatRelative(
   lang: Language = "ar"
 ): string {
   const d = toDate(date)
-  if (!d) return "—"
+  if (!d) return "-"
   return formatDistance(d, new Date(), { addSuffix: true, locale: locale(lang) })
 }
 

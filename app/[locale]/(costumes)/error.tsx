@@ -2,6 +2,7 @@
 
 import { useEffect } from "react"
 import { AlertTriangle, RefreshCw } from "lucide-react"
+import React from "react"
 
 export default function CostumesError({
   error,

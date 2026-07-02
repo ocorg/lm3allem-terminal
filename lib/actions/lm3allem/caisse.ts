@@ -64,7 +64,7 @@ export async function getAllSessions(
     prisma.caisseSession.count({ where }),
   ])
 
-  // Batch-fetch closedBy names (relation not defined in schema — use field closedById)
+  // Batch-fetch closedBy names (relation not defined in schema - use field closedById)
   const closedByIds = sessions
     .map((s) => s.closedById)
     .filter((id): id is string => id !== null)

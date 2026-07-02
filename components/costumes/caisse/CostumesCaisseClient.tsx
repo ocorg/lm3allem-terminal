@@ -10,6 +10,7 @@ import { ManualEntryModal }      from "@/components/magazin/caisse/ManualEntryMo
 import { CloseSessionModal }     from "@/components/magazin/caisse/CloseSessionModal"
 import { formatMAD }             from "@/lib/utils/currency"
 import type { CostumesSessionStats, TransactionEntry } from "@/lib/actions/costumes/caisse"
+import React from "react"
 
 interface Props {
   initialStats: CostumesSessionStats
@@ -107,7 +108,7 @@ function CostumesTransactionList({ transactions }: { transactions: TransactionEn
             <div style={{ flex: 1, minWidth: 0 }}>
               <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", margin: 0 }}>{tx.label}</p>
               <p style={{ fontSize: 11, color: "var(--text-muted)", margin: "3px 0 0" }}>
-                {TYPE_LABEL[tx.type] ?? tx.type} · {tx.actorName} · {tx.method ?? "—"}
+                {TYPE_LABEL[tx.type] ?? tx.type} · {tx.actorName} · {tx.method ?? "-"}
               </p>
             </div>
             <span style={{ fontSize: 14, fontWeight: 700, color: isNeg ? "var(--danger)" : accent, whiteSpace: "nowrap" }}>

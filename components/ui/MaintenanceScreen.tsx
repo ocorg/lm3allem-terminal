@@ -1,6 +1,7 @@
 import Link                  from "next/link"
 import { Wrench }            from "lucide-react"
 import { getTranslations }   from "next-intl/server"
+import React from "react"
 
 interface Props {
   locale:  string
@@ -77,7 +78,7 @@ export default async function MaintenanceScreen({ locale, message }: Props) {
         </p>
       </div>
 
-      {/* Login button — always accessible for superadmin */}
+      {/* Login button - always accessible for superadmin */}
       <Link href={`/${locale}`} className="maintenance-login-btn">
         {tCommon("login")}
       </Link>

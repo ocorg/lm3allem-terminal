@@ -19,6 +19,7 @@ import type { CostumeItemForRental }    from "@/lib/actions/costumes/rentals"
 import type { LookupById, LookupItem }  from "@/lib/actions/costumes/pos"
 import type { ClientForList }           from "@/lib/actions/costumes/clients"
 import type { GuaranteeType, PaymentMethod } from "@prisma/client"
+import React from "react"
 
 interface KitLine {
   costumeItemId: string
@@ -318,7 +319,7 @@ function StepKit({ data, upd, costumeItems, lookupById, locale, errors }: { data
     const parts: string[] = []
     if (item.sizeId  && lookupById[item.sizeId])  parts.push(lookupById[item.sizeId].label_fr)
     if (item.colorId && lookupById[item.colorId]) parts.push(lookupById[item.colorId].label_fr)
-    return parts.join(" — ") || item.typeLabelFr
+    return parts.join(" - ") || item.typeLabelFr
   }
 
   return (
@@ -378,7 +379,7 @@ function StepKit({ data, upd, costumeItems, lookupById, locale, errors }: { data
                   <p style={{ fontSize: 12, fontWeight: 600, color: "var(--text)", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{ki.name_fr}</p>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 4, background: "var(--surface-2)", borderRadius: 6, padding: "2px 4px" }}>
-                  <button onClick={() => setQty(ki.costumeItemId, ki.quantity - 1)} style={{ width: 20, height: 20, border: "none", background: "none", cursor: "pointer", color: "var(--text)", fontSize: 14 }}>−</button>
+                  <button onClick={() => setQty(ki.costumeItemId, ki.quantity - 1)} style={{ width: 20, height: 20, border: "none", background: "none", cursor: "pointer", color: "var(--text)", fontSize: 14 }}>-</button>
                   <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text)", minWidth: 18, textAlign: "center" }}>{ki.quantity}</span>
                   <button onClick={() => setQty(ki.costumeItemId, ki.quantity + 1)} style={{ width: 20, height: 20, border: "none", background: "none", cursor: "pointer", color: "var(--text)", fontSize: 14 }}>+</button>
                 </div>
@@ -560,14 +561,14 @@ function StepConfirm({ data, clients }: { data: WizardData; clients: ClientForLi
   const PAYMENT_OPTIONS   = PAYMENT_KEYS.map(k => ({ value: k, label: tP(k as Parameters<typeof tP>[0]) }))
 
   const client     = clients.find(c => c.id === data.clientId)
-  const clientName = data.isNewClient ? data.newClientName : (client?.name ?? "—")
+  const clientName = data.isNewClient ? data.newClientName : (client?.name ?? "-")
   const kitPieces  = data.kitItems.reduce((s, k) => s + k.quantity, 0)
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
       <ConfirmRow label={tRental("confirmClientRow")}  value={clientName} />
-      <ConfirmRow label={tRental("confirmPickup")}     value={data.scheduledPickupDate ? new Date(data.scheduledPickupDate).toLocaleDateString("fr-MA") : "—"} />
-      <ConfirmRow label={tRental("confirmReturn")}     value={data.scheduledReturnDate ? new Date(data.scheduledReturnDate).toLocaleDateString("fr-MA") : "—"} />
+      <ConfirmRow label={tRental("confirmPickup")}     value={data.scheduledPickupDate ? new Date(data.scheduledPickupDate).toLocaleDateString("fr-MA") : "-"} />
+      <ConfirmRow label={tRental("confirmReturn")}     value={data.scheduledReturnDate ? new Date(data.scheduledReturnDate).toLocaleDateString("fr-MA") : "-"} />
       <ConfirmRow label={tRental("confirmKitItems")}   value={tRental("kitSummary", { items: data.kitItems.length, pieces: kitPieces })} />
       <ConfirmRow label={tRental("confirmGuarantee")}  value={GUARANTEE_OPTIONS.find(g => g.value === data.guaranteeType)?.label ?? data.guaranteeType} />
       <ConfirmRow label={tCommon("total")}             value={formatMAD(data.totalAmount)} />

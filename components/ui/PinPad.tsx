@@ -1,6 +1,7 @@
 "use client"
 
 import { Delete, XCircle } from "lucide-react"
+import React from "react"
 
 const DIGITS = 6
 
@@ -57,7 +58,7 @@ export default function PinPad({
 
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 28, userSelect: "none" }}>
-      {/* Dot display — fixed 6 positions */}
+      {/* Dot display - fixed 6 positions */}
       <div style={{ display: "flex", gap: 14, alignItems: "center", height: 20 }}>
         {Array.from({ length: DIGITS }).map((_, i) => {
           const filled = i < pin.length

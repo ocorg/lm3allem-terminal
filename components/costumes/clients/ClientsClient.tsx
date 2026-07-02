@@ -1,6 +1,6 @@
-"use client"
+﻿"use client"
 
-import { useState, useEffect }          from "react"
+import { useState }          from "react"
 import { useRouter }                    from "next/navigation"
 import { useTranslations }              from "next-intl"
 import { PencilLine, Plus, Users }      from "lucide-react"
@@ -42,7 +42,7 @@ export function ClientsClient({ clients, role }: Props) {
       key: "address", label: tC("address"),
       render: (_, row) => (
         <span style={{ fontSize: 13, color: row.address ? "var(--text)" : "var(--text-muted)" }}>
-          {row.address ?? "—"}
+          {row.address ?? "-"}
         </span>
       ),
     },
@@ -99,6 +99,7 @@ export function ClientsClient({ clients, role }: Props) {
       )}
 
       <ClientFormModal
+        key={editing?.id ?? "new"}
         isOpen={creating || !!editing}
         mode={editing ? "edit" : "create"}
         client={editing}
@@ -122,23 +123,12 @@ function ClientFormModal({ isOpen, mode, client, onClose, onSuccess }: FormModal
   const tC     = useTranslations("costumes.clients")
   const tCom   = useTranslations("common")
 
-  const [name,    setName]    = useState("")
-  const [phone,   setPhone]   = useState("")
-  const [address, setAddress] = useState("")
-  const [notes,   setNotes]   = useState("")
+  const [name,    setName]    = useState(isEdit && client ? client.name : "")
+  const [phone,   setPhone]   = useState(isEdit && client ? client.phone : "")
+  const [address, setAddress] = useState(isEdit && client ? (client.address ?? "") : "")
+  const [notes,   setNotes]   = useState(isEdit && client ? (client.notes ?? "") : "")
   const [loading, setLoading] = useState(false)
   const [errors,  setErrors]  = useState<Record<string, string>>({})
-
-  useEffect(() => {
-    if (!isOpen) return
-    if (isEdit && client) {
-      setName(client.name); setPhone(client.phone)
-      setAddress(client.address ?? ""); setNotes(client.notes ?? "")
-    } else {
-      setName(""); setPhone(""); setAddress(""); setNotes("")
-    }
-    setErrors({})
-  }, [isOpen]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSave = async () => {
     const e: Record<string, string> = {}

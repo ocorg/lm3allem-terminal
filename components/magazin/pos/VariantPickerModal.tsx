@@ -3,6 +3,7 @@
 import { Modal }     from "@/components/ui/Modal"
 import { formatMAD } from "@/lib/utils/currency"
 import type { ProductForPOS } from "@/lib/actions/magazin/pos"
+import React from "react"
 
 type LookupItem    = { id: string; label_fr: string; label_ar: string }
 type LookupMapItem = { label_fr: string; label_ar: string }
@@ -30,7 +31,7 @@ export function VariantPickerModal({
     const parts: string[] = []
     if (v.sizeId  && lookupById[v.sizeId])  parts.push(locale === "ar" ? lookupById[v.sizeId].label_ar  : lookupById[v.sizeId].label_fr)
     if (v.colorId && lookupById[v.colorId]) parts.push(locale === "ar" ? lookupById[v.colorId].label_ar : lookupById[v.colorId].label_fr)
-    return parts.join(" — ") || "Standard"
+    return parts.join(" - ") || "Standard"
   }
 
   return (

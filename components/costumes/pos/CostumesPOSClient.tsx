@@ -14,6 +14,7 @@ import { formatMAD }          from "@/lib/utils/currency"
 import { createCostumeSale }  from "@/lib/actions/costumes/pos"
 import type { CostumeItemForPOS, LookupById, LookupItem } from "@/lib/actions/costumes/pos"
 import type { PaymentMethod }                              from "@prisma/client"
+import React from "react"
 
 // ── Types ──────────────────────────────────────────────────────
 interface CartEntry {
@@ -60,7 +61,7 @@ export function CostumesPOSClient({ items, costumeTypes, lookupById, locale }: P
     const parts: string[] = []
     if (item.sizeId  && lookupById[item.sizeId])  parts.push(lookupById[item.sizeId].label_fr)
     if (item.colorId && lookupById[item.colorId]) parts.push(lookupById[item.colorId].label_fr)
-    return parts.join(" — ") || item.typeLabelFr
+    return parts.join(" - ") || item.typeLabelFr
   }
 
   const filtered = useMemo(() => items.filter(i => {
@@ -261,7 +262,7 @@ export function CostumesPOSClient({ items, costumeTypes, lookupById, locale }: P
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 4, background: "var(--surface-2)", borderRadius: 8, padding: "2px 6px" }}>
-                    <button onClick={() => updateQty(entry.costumeItemId, entry.quantity - 1)} style={{ width: 22, height: 22, border: "none", background: "none", cursor: "pointer", color: "var(--text)", fontSize: 16 }}>−</button>
+                    <button onClick={() => updateQty(entry.costumeItemId, entry.quantity - 1)} style={{ width: 22, height: 22, border: "none", background: "none", cursor: "pointer", color: "var(--text)", fontSize: 16 }}>-</button>
                     <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", minWidth: 20, textAlign: "center" }}>{entry.quantity}</span>
                     <button onClick={() => updateQty(entry.costumeItemId, entry.quantity + 1)} style={{ width: 22, height: 22, border: "none", background: "none", cursor: "pointer", color: "var(--text)", fontSize: 16 }}>+</button>
                   </div>

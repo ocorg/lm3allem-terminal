@@ -1,5 +1,6 @@
 import { getFinancesData } from "@/lib/actions/lm3allem/finances"
 import { FinancesClient } from "@/components/lm3allem/finances/FinancesClient"
+import React from "react"
 
 function currentMonthRange() {
   const now = new Date()

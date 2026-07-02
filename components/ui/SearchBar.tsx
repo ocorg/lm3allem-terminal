@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react"
 import { useTranslations }             from "next-intl"
 import { Search, X }                   from "lucide-react"
+import React from "react"
 
 interface SearchBarProps {
   value:        string

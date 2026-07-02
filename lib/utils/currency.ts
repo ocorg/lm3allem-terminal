@@ -4,7 +4,7 @@
  */
 export function formatMAD(amount: number | string | { toString(): string }): string {
   const num = parseFloat(amount.toString())
-  if (isNaN(num)) return "— MAD"
+  if (isNaN(num)) return "- MAD"
 
   return new Intl.NumberFormat("fr-MA", {
     style:                 "currency",

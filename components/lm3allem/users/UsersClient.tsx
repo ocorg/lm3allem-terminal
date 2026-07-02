@@ -14,6 +14,7 @@ import {
   createUser, updateUser, toggleUserActive, resetUserPin,
   type SerializedUser, type CreateUserInput,
 } from "@/lib/actions/lm3allem/users"
+import React from "react"
 
 const ALL_PORTALS  = ["magazin", "costumes", "lm3allem"]
 const MAG_MODULES  = ["pos", "inventory", "caisse", "credits", "requests"]

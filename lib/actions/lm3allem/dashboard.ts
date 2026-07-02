@@ -93,17 +93,17 @@ export async function getDashboardStats(): Promise<DashboardStats> {
       select: { id: true, name_fr: true, stock: true },
       take:   20,
     }),
-    // 7-day trend — magazin sales
+    // 7-day trend - magazin sales
     prisma.sale.findMany({
       where:  { createdAt: { gte: sevenDaysAgo } },
       select: { totalAmount: true, createdAt: true },
     }),
-    // 7-day trend — costume sales
+    // 7-day trend - costume sales
     prisma.costumeSale.findMany({
       where:  { createdAt: { gte: sevenDaysAgo } },
       select: { totalAmount: true, createdAt: true },
     }),
-    // 7-day trend — rental payments
+    // 7-day trend - rental payments
     prisma.rentalPayment.findMany({
       where:  { createdAt: { gte: sevenDaysAgo }, type: { not: "deposit_returned" } },
       select: { amount: true, createdAt: true },
@@ -163,7 +163,7 @@ export async function getDashboardStats(): Promise<DashboardStats> {
       entityType: a.entityType,
       entityId:   a.entityId,
       action:     a.action,
-      actorName:  a.actor?.name ?? "—",
+      actorName:  a.actor?.name ?? "-",
       createdAt:  a.createdAt.toISOString(),
     })),
     lowStockItems: [

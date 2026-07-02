@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { useMotionValue, useSpring, useReducedMotion, motion } from "framer-motion"
 import { Skeleton }             from "./Skeleton"
 import { formatMAD }            from "@/lib/utils/currency"
+import React from "react"
 
 interface StatCardProps {
   label:        string
@@ -131,7 +132,7 @@ export function StatCard({
         </div>
       )}
 
-      {/* Bottom progress bar — replaces trend icon row */}
+      {/* Bottom progress bar - replaces trend icon row */}
       {trend && !loading && (
         <div style={{
           height:       3,

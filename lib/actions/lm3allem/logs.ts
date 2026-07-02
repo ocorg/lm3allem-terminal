@@ -69,7 +69,7 @@ export async function getLogs(filters: LogFilters = {}): Promise<LogsResult> {
       entityId: l.entityId,
       action: l.action,
       actorId: l.actorId,
-      actorName: l.actor?.name ?? "—",
+      actorName: l.actor?.name ?? "-",
       diff: l.diff,
       createdAt: l.createdAt.toISOString(),
     })),

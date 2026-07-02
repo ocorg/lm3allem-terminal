@@ -6,6 +6,7 @@ import { Button }    from "@/components/ui/Button"
 import { formatMAD } from "@/lib/utils/currency"
 import { CartItem as CartItemRow } from "./CartItem"
 import type { CartItem } from "./POSClient"
+import React from "react"
 
 interface CartPanelProps {
   items:        CartItem[]

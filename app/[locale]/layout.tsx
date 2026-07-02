@@ -8,6 +8,7 @@ import { auth } from "@/lib/auth/auth"
 import "@/app/globals.css"
 import { Toaster } from "@/components/ui/Toaster"
 import LocaleHtmlAttributes from "@/components/LocaleHtmlAttributes"
+import React from "react"
 
 export const viewport = {
   themeColor: "#C9A84C",
@@ -19,7 +20,7 @@ export const viewport = {
 
 export const metadata: Metadata = {
   title: "Lm3allem Terminal",
-  description: "منصة الإدارة الداخلية — Lm3allem Clothing",
+  description: "منصة الإدارة الداخلية - Lm3allem Clothing",
   icons: {
     icon: [
       { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },

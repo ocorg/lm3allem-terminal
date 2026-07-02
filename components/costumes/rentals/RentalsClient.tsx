@@ -14,6 +14,7 @@ import type { LookupById }             from "@/lib/actions/costumes/pos"
 import type { ClientForList }   from "@/lib/actions/costumes/clients"
 import type { LookupItem }      from "@/lib/actions/costumes/pos"
 import type { RentalStatus }    from "@prisma/client"
+import React from "react"
 
 // ── Types ──────────────────────────────────────────────────────
 interface Props {
@@ -59,7 +60,7 @@ export function RentalsClient({ rentals, costumeItems, clients, measurementCateg
   const columns: Column<RentalForList>[] = [
     {
       key: "kitReference", label: "Kit",
-      render: (_, row) => <span style={{ fontFamily: "monospace", fontSize: 12, fontWeight: 600, color: "var(--text)" }}>{row.kitReference ?? "—"}</span>,
+      render: (_, row) => <span style={{ fontFamily: "monospace", fontSize: 12, fontWeight: 600, color: "var(--text)" }}>{row.kitReference ?? "-"}</span>,
     },
     {
       key: "clientName", label: "Client", sortable: true,

@@ -1,5 +1,6 @@
 "use client"
 
+import React from "react"
 import { useState, type TextareaHTMLAttributes } from "react"
 
 interface TextareaProps extends TextareaHTMLAttributes<HTMLTextAreaElement> {

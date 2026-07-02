@@ -11,6 +11,7 @@ import {
   markAllRead,
   type SerializedNotification,
 } from "@/lib/actions/lm3allem/notifications"
+import React from "react"
 
 const TYPE_COLOR: Record<string, string> = {
   rental:       "var(--primary)",

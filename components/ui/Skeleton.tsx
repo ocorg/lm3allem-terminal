@@ -1,3 +1,5 @@
+import React from "react"
+
 type SkeletonVariant = "text" | "card" | "circle" | "row"
 
 interface SkeletonProps {
@@ -41,7 +43,7 @@ export function Skeleton({
     )
   }
 
-  // "text" — supports multi-line with last line at 70%
+  // "text" - supports multi-line with last line at 70%
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 6, width }}>
       {Array.from({ length: lines }).map((_, i) => (

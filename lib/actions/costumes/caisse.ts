@@ -101,7 +101,7 @@ export async function getCostumesSessionStats(
       amount:    x.type === "deposit_returned"
         ? `-${x.amount}`
         : x.amount.toString(),
-      label:     `Location — ${x.type}`,
+      label:     `Location - ${x.type}`,
       method:    x.method,
       actorName: x.recordedBy.name,
       createdAt: x.createdAt.toISOString(),

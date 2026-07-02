@@ -18,6 +18,7 @@ import { createCostumeItem, updateCostumeItem, addCostumeType } from "@/lib/acti
 import type { CostumeItemForInventory, CostumeItemInput } from "@/lib/actions/costumes/inventory"
 import type { LookupItem, LookupById } from "@/lib/actions/costumes/pos"
 import type { ItemSegment } from "@prisma/client"
+import React from "react"
 
 interface Props {
   items:        CostumeItemForInventory[]
@@ -64,13 +65,13 @@ export function CostumesInventoryClient({ items, segment, sizes, colors, costume
       key: "sizeId", label: tInv("size"),
       render: (_, row) => row.sizeId && lookupById[row.sizeId]
         ? <span style={{ fontSize: 13 }}>{lookupById[row.sizeId].label_fr}</span>
-        : <span style={{ color: "var(--text-muted)", fontSize: 13 }}>—</span>,
+        : <span style={{ color: "var(--text-muted)", fontSize: 13 }}>-</span>,
     },
     {
       key: "colorId", label: tInv("color"),
       render: (_, row) => row.colorId && lookupById[row.colorId]
         ? <span style={{ fontSize: 13 }}>{lookupById[row.colorId].label_fr}</span>
-        : <span style={{ color: "var(--text-muted)", fontSize: 13 }}>—</span>,
+        : <span style={{ color: "var(--text-muted)", fontSize: 13 }}>-</span>,
     },
     {
       key: "stock", label: tInv("stock"), sortable: true,
@@ -84,7 +85,7 @@ export function CostumesInventoryClient({ items, segment, sizes, colors, costume
       { key: "sellingPrice"    as const, label: tInv("colSellingPrice"), render: (_: unknown, row: CostumeItemForInventory) => formatMAD(row.sellingPrice) },
       { key: "minSellingPrice" as const, label: tInv("colMinPrice"),     render: (_: unknown, row: CostumeItemForInventory) => formatMAD(row.minSellingPrice) },
     ] : [
-      { key: "refGuidePrice"   as const, label: "Prix guide",            render: (_: unknown, row: CostumeItemForInventory) => row.refGuidePrice ? formatMAD(row.refGuidePrice) : <span style={{ color: "var(--text-muted)" }}>—</span> },
+      { key: "refGuidePrice"   as const, label: "Prix guide",            render: (_: unknown, row: CostumeItemForInventory) => row.refGuidePrice ? formatMAD(row.refGuidePrice) : <span style={{ color: "var(--text-muted)" }}>-</span> },
     ]),
     {
       key: "isActive", label: tCom("status"),
@@ -285,13 +286,13 @@ function CostumeItemFormModal({ isOpen, mode, item, defaultSegment, sizes, color
           <Select
             label={tInv("size")} value={sizeId}
             onChange={e => setSizeId(e.target.value)}
-            placeholder="— Aucune —"
+            placeholder="- Aucune -"
             options={sizes.map(s => ({ value: s.id, label: s.label_fr }))}
           />
           <Select
             label={tInv("color")} value={colorId}
             onChange={e => setColorId(e.target.value)}
-            placeholder="— Aucune —"
+            placeholder="- Aucune -"
             options={colors.map(c => ({ value: c.id, label: c.label_fr }))}
           />
         </div>
@@ -317,7 +318,7 @@ function CostumeItemFormModal({ isOpen, mode, item, defaultSegment, sizes, color
             </>
           )}
           {segment === "rental" && (
-            <Input label="Prix guide (optionnel)" type="number" value={guidePrice} onChange={e => setGuidePrice(e.target.value)} error={errors.guidePrice} hint="Référence interne pour négociation — non affiché au client" />
+            <Input label="Prix guide (optionnel)" type="number" value={guidePrice} onChange={e => setGuidePrice(e.target.value)} error={errors.guidePrice} hint="Référence interne pour négociation - non affiché au client" />
           )}
         </div>
         <div>

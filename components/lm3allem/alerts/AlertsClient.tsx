@@ -11,6 +11,7 @@ import { toast }              from "@/hooks/useToast"
 import { sendLowStockDigest } from "@/lib/actions/lm3allem/alerts"
 import type { AlertsData }    from "@/lib/actions/lm3allem/alerts"
 import type { RentalStatus }  from "@prisma/client"
+import React from "react"
 
 const PORTAL_VARIANT: Record<string, "primary" | "info" | "success"> = {
   magazin:  "primary",
@@ -167,7 +168,7 @@ export function AlertsClient({ alerts }: Props) {
                 <div>
                   <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", margin: 0 }}>{rental.clientName}</p>
                   <p style={{ fontSize: 11, color: "var(--text-muted)", margin: "2px 0 0" }}>
-                    {t("dueDate")}: {rental.scheduledReturnDate ? formatDate(rental.scheduledReturnDate) : "—"}
+                    {t("dueDate")}: {rental.scheduledReturnDate ? formatDate(rental.scheduledReturnDate) : "-"}
                   </p>
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>

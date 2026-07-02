@@ -1,6 +1,7 @@
 import { withModule }                  from "@/lib/auth/session"
 import { getInventory, getLookupValuesForInventory, getSizesAndColors } from "@/lib/actions/magazin/inventory"
 import { ProductTable }                from "@/components/magazin/inventory/ProductTable"
+import React from "react"
 
 export default async function InventoryPage({
   params,

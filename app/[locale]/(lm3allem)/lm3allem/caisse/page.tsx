@@ -1,5 +1,6 @@
 import { getAllSessions } from "@/lib/actions/lm3allem/caisse"
 import { CaisseHistoryClient } from "@/components/lm3allem/caisse/CaisseHistoryClient"
+import React from "react"
 
 type SearchParams = Promise<{
   portal?: string

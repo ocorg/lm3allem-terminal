@@ -1,5 +1,6 @@
 import { getLogs, getActors } from "@/lib/actions/lm3allem/logs"
 import { LogsClient } from "@/components/lm3allem/logs/LogsClient"
+import React from "react"
 
 type SearchParams = Promise<{
   portal?: string

@@ -14,6 +14,7 @@ import { ProductFormModal } from "./ProductFormModal"
 import { useTranslations } from "next-intl"
 import Image from "next/image"
 import type { ProductForInventory } from "@/lib/actions/magazin/inventory"
+import React from "react"
 
 type LookupItem    = { id: string; label_fr: string; label_ar: string }
 type LookupMapItem = { label_fr: string; label_ar: string }
@@ -82,7 +83,7 @@ export function ProductTable({ products, categories, sizes, colors, lookupById, 
       ),
     },
     { key: "categoryId", label: t("category"),
-      render: (val) => <span style={{ fontSize: 12, color: "var(--text-muted)" }}>{(locale === "ar" ? lookupMap[val as string]?.label_ar : lookupMap[val as string]?.label_fr) ?? "—"}</span>,
+      render: (val) => <span style={{ fontSize: 12, color: "var(--text-muted)" }}>{(locale === "ar" ? lookupMap[val as string]?.label_ar : lookupMap[val as string]?.label_fr) ?? "-"}</span>,
     },
     {
       key: "totalStock", label: t("stock"), align: "center", sortable: true,

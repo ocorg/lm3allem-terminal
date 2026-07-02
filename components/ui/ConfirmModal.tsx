@@ -3,6 +3,7 @@
 import { Modal }             from "./Modal"
 import { Button }            from "./Button"
 import { useTranslations }   from "next-intl"
+import React from "react"
 
 export interface ConfirmOptions {
   title:         string

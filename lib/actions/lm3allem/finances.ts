@@ -79,7 +79,7 @@ export async function getFinancesData(range: DateRange): Promise<FinancesData> {
   rentalPayments.forEach((r) => { ensure(monthKey(r.createdAt)).rentalRevenue += Number(r.amount) })
   expenses.forEach((e) => { ensure(monthKey(e.date)).expenses += Number(e.amount) })
 
-  // Fill all months in range (even empty ones — needed for chart continuity)
+  // Fill all months in range (even empty ones - needed for chart continuity)
   const allMonths: string[] = []
   const cursor = new Date(from.getFullYear(), from.getMonth(), 1)
   const endMonth = new Date(to.getFullYear(), to.getMonth(), 1)

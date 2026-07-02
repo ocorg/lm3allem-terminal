@@ -1,6 +1,7 @@
 import { withModule }              from "@/lib/auth/session"
 import { getCostumeCatalogue }     from "@/lib/actions/costumes/catalogue"
 import { CostumesCatalogueGrid }   from "@/components/costumes/catalogue/CostumesCatalogueGrid"
+import React from "react"
 
 export default async function CostumesCataloguePage({
   params,

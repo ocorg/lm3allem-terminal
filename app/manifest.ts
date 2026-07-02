@@ -4,7 +4,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "Lm3allem Terminal",
     short_name: "Lm3allem",
-    description: "Lm3allem Terminal — Internal Management Platform",
+    description: "Lm3allem Terminal - Internal Management Platform",
     start_url: "/",
     display: "standalone",
     background_color: "#0f0f0f",
