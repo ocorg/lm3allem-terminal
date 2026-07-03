@@ -37,7 +37,6 @@ const NAV_CONFIG: Record<Portal, NavConfigItem[]> = {
     { key: "expenses",  path: "expenses",  module: null },
     { key: "users",     path: "users",     module: null },
     { key: "logs",      path: "logs",      module: null },
-    { key: "options",   path: "options",   module: null },
     { key: "settings",  path: "settings",  module: null },
     { key: "alerts",    path: "alerts",    module: null },
   ],

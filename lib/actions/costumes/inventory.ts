@@ -13,6 +13,7 @@ export interface CostumeItemForInventory {
   name_ar:         string
   typeId:          string
   typeLabelFr:     string
+  typeLabelAr:     string
   segment:         ItemSegment
   sizeId:          string | null
   colorId:         string | null
@@ -54,6 +55,7 @@ export async function getCostumeItems(segment?: ItemSegment): Promise<CostumeIte
     name_ar:         i.name_ar,
     typeId:          i.typeId,
     typeLabelFr:     i.costumeType.label_fr,
+    typeLabelAr:     i.costumeType.label_ar,
     segment:         i.segment,
     sizeId:          i.sizeId,
     colorId:         i.colorId,

@@ -344,6 +344,7 @@ export interface CostumeItemForRental {
   name_ar:       string
   typeId:        string
   typeLabelFr:   string
+  typeLabelAr:   string
   sizeId:        string | null
   colorId:       string | null
   stock:         number
@@ -380,6 +381,7 @@ export async function getRentalItems(): Promise<{
       name_ar:       i.name_ar,
       typeId:        i.typeId,
       typeLabelFr:   i.costumeType.label_fr,
+      typeLabelAr:   i.costumeType.label_ar,
       sizeId:        i.sizeId,
       colorId:       i.colorId,
       stock:         i.stock,

@@ -1,8 +1,9 @@
 "use client"
 
-import { useTranslations, useLocale } from "next-intl"
+import { useState } from "react"
+import { useTranslations } from "next-intl"
 import { Plus, Trash2 }    from "lucide-react"
-import { Select }          from "@/components/ui/Select"
+import { CreatableSelect } from "@/components/ui/CreatableSelect"
 import type { VariantInput } from "@/lib/actions/magazin/inventory"
 import React from "react"
 
@@ -15,10 +16,12 @@ interface VariantManagerProps {
   colors:   LookupItem[]
 }
 
-export function VariantManager({ variants, onChange, sizes, colors }: VariantManagerProps) {
+export function VariantManager({ variants, onChange, sizes: initialSizes, colors: initialColors }: VariantManagerProps) {
   const tInv = useTranslations("magazin.inventory")
   const tCom = useTranslations("common")
-  const locale = useLocale()
+
+  const [sizes,  setSizes]  = useState<{ value: string; label: string }[]>(initialSizes.map(s => ({ value: s.id, label: s.label_ar })))
+  const [colors, setColors] = useState<{ value: string; label: string }[]>(initialColors.map(c => ({ value: c.id, label: c.label_ar })))
 
   const addRow = () =>
     onChange([...variants, { sizeId: null, colorId: null, stock: 1 }])
@@ -57,17 +60,23 @@ export function VariantManager({ variants, onChange, sizes, colors }: VariantMan
             opacity:             v.id && v.stock === 0 ? 0.5 : 1,
           }}
         >
-          <Select
+          <CreatableSelect
             value={v.sizeId ?? ""}
-            onChange={e => updateRow(i, { sizeId: e.target.value || null })}
+            onChange={id => updateRow(i, { sizeId: id || null })}
+            onCreated={opt => setSizes(prev => [...prev, opt])}
+            onDeleted={id => setSizes(prev => prev.filter(s => s.value !== id))}
+            slug="product_sizes"
             placeholder="-"
-            options={sizes.map(s => ({ value: s.id, label: locale === "ar" ? s.label_ar : s.label_fr }))}
+            options={sizes}
           />
-          <Select
+          <CreatableSelect
             value={v.colorId ?? ""}
-            onChange={e => updateRow(i, { colorId: e.target.value || null })}
+            onChange={id => updateRow(i, { colorId: id || null })}
+            onCreated={opt => setColors(prev => [...prev, opt])}
+            onDeleted={id => setColors(prev => prev.filter(c => c.value !== id))}
+            slug="product_colors"
             placeholder="-"
-            options={colors.map(c => ({ value: c.id, label: locale === "ar" ? c.label_ar : c.label_fr }))}
+            options={colors}
           />
           <input
             type="number"

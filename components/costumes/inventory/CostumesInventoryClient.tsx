@@ -1,6 +1,6 @@
 "use client"
 
-import { useState }  from "react"
+import { useState } from "react"
 import { useRouter }            from "next/navigation"
 import { useTranslations }      from "next-intl"
 import { PencilLine, Plus }     from "lucide-react"
@@ -11,10 +11,11 @@ import { Button }               from "@/components/ui/Button"
 import { Modal }                from "@/components/ui/Modal"
 import { Input }                from "@/components/ui/Input"
 import { Select }               from "@/components/ui/Select"
+import { CreatableSelect }      from "@/components/ui/CreatableSelect"
 import { toast }                from "@/hooks/useToast"
 import { formatMAD }            from "@/lib/utils/currency"
 import { ImageUploader }        from "@/components/magazin/inventory/ImageUploader"
-import { createCostumeItem, updateCostumeItem, addCostumeType } from "@/lib/actions/costumes/inventory"
+import { createCostumeItem, updateCostumeItem } from "@/lib/actions/costumes/inventory"
 import type { CostumeItemForInventory, CostumeItemInput } from "@/lib/actions/costumes/inventory"
 import type { LookupItem, LookupById } from "@/lib/actions/costumes/pos"
 import type { ItemSegment } from "@prisma/client"
@@ -33,13 +34,12 @@ interface Props {
 
 export function CostumesInventoryClient({ items, segment, sizes, colors, costumeTypes, lookupById, role }: Props) {
   const router   = useRouter()
-  const tInv     = useTranslations("costumes.inventory")
+  const tInv     = useTranslations("inventory")
   const tCom     = useTranslations("common")
   const tUi      = useTranslations("ui")
   const isAdmin  = role === "admin" || role === "superadmin"
   const [editing,  setEditing]  = useState<CostumeItemForInventory | null>(null)
   const [creating, setCreating] = useState(false)
-
 
   const columns: Column<CostumeItemForInventory>[] = [
     {
@@ -49,28 +49,25 @@ export function CostumesInventoryClient({ items, segment, sizes, colors, costume
         : <div style={{ width: 40, height: 40, borderRadius: 6, background: "var(--surface-2)" }} />,
     },
     {
-      key: "name_fr", label: tInv("colArticle"), sortable: true,
+      key: "name_ar", label: tInv("colArticle"), sortable: true,
       render: (_, row) => (
-        <div>
-          <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", margin: 0 }}>{row.name_fr}</p>
-          <p style={{ fontSize: 11, color: "var(--text-muted)", margin: "2px 0 0" }}>{row.name_ar}</p>
-        </div>
+        <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", margin: 0 }}>{row.name_ar}</p>
       ),
     },
     {
       key: "type", label: tInv("type"),
-      render: (_, row) => <Badge variant="default">{row.typeLabelFr}</Badge>,
+      render: (_, row) => <Badge variant="default">{row.typeLabelAr}</Badge>,
     },
     {
       key: "sizeId", label: tInv("size"),
       render: (_, row) => row.sizeId && lookupById[row.sizeId]
-        ? <span style={{ fontSize: 13 }}>{lookupById[row.sizeId].label_fr}</span>
+        ? <span style={{ fontSize: 13 }}>{lookupById[row.sizeId].label_ar}</span>
         : <span style={{ color: "var(--text-muted)", fontSize: 13 }}>-</span>,
     },
     {
       key: "colorId", label: tInv("color"),
       render: (_, row) => row.colorId && lookupById[row.colorId]
-        ? <span style={{ fontSize: 13 }}>{lookupById[row.colorId].label_fr}</span>
+        ? <span style={{ fontSize: 13 }}>{lookupById[row.colorId].label_ar}</span>
         : <span style={{ color: "var(--text-muted)", fontSize: 13 }}>-</span>,
     },
     {
@@ -85,7 +82,7 @@ export function CostumesInventoryClient({ items, segment, sizes, colors, costume
       { key: "sellingPrice"    as const, label: tInv("colSellingPrice"), render: (_: unknown, row: CostumeItemForInventory) => formatMAD(row.sellingPrice) },
       { key: "minSellingPrice" as const, label: tInv("colMinPrice"),     render: (_: unknown, row: CostumeItemForInventory) => formatMAD(row.minSellingPrice) },
     ] : [
-      { key: "refGuidePrice"   as const, label: "Prix guide",            render: (_: unknown, row: CostumeItemForInventory) => row.refGuidePrice ? formatMAD(row.refGuidePrice) : <span style={{ color: "var(--text-muted)" }}>-</span> },
+      { key: "refGuidePrice"   as const, label: "السعر الاسترشادي",     render: (_: unknown, row: CostumeItemForInventory) => row.refGuidePrice ? formatMAD(row.refGuidePrice) : <span style={{ color: "var(--text-muted)" }}>-</span> },
     ]),
     {
       key: "isActive", label: tCom("status"),
@@ -125,7 +122,7 @@ export function CostumesInventoryClient({ items, segment, sizes, colors, costume
         columns={columns}
         data={items}
         searchable
-        searchKeys={["name_fr", "name_ar"]}
+        searchKeys={["name_ar"]}
         emptyMessage={tUi("noResults")}
       />
 
@@ -138,7 +135,6 @@ export function CostumesInventoryClient({ items, segment, sizes, colors, costume
         sizes={sizes}
         colors={colors}
         costumeTypes={costumeTypes}
-        role={role}
         onClose={() => { setCreating(false); setEditing(null) }}
         onSuccess={() => { setCreating(false); setEditing(null); router.refresh() }}
       />
@@ -154,18 +150,15 @@ interface FormModalProps {
   sizes:           LookupItem[]
   colors:          LookupItem[]
   costumeTypes:    LookupItem[]
-  role:            string
   onClose:         () => void
   onSuccess:       () => void
 }
 
-function CostumeItemFormModal({ isOpen, mode, item, defaultSegment, sizes, colors, costumeTypes, role, onClose, onSuccess }: FormModalProps) {
+function CostumeItemFormModal({ isOpen, mode, item, defaultSegment, sizes: initialSizes, colors: initialColors, costumeTypes, onClose, onSuccess }: FormModalProps) {
   const isEdit = mode === "edit"
-  const tInv   = useTranslations("costumes.inventory")
+  const tInv   = useTranslations("inventory")
   const tCom   = useTranslations("common")
-  const tRent  = useTranslations("costumes.rental")
 
-  const [nameFr,     setNameFr]     = useState(item?.name_fr          ?? "")
   const [nameAr,     setNameAr]     = useState(item?.name_ar          ?? "")
   const [typeId,     setTypeId]     = useState(item?.typeId            ?? costumeTypes[0]?.id ?? "")
   const [segment,    setSegment]    = useState<ItemSegment>(item?.segment ?? defaultSegment)
@@ -180,44 +173,20 @@ function CostumeItemFormModal({ isOpen, mode, item, defaultSegment, sizes, color
   const [loading,    setLoading]    = useState(false)
   const [errors,     setErrors]     = useState<Record<string, string>>({})
 
-  // ── Inline type creation ──────────────────────────────────────
-  const isAdminInModal = role === "admin" || role === "superadmin"
-  const [localTypes,  setLocalTypes]  = useState<LookupItem[]>(costumeTypes)
-  const TYPE_OPTIONS                  = localTypes.map(t => ({ value: t.id, label: t.label_fr }))
-  const [addTypeOpen, setAddTypeOpen] = useState(false)
-  const [newTypeFr,   setNewTypeFr]   = useState("")
-  const [newTypeAr,   setNewTypeAr]   = useState("")
-  const [addingType,  setAddingType]  = useState(false)
-
-  const handleAddType = async () => {
-    if (!newTypeFr.trim()) return
-    setAddingType(true)
-    try {
-      const created = await addCostumeType(newTypeFr.trim(), newTypeAr.trim())
-      setLocalTypes(prev => [...prev, created])
-      setTypeId(created.id)
-      setNewTypeFr("")
-      setNewTypeAr("")
-      setAddTypeOpen(false)
-      toast("Type ajouté avec succès", "success")
-    } catch (err: unknown) {
-      toast(err instanceof Error ? err.message : tCom("error"), "error")
-    } finally {
-      setAddingType(false)
-    }
-  }
+  const [localTypes, setLocalTypes] = useState<LookupItem[]>(costumeTypes)
+  const [sizes,  setSizes]  = useState<{ value: string; label: string }[]>(initialSizes.map(s => ({ value: s.id, label: s.label_ar })))
+  const [colors, setColors] = useState<{ value: string; label: string }[]>(initialColors.map(c => ({ value: c.id, label: c.label_ar })))
+  const TYPE_OPTIONS = localTypes.map(t => ({ value: t.id, label: t.label_ar }))
 
   const validate = () => {
     const e: Record<string, string> = {}
-    const inv = tRent("validation.invalidAmount")
-    if (!nameFr.trim())              e.nameFr  = tCom("required")
     if (!nameAr.trim())              e.nameAr  = tCom("required")
     if (!typeId)                     e.typeId  = tCom("required")
-    if (isNaN(+stock) || +stock < 0) e.stock   = inv
-    if (isNaN(+buying))                                          e.buying  = inv
-    if (segment === "sale" && isNaN(+selling))                   e.selling = inv
-    if (segment === "sale" && isNaN(+minSell))                   e.minSell = inv
-    if (segment === "rental" && guidePrice && isNaN(+guidePrice)) e.guidePrice = inv
+    if (isNaN(+stock) || +stock < 0) e.stock   = tCom("required")
+    if (isNaN(+buying))                                          e.buying  = tCom("required")
+    if (segment === "sale" && isNaN(+selling))                   e.selling = tCom("required")
+    if (segment === "sale" && isNaN(+minSell))                   e.minSell = tCom("required")
+    if (segment === "rental" && guidePrice && isNaN(+guidePrice)) e.guidePrice = tCom("required")
     return e
   }
 
@@ -228,7 +197,7 @@ function CostumeItemFormModal({ isOpen, mode, item, defaultSegment, sizes, color
 
     setLoading(true)
     const input: CostumeItemInput = {
-      name_fr: nameFr, name_ar: nameAr, typeId, segment,
+      name_fr: nameAr, name_ar: nameAr, typeId, segment,
       sizeId:  sizeId  || null,
       colorId: colorId || null,
       stock:   parseInt(stock),
@@ -252,59 +221,48 @@ function CostumeItemFormModal({ isOpen, mode, item, defaultSegment, sizes, color
   }
 
   return (
-    <>
-      <Modal isOpen={isOpen} onClose={onClose} title={isEdit ? tInv("editItem") : tInv("addItem")} size="lg">
+    <Modal isOpen={isOpen} onClose={onClose} title={isEdit ? tInv("editItem") : tInv("addItem")} size="lg">
       <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-          <Input label="Nom (FR)" value={nameFr} onChange={e => setNameFr(e.target.value)} error={errors.nameFr} />
-          <Input label="Nom (AR)" value={nameAr} onChange={e => setNameAr(e.target.value)} dir="rtl" error={errors.nameAr} />
-        </div>
+        <Input label="الاسم" value={nameAr} onChange={e => setNameAr(e.target.value)} dir="rtl" error={errors.nameAr} />
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
-          <div style={{ position: "relative" }}>
-            <Select
-              label={tInv("type")} value={typeId}
-              onChange={e => setTypeId(e.target.value)}
-              options={TYPE_OPTIONS}
-              error={errors.typeId}
-            />
-            {isAdminInModal && (
-              <button
-                type="button"
-                onClick={() => setAddTypeOpen(true)}
-                title="Ajouter un nouveau type"
-                style={{
-                  position: "absolute", top: 2, right: 2,
-                  background: "none", border: "none", cursor: "pointer",
-                  color: "var(--primary)", fontSize: 11, fontWeight: 700,
-                  display: "flex", alignItems: "center", gap: 2,
-                }}
-              >
-                + nouveau
-              </button>
-            )}
-          </div>
-          <Select
-            label={tInv("size")} value={sizeId}
-            onChange={e => setSizeId(e.target.value)}
-            placeholder="- Aucune -"
-            options={sizes.map(s => ({ value: s.id, label: s.label_fr }))}
+          <CreatableSelect
+            label={tInv("type")} value={typeId}
+            onChange={setTypeId}
+            onCreated={opt => setLocalTypes(prev => [...prev, { id: opt.value, label_fr: opt.label, label_ar: opt.label }])}
+            onDeleted={id => setLocalTypes(prev => prev.filter(t => t.id !== id))}
+            slug="costume_item_types"
+            placeholder="اختر النوع"
+            options={TYPE_OPTIONS}
+            error={errors.typeId}
           />
-          <Select
+          <CreatableSelect
+            label={tInv("size")} value={sizeId}
+            onChange={setSizeId}
+            onCreated={opt => setSizes(prev => [...prev, opt])}
+            onDeleted={id => setSizes(prev => prev.filter(s => s.value !== id))}
+            slug="suit_sizes"
+            placeholder="بدون"
+            options={sizes}
+          />
+          <CreatableSelect
             label={tInv("color")} value={colorId}
-            onChange={e => setColorId(e.target.value)}
-            placeholder="- Aucune -"
-            options={colors.map(c => ({ value: c.id, label: c.label_fr }))}
+            onChange={setColorId}
+            onCreated={opt => setColors(prev => [...prev, opt])}
+            onDeleted={id => setColors(prev => prev.filter(c => c.value !== id))}
+            slug="suit_colors"
+            placeholder="بدون"
+            options={colors}
           />
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
           <Select
-            label="Segment"
+            label="القطاع"
             value={segment}
             onChange={e => setSegment(e.target.value as ItemSegment)}
             disabled={isEdit}
             options={[
-              { value: "sale",   label: "Vente" },
-              { value: "rental", label: "Location (flotte)" },
+              { value: "sale",   label: "بيع" },
+              { value: "rental", label: "إيجار" },
             ]}
           />
           <Input label={tInv("stock")} type="number" value={stock} onChange={e => setStock(e.target.value)} error={errors.stock} />
@@ -318,7 +276,7 @@ function CostumeItemFormModal({ isOpen, mode, item, defaultSegment, sizes, color
             </>
           )}
           {segment === "rental" && (
-            <Input label="Prix guide (optionnel)" type="number" value={guidePrice} onChange={e => setGuidePrice(e.target.value)} error={errors.guidePrice} hint="Référence interne pour négociation - non affiché au client" />
+            <Input label="السعر الاسترشادي (اختياري)" type="number" value={guidePrice} onChange={e => setGuidePrice(e.target.value)} error={errors.guidePrice} hint="مرجع داخلي للتفاوض - لا يظهر للزبون" />
           )}
         </div>
         <div>
@@ -333,29 +291,5 @@ function CostumeItemFormModal({ isOpen, mode, item, defaultSegment, sizes, color
         </div>
       </div>
     </Modal>
-
-      <Modal isOpen={addTypeOpen} onClose={() => setAddTypeOpen(false)} title="Ajouter un type d'article">
-        <div style={{ display: "flex", flexDirection: "column", gap: 14, minWidth: 300 }}>
-          <Input
-            label="Nom en Français"
-            value={newTypeFr}
-            onChange={e => setNewTypeFr(e.target.value)}
-            placeholder="ex: Cravate, Chapeau, Nœud papillon..."
-          />
-          <Input
-            label="الاسم بالعربية (اختياري)"
-            value={newTypeAr}
-            onChange={e => setNewTypeAr(e.target.value)}
-            dir="rtl"
-          />
-          <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
-            <Button variant="secondary" onClick={() => setAddTypeOpen(false)}>{tCom("cancel")}</Button>
-            <Button onClick={handleAddType} loading={addingType} disabled={!newTypeFr.trim()}>
-              Ajouter le type
-            </Button>
-          </div>
-        </div>
-      </Modal>
-    </>
   )
 }

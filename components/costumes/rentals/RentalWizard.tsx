@@ -24,7 +24,6 @@ import React from "react"
 interface KitLine {
   costumeItemId: string
   quantity:      number
-  name_fr:       string
   name_ar:       string
   stock:         number
   refGuidePrice: number | null
@@ -78,12 +77,12 @@ interface Props {
   locale:                string
 }
 
-export function RentalWizard({ isOpen, onClose, costumeItems, clients, measurementCategories, lookupById, locale }: Props) {
+export function RentalWizard({ isOpen, onClose, costumeItems, clients, measurementCategories, lookupById }: Props) {
   const { session } = useCaisse()
   const router      = useRouter()
   const { confirm, modal: confirmModal } = useConfirm()
 
-  const tRental = useTranslations("costumes.rental")
+  const tRental = useTranslations("rental")
   const tCommon = useTranslations("common")
 
   const STEPS = STEP_KEYS.map(k => tRental(`steps.${k}` as Parameters<typeof tRental>[0]))
@@ -175,7 +174,6 @@ export function RentalWizard({ isOpen, onClose, costumeItems, clients, measureme
     <Modal isOpen={isOpen} onClose={handleRequestClose} title={tRental("newRental")} size="xl" closeOnOverlayClick={false}>
       {confirmModal}
 
-      {/* Stepper */}
       <div style={{ display: "flex", alignItems: "center", gap: 0, marginBottom: 24, overflowX: "auto", paddingBottom: 4 }}>
         {STEPS.map((s, i) => (
           <div key={s} style={{ display: "flex", alignItems: "center", gap: 0 }}>
@@ -196,24 +194,22 @@ export function RentalWizard({ isOpen, onClose, costumeItems, clients, measureme
         ))}
       </div>
 
-      {/* Step content */}
       <div style={{ minHeight: 280 }}>
         {step === 0 && <StepClient data={data} upd={upd} clients={clients} errors={errors} />}
-        {step === 1 && <StepKit    data={data} upd={upd} costumeItems={costumeItems} lookupById={lookupById} locale={locale} errors={errors} />}
+        {step === 1 && <StepKit    data={data} upd={upd} costumeItems={costumeItems} lookupById={lookupById} errors={errors} />}
         {step === 2 && <StepDates  data={data} upd={upd} errors={errors} />}
-        {step === 3 && <StepMeasurements data={data} upd={upd} measurementCategories={measurementCategories} lookupById={lookupById} />}
+        {step === 3 && <StepMeasurements data={data} upd={upd} measurementCategories={measurementCategories} />}
         {step === 4 && <StepGuarantee data={data} upd={upd} />}
         {step === 5 && <StepPayment   data={data} upd={upd} errors={errors} />}
         {step === 6 && <StepConfirm   data={data} clients={clients} />}
       </div>
 
-      {/* Navigation */}
       <div style={{ display: "flex", justifyContent: "space-between", paddingTop: 20, borderTop: "1px solid var(--border)", marginTop: 20 }}>
         <Button variant="secondary" onClick={step === 0 ? handleRequestClose : prev}>
           {step === 0 ? tCommon("cancel") : tCommon("back")}
         </Button>
         {step < 6
-          ? <Button onClick={next} icon={<ChevronRight size={14} />}>{tRental("steps.next") === "steps.next" ? tCommon("next") : tRental("steps.next" as Parameters<typeof tRental>[0])}</Button>
+          ? <Button onClick={next} icon={<ChevronRight size={14} />}>{tCommon("next")}</Button>
           : <Button onClick={handleSubmit} loading={loading}>{tRental("confirmRental")}</Button>
         }
       </div>
@@ -221,9 +217,8 @@ export function RentalWizard({ isOpen, onClose, costumeItems, clients, measureme
   )
 }
 
-// ── Step 1: Client ─────────────────────────────────────────────
 function StepClient({ data, upd, clients, errors }: { data: WizardData; upd: (p: Partial<WizardData>) => void; clients: ClientForList[]; errors: Record<string, string> }) {
-  const tRental  = useTranslations("costumes.rental")
+  const tRental  = useTranslations("rental")
   const tClients = useTranslations("costumes.clients")
   const tUi      = useTranslations("ui")
   const [search, setSearch] = useState("")
@@ -297,34 +292,32 @@ function StepClient({ data, upd, clients, errors }: { data: WizardData; upd: (p:
   )
 }
 
-// ── Step 2: Kit ────────────────────────────────────────────────
-function StepKit({ data, upd, costumeItems, lookupById, locale, errors }: { data: WizardData; upd: (p: Partial<WizardData>) => void; costumeItems: CostumeItemForRental[]; lookupById: LookupById; locale: string; errors: Record<string, string> }) {
-  const tRental = useTranslations("costumes.rental")
+function StepKit({ data, upd, costumeItems, lookupById, errors }: { data: WizardData; upd: (p: Partial<WizardData>) => void; costumeItems: CostumeItemForRental[]; lookupById: LookupById; errors: Record<string, string> }) {
+  const tRental = useTranslations("rental")
   const tUi     = useTranslations("ui")
   const [search, setSearch] = useState("")
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
-    return q ? costumeItems.filter(i => i.name_fr.toLowerCase().includes(q) || i.name_ar.includes(q)) : costumeItems
+    return q ? costumeItems.filter(i => i.name_ar.includes(q)) : costumeItems
   }, [costumeItems, search])
 
   const addItem = (item: CostumeItemForRental) => {
     if (data.kitItems.some(k => k.costumeItemId === item.id)) return
-    upd({ kitItems: [...data.kitItems, { costumeItemId: item.id, quantity: 1, name_fr: item.name_fr, name_ar: item.name_ar, stock: item.stock, refGuidePrice: item.refGuidePrice ? parseFloat(item.refGuidePrice) : null }] })
+    upd({ kitItems: [...data.kitItems, { costumeItemId: item.id, quantity: 1, name_ar: item.name_ar, stock: item.stock, refGuidePrice: item.refGuidePrice ? parseFloat(item.refGuidePrice) : null }] })
   }
   const removeItem = (id: string) => upd({ kitItems: data.kitItems.filter(k => k.costumeItemId !== id) })
   const setQty     = (id: string, q: number) => upd({ kitItems: data.kitItems.map(k => k.costumeItemId === id ? { ...k, quantity: Math.max(1, Math.min(q, k.stock)) } : k) })
 
   const itemLabel = (item: CostumeItemForRental) => {
     const parts: string[] = []
-    if (item.sizeId  && lookupById[item.sizeId])  parts.push(lookupById[item.sizeId].label_fr)
-    if (item.colorId && lookupById[item.colorId]) parts.push(lookupById[item.colorId].label_fr)
-    return parts.join(" - ") || item.typeLabelFr
+    if (item.sizeId  && lookupById[item.sizeId])  parts.push(lookupById[item.sizeId].label_ar)
+    if (item.colorId && lookupById[item.colorId]) parts.push(lookupById[item.colorId].label_ar)
+    return parts.join(" - ") || item.typeLabelAr
   }
 
   return (
     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, height: 300 }}>
-      {/* Left: item search */}
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         <p style={{ fontSize: 12, fontWeight: 600, color: "var(--text-muted)", margin: 0, textTransform: "uppercase", letterSpacing: "0.05em" }}>
           {tRental("availableItems")}
@@ -352,7 +345,7 @@ function StepKit({ data, upd, costumeItems, lookupById, locale, errors }: { data
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <div style={{ minWidth: 0 }}>
                     <p style={{ fontSize: 12, fontWeight: 600, color: "var(--text)", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      {locale === "ar" ? item.name_ar : item.name_fr}
+                      {item.name_ar}
                     </p>
                     <p style={{ fontSize: 11, color: "var(--text-muted)", margin: "1px 0 0" }}>{itemLabel(item)} · ×{item.stock}</p>
                   </div>
@@ -364,7 +357,6 @@ function StepKit({ data, upd, costumeItems, lookupById, locale, errors }: { data
         </div>
       </div>
 
-      {/* Right: kit */}
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         <p style={{ fontSize: 12, fontWeight: 600, color: "var(--text-muted)", margin: 0, textTransform: "uppercase", letterSpacing: "0.05em" }}>
           {tRental("kitSelected")}
@@ -376,7 +368,7 @@ function StepKit({ data, upd, costumeItems, lookupById, locale, errors }: { data
             : data.kitItems.map(ki => (
               <div key={ki.costumeItemId} style={{ padding: "8px 12px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 8 }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{ fontSize: 12, fontWeight: 600, color: "var(--text)", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{ki.name_fr}</p>
+                  <p style={{ fontSize: 12, fontWeight: 600, color: "var(--text)", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{ki.name_ar}</p>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 4, background: "var(--surface-2)", borderRadius: 6, padding: "2px 4px" }}>
                   <button onClick={() => setQty(ki.costumeItemId, ki.quantity - 1)} style={{ width: 20, height: 20, border: "none", background: "none", cursor: "pointer", color: "var(--text)", fontSize: 14 }}>-</button>
@@ -401,9 +393,8 @@ function StepKit({ data, upd, costumeItems, lookupById, locale, errors }: { data
   )
 }
 
-// ── Step 3: Dates ──────────────────────────────────────────────
 function StepDates({ data, upd, errors }: { data: WizardData; upd: (p: Partial<WizardData>) => void; errors: Record<string, string> }) {
-  const tRental = useTranslations("costumes.rental")
+  const tRental = useTranslations("rental")
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       <Input label={tRental("eventDateOptional")} type="date" value={data.eventDate} onChange={e => upd({ eventDate: e.target.value })} />
@@ -415,9 +406,8 @@ function StepDates({ data, upd, errors }: { data: WizardData; upd: (p: Partial<W
   )
 }
 
-// ── Step 4: Measurements ───────────────────────────────────────
-function StepMeasurements({ data, upd, measurementCategories }: { data: WizardData; upd: (p: Partial<WizardData>) => void; measurementCategories: LookupItem[]; lookupById: LookupById }) {
-  const tRental = useTranslations("costumes.rental")
+function StepMeasurements({ data, upd, measurementCategories }: { data: WizardData; upd: (p: Partial<WizardData>) => void; measurementCategories: LookupItem[] }) {
+  const tRental = useTranslations("rental")
   const tCommon = useTranslations("common")
 
   const setMeasurement = (categoryId: string, field: "value" | "unit", val: string) => {
@@ -439,7 +429,7 @@ function StepMeasurements({ data, upd, measurementCategories }: { data: WizardDa
           return (
             <div key={cat.id} style={{ display: "flex", gap: 6, alignItems: "flex-end" }}>
               <div style={{ flex: 1 }}>
-                <Input label={cat.label_fr} type="number" value={m?.value ?? ""} onChange={e => setMeasurement(cat.id, "value", e.target.value)} />
+                <Input label={cat.label_ar} type="number" value={m?.value ?? ""} onChange={e => setMeasurement(cat.id, "value", e.target.value)} />
               </div>
               <div style={{ width: 64 }}>
                 <Input label={tCommon("unit")} value={m?.unit ?? "cm"} onChange={e => setMeasurement(cat.id, "unit", e.target.value)} />
@@ -452,10 +442,9 @@ function StepMeasurements({ data, upd, measurementCategories }: { data: WizardDa
   )
 }
 
-// ── Step 5: Guarantee ──────────────────────────────────────────
 function StepGuarantee({ data, upd }: { data: WizardData; upd: (p: Partial<WizardData>) => void }) {
   const tG      = useTranslations("costumes.guarantee")
-  const tRental = useTranslations("costumes.rental")
+  const tRental = useTranslations("rental")
 
   const GUARANTEE_OPTIONS = GUARANTEE_KEYS.map(k => ({ value: k, label: tG(k as Parameters<typeof tG>[0]) }))
 
@@ -480,10 +469,9 @@ function StepGuarantee({ data, upd }: { data: WizardData; upd: (p: Partial<Wizar
   )
 }
 
-// ── Step 6: Payment ────────────────────────────────────────────
 function StepPayment({ data, upd, errors }: { data: WizardData; upd: (p: Partial<WizardData>) => void; errors: Record<string, string> }) {
   const tP      = useTranslations("payment")
-  const tRental = useTranslations("costumes.rental")
+  const tRental = useTranslations("rental")
 
   const PAYMENT_OPTIONS = PAYMENT_KEYS.map(k => ({ value: k, label: tP(k as Parameters<typeof tP>[0]) }))
 
@@ -550,11 +538,10 @@ function ConfirmRow({ label, value }: { label: string; value: React.ReactNode })
   )
 }
 
-// ── Step 7: Confirm ────────────────────────────────────────────
 function StepConfirm({ data, clients }: { data: WizardData; clients: ClientForList[] }) {
   const tG      = useTranslations("costumes.guarantee")
   const tP      = useTranslations("payment")
-  const tRental = useTranslations("costumes.rental")
+  const tRental = useTranslations("rental")
   const tCommon = useTranslations("common")
 
   const GUARANTEE_OPTIONS = GUARANTEE_KEYS.map(k => ({ value: k, label: tG(k as Parameters<typeof tG>[0]) }))
@@ -567,8 +554,8 @@ function StepConfirm({ data, clients }: { data: WizardData; clients: ClientForLi
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
       <ConfirmRow label={tRental("confirmClientRow")}  value={clientName} />
-      <ConfirmRow label={tRental("confirmPickup")}     value={data.scheduledPickupDate ? new Date(data.scheduledPickupDate).toLocaleDateString("fr-MA") : "-"} />
-      <ConfirmRow label={tRental("confirmReturn")}     value={data.scheduledReturnDate ? new Date(data.scheduledReturnDate).toLocaleDateString("fr-MA") : "-"} />
+      <ConfirmRow label={tRental("confirmPickup")}     value={data.scheduledPickupDate ? new Date(data.scheduledPickupDate).toLocaleDateString("ar-MA") : "-"} />
+      <ConfirmRow label={tRental("confirmReturn")}     value={data.scheduledReturnDate ? new Date(data.scheduledReturnDate).toLocaleDateString("ar-MA") : "-"} />
       <ConfirmRow label={tRental("confirmKitItems")}   value={tRental("kitSummary", { items: data.kitItems.length, pieces: kitPieces })} />
       <ConfirmRow label={tRental("confirmGuarantee")}  value={GUARANTEE_OPTIONS.find(g => g.value === data.guaranteeType)?.label ?? data.guaranteeType} />
       <ConfirmRow label={tCommon("total")}             value={formatMAD(data.totalAmount)} />

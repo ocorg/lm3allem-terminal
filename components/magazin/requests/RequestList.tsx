@@ -2,17 +2,17 @@
 
 import { useState }  from "react"
 import { useRouter } from "next/navigation"
+import { useTranslations } from "next-intl"
 import { Plus }      from "lucide-react"
 import { DataTable, type Column } from "@/components/ui/DataTable"
 import { Badge }     from "@/components/ui/Badge"
 import { Button }    from "@/components/ui/Button"
 import { Modal }     from "@/components/ui/Modal"
 import { Input }     from "@/components/ui/Input"
-import { Select }    from "@/components/ui/Select"
+import { CreatableSelect } from "@/components/ui/CreatableSelect"
 import { toast }     from "@/hooks/useToast"
 import { createRequest, updateRequestStatus } from "@/lib/actions/magazin/requests"
 import { formatDate } from "@/lib/utils/date"
-import { useTranslations } from "next-intl"
 import type { ProductRequestForList } from "@/lib/actions/magazin/requests"
 import React from "react"
 
@@ -31,12 +31,16 @@ interface RequestListProps {
   locale?:    string
 }
 
-export function RequestList({ requests, categories, role }: RequestListProps) {
+export function RequestList({ requests, categories: initialCategories, role }: RequestListProps) {
   const t      = useTranslations("magazin.requests")
   const tCom   = useTranslations("common")
   const router  = useRouter()
   const isAdmin = role === "admin" || role === "superadmin"
-  const lookupMap = Object.fromEntries(categories.map(l => [l.id, l]))
+
+  const [categories, setCategories] = useState<{ value: string; label: string }[]>(
+    initialCategories.map(c => ({ value: c.id, label: c.label_ar }))
+  )
+  const lookupMap = Object.fromEntries(initialCategories.map(l => [l.id, l]))
 
   const [statusFilter, setStatusFilter] = useState("all")
   const [showForm,     setShowForm]     = useState(false)
@@ -49,15 +53,15 @@ export function RequestList({ requests, categories, role }: RequestListProps) {
   const filtered = statusFilter === "all" ? requests : requests.filter(r => r.status === statusFilter)
 
   const handleCreate = async () => {
-    if (!prodName.trim()) { setNameError("Requis"); return }
+    if (!prodName.trim()) { setNameError(tCom("required")); return }
     setLoading(true)
     try {
       await createRequest(prodName.trim(), catId || null, notes || undefined)
-      toast("Demande enregistrée", "success")
+      toast(t("requestSaved"), "success")
       setShowForm(false); setProdName(""); setCatId(""); setNotes("")
       router.refresh()
     } catch {
-      toast("Erreur", "error")
+      toast(tCom("error"), "error")
     } finally {
       setLoading(false)
     }
@@ -66,10 +70,10 @@ export function RequestList({ requests, categories, role }: RequestListProps) {
   const handleStatus = async (id: string, status: "pending" | "reviewed" | "ordered") => {
     try {
       await updateRequestStatus(id, status)
-      toast("Statut mis à jour", "success")
+      toast(t("statusUpdated"), "success")
       router.refresh()
     } catch {
-      toast("Erreur", "error")
+      toast(tCom("error"), "error")
     }
   }
 
@@ -79,8 +83,8 @@ export function RequestList({ requests, categories, role }: RequestListProps) {
       render: (v) => <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>{v as string}</span>,
     },
     {
-      key: "categoryId", label: "Catégorie",
-      render: (v) => <span style={{ fontSize: 12, color: "var(--text-muted)" }}>{v ? (lookupMap[v as string]?.label_fr ?? "-") : "-"}</span>,
+      key: "categoryId", label: t("category"),
+      render: (v) => <span style={{ fontSize: 12, color: "var(--text-muted)" }}>{v ? (lookupMap[v as string]?.label_ar ?? "-") : "-"}</span>,
     },
     {
       key: "requestCount", label: t("count"), align: "center", sortable: true,
@@ -98,7 +102,7 @@ export function RequestList({ requests, categories, role }: RequestListProps) {
       key: "status", label: tCom("status"), align: "center",
       render: (v) => {
         const cfg = STATUS_CONFIG_KEYS[v as keyof typeof STATUS_CONFIG_KEYS]
-        return <Badge variant={cfg?.variant ?? "default"}>{cfg ? t(cfg.labelKey as any) : String(v)}</Badge>
+        return <Badge variant={cfg?.variant ?? "default"}>{cfg ? t(cfg.labelKey as Parameters<typeof t>[0]) : String(v)}</Badge>
       },
     },
     { key: "requestedByName", label: t("requestedBy"), render: (v) => <span style={{ fontSize: 12, color: "var(--text-muted)" }}>{v as string}</span> },
@@ -154,7 +158,7 @@ export function RequestList({ requests, categories, role }: RequestListProps) {
         </div>
 
         <DataTable
-          columns={columns as any}
+          columns={columns as Column<ProductRequestForList>[]}
           data={filtered}
           searchable
           searchKeys={["productName"]}
@@ -162,7 +166,6 @@ export function RequestList({ requests, categories, role }: RequestListProps) {
         />
       </div>
 
-      {/* New request modal */}
       <Modal isOpen={showForm} onClose={() => setShowForm(false)} title={t("newRequest")} size="sm">
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           <Input
@@ -170,25 +173,28 @@ export function RequestList({ requests, categories, role }: RequestListProps) {
             value={prodName}
             onChange={e => { setProdName(e.target.value); setNameError("") }}
             error={nameError}
-            placeholder="ex: Costume 3 pièces bordeaux"
+            placeholder={t("productNamePlaceholder")}
             autoFocus
           />
-          <Select
-            label="Catégorie"
+          <CreatableSelect
+            label={t("category")}
             value={catId}
-            onChange={e => setCatId(e.target.value)}
-            placeholder="Choisir..."
-            options={categories.map(c => ({ value: c.id, label: c.label_fr }))}
+            onChange={setCatId}
+            onCreated={opt => setCategories(prev => [...prev, opt])}
+            onDeleted={id => setCategories(prev => prev.filter(c => c.value !== id))}
+            slug="product_categories"
+            placeholder={t("choosePlaceholder")}
+            options={categories}
           />
           <Input
-            label="Notes"
+            label={t("notes")}
             value={notes}
             onChange={e => setNotes(e.target.value)}
-            placeholder="Détails supplémentaires..."
+            placeholder={t("notesPlaceholder")}
           />
           <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
-            <Button variant="ghost" onClick={() => setShowForm(false)} disabled={loading}>Annuler</Button>
-            <Button onClick={handleCreate} loading={loading}>Enregistrer</Button>
+            <Button variant="ghost" onClick={() => setShowForm(false)} disabled={loading}>{tCom("cancel")}</Button>
+            <Button onClick={handleCreate} loading={loading}>{tCom("save")}</Button>
           </div>
         </div>
       </Modal>

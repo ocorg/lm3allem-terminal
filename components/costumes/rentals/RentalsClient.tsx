@@ -1,6 +1,7 @@
 "use client"
 
 import { useState }             from "react"
+import { useTranslations }      from "next-intl"
 import { Plus, Eye }            from "lucide-react"
 import { DataTable, type Column } from "@/components/ui/DataTable"
 import { Badge }                from "@/components/ui/Badge"
@@ -16,7 +17,6 @@ import type { LookupItem }      from "@/lib/actions/costumes/pos"
 import type { RentalStatus }    from "@prisma/client"
 import React from "react"
 
-// ── Types ──────────────────────────────────────────────────────
 interface Props {
   rentals:               RentalForList[]
   costumeItems:          CostumeItemForRental[]
@@ -25,16 +25,6 @@ interface Props {
   lookupById:            LookupById
   role:                  string
   locale:                string
-}
-
-const STATUS_LABELS: Record<RentalStatus, string> = {
-  booked:           "Réservé",
-  in_preparation:   "En préparation",
-  ready_for_pickup: "Prêt à retirer",
-  picked_up:        "Récupéré",
-  returned:         "Rendu",
-  cleaning:         "Nettoyage",
-  available:        "Disponible",
 }
 
 const STATUS_VARIANT: Record<RentalStatus, "primary" | "warning" | "success" | "default" | "danger"> = {
@@ -47,10 +37,12 @@ const STATUS_VARIANT: Record<RentalStatus, "primary" | "warning" | "success" | "
   available:        "success",
 }
 
-const ALL_STATUSES = Object.keys(STATUS_LABELS) as RentalStatus[]
+const ALL_STATUSES: RentalStatus[] = ["booked", "in_preparation", "ready_for_pickup", "picked_up", "returned", "cleaning", "available"]
 
-// ── Component ──────────────────────────────────────────────────
-export function RentalsClient({ rentals, costumeItems, clients, measurementCategories, lookupById, role, locale }: Props) {
+export function RentalsClient({ rentals, costumeItems, clients, measurementCategories, lookupById, locale }: Props) {
+  const tR   = useTranslations("costumes.rentals")
+  const tS   = useTranslations("costumes.status")
+  const tCom = useTranslations("common")
   const [statusFilter, setStatusFilter] = useState<RentalStatus | null>(null)
   const [showWizard,   setShowWizard]   = useState(false)
   const [detailId,     setDetailId]     = useState<string | null>(null)
@@ -59,11 +51,11 @@ export function RentalsClient({ rentals, costumeItems, clients, measurementCateg
 
   const columns: Column<RentalForList>[] = [
     {
-      key: "kitReference", label: "Kit",
+      key: "kitReference", label: tR("colKit"),
       render: (_, row) => <span style={{ fontFamily: "monospace", fontSize: 12, fontWeight: 600, color: "var(--text)" }}>{row.kitReference ?? "-"}</span>,
     },
     {
-      key: "clientName", label: "Client", sortable: true,
+      key: "clientName", label: tR("colClient"), sortable: true,
       render: (_, row) => (
         <div>
           <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", margin: 0 }}>{row.clientName}</p>
@@ -72,15 +64,15 @@ export function RentalsClient({ rentals, costumeItems, clients, measurementCateg
       ),
     },
     {
-      key: "status", label: "Statut",
-      render: (_, row) => <Badge variant={STATUS_VARIANT[row.status]}>{STATUS_LABELS[row.status]}</Badge>,
+      key: "status", label: tCom("status"),
+      render: (_, row) => <Badge variant={STATUS_VARIANT[row.status]}>{tS(row.status)}</Badge>,
     },
     {
-      key: "scheduledPickupDate", label: "Retrait",
-      render: (_, row) => <span style={{ fontSize: 12, color: "var(--text-muted)" }}>{new Date(row.scheduledPickupDate).toLocaleDateString("fr-MA")}</span>,
+      key: "scheduledPickupDate", label: tR("colPickup"),
+      render: (_, row) => <span style={{ fontSize: 12, color: "var(--text-muted)" }}>{new Date(row.scheduledPickupDate).toLocaleDateString("ar-MA")}</span>,
     },
     {
-      key: "balance", label: "Solde",
+      key: "balance", label: tR("colBalance"),
       render: (_, row) => {
         const bal = parseFloat(row.balance)
         return <span style={{ fontWeight: 600, color: bal > 0 ? "var(--warning)" : "var(--success)" }}>{formatMAD(bal)}</span>
@@ -98,19 +90,17 @@ export function RentalsClient({ rentals, costumeItems, clients, measurementCateg
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
-      {/* Header */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-        <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.02em", margin: 0 }}>Locations</h1>
-        <Button size="sm" icon={<Plus size={14} />} onClick={() => setShowWizard(true)}>Nouvelle location</Button>
+        <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.02em", margin: 0 }}>{tR("title")}</h1>
+        <Button size="sm" icon={<Plus size={14} />} onClick={() => setShowWizard(true)}>{tR("newRental")}</Button>
       </div>
 
-      {/* Status filter tabs */}
       <div style={{ display: "flex", gap: 6, overflowX: "auto", scrollbarWidth: "none", marginBottom: 16, paddingBottom: 2 }}>
-        <StatusChip label={`Toutes (${rentals.length})`} active={!statusFilter} onClick={() => setStatusFilter(null)} />
+        <StatusChip label={`الكل (${rentals.length})`} active={!statusFilter} onClick={() => setStatusFilter(null)} />
         {ALL_STATUSES.map(s => {
           const count = rentals.filter(r => r.status === s).length
           if (!count) return null
-          return <StatusChip key={s} label={`${STATUS_LABELS[s]} (${count})`} active={statusFilter === s} onClick={() => setStatusFilter(s)} />
+          return <StatusChip key={s} label={`${tS(s)} (${count})`} active={statusFilter === s} onClick={() => setStatusFilter(s)} />
         })}
       </div>
 
@@ -119,10 +109,9 @@ export function RentalsClient({ rentals, costumeItems, clients, measurementCateg
         data={filtered}
         searchable
         searchKeys={["clientName", "clientPhone", "kitReference"]}
-        emptyMessage="Aucune location."
+        emptyMessage={tR("noRentals")}
       />
 
-      {/* Wizard */}
       <RentalWizard
         isOpen={showWizard}
         onClose={() => setShowWizard(false)}
@@ -133,13 +122,10 @@ export function RentalsClient({ rentals, costumeItems, clients, measurementCateg
         locale={locale}
       />
 
-      {/* Detail */}
       {detailId && (
         <RentalDetailModal
           rentalId={detailId}
           onClose={() => setDetailId(null)}
-          locale={locale}
-          role={role}
         />
       )}
     </div>

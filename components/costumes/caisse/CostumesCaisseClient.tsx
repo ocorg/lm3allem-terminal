@@ -29,14 +29,14 @@ export function CostumesCaisseClient({ initialStats, role }: Props) {
 
       {/* Header */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.02em", margin: 0 }}>Caisse</h1>
+        <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.02em", margin: 0 }}>الصندوق</h1>
         <div style={{ display: "flex", gap: 8 }}>
           <Button variant="secondary" size="sm" icon={<Plus size={14} />} onClick={() => setShowManual(true)}>
-            Entrée manuelle
+            إدخال يدوي
           </Button>
           {isAdmin && (
             <Button variant="danger" size="sm" icon={<Lock size={14} />} onClick={() => setShowClose(true)}>
-              Clôturer
+              إغلاق الصندوق
             </Button>
           )}
         </div>
@@ -44,11 +44,11 @@ export function CostumesCaisseClient({ initialStats, role }: Props) {
 
       {/* Stats */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(190px, 1fr))", gap: 12 }}>
-        <StatCard label="Fond d'ouverture"   value={formatMAD(initialStats.openingAmount)} icon={DollarSign}  />
-        <StatCard label="Ventes costumes"    value={formatMAD(initialStats.totalSales)}    icon={ShoppingBag} />
-        <StatCard label="Paiements location" value={formatMAD(initialStats.totalRentals)}  icon={TrendingUp}  />
-        <StatCard label="Entrées manuelles"  value={formatMAD(initialStats.totalManual)}   icon={TrendingUp}  />
-        <StatCard label="Total caisse"       value={formatMAD(initialStats.runningTotal)}  icon={Hash}        />
+        <StatCard label="رصيد الافتتاح"   value={formatMAD(initialStats.openingAmount)} icon={DollarSign}  />
+        <StatCard label="مبيعات البدلات"    value={formatMAD(initialStats.totalSales)}    icon={ShoppingBag} />
+        <StatCard label="مدفوعات الإيجار" value={formatMAD(initialStats.totalRentals)}  icon={TrendingUp}  />
+        <StatCard label="إدخالات يدوية"  value={formatMAD(initialStats.totalManual)}   icon={TrendingUp}  />
+        <StatCard label="إجمالي الصندوق"       value={formatMAD(initialStats.runningTotal)}  icon={Hash}        />
       </div>
 
       {/* Transaction list */}
@@ -78,21 +78,21 @@ export function CostumesCaisseClient({ initialStats, role }: Props) {
 function CostumesTransactionList({ transactions }: { transactions: TransactionEntry[] }) {
   if (!transactions.length) return (
     <div style={{ textAlign: "center", color: "var(--text-muted)", padding: "32px 0", fontSize: 13 }}>
-      Aucune transaction pour cette session.
+      لا توجد معاملات في هذه الجلسة.
     </div>
   )
 
   const TYPE_LABEL: Record<string, string> = {
-    costume_sale:    "Vente",
-    rental_payment:  "Location",
-    manual:          "Manuel",
+    costume_sale:    "بيع",
+    rental_payment:  "إيجار",
+    manual:          "يدوي",
   }
 
   return (
     <div style={{ border: "1px solid var(--border)", borderRadius: 10, overflow: "hidden" }}>
       <div style={{ padding: "10px 16px", background: "var(--surface-2)", borderBottom: "1px solid var(--border)" }}>
         <span style={{ fontSize: 11, fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-          Transactions récentes
+          المعاملات الأخيرة
         </span>
       </div>
       {transactions.map((tx, i) => {

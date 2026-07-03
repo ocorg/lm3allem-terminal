@@ -29,7 +29,7 @@ interface ProductTableProps {
   locale:     string
 }
 
-export function ProductTable({ products, categories, sizes, colors, lookupById, role, locale }: ProductTableProps) {
+export function ProductTable({ products, categories, sizes, colors, lookupById, role }: ProductTableProps) {
   const router                = useRouter()
   const { confirm, modal }    = useConfirm()
   const [formMode, setFormMode]       = useState<"create" | "edit" | null>(null)
@@ -63,7 +63,7 @@ export function ProductTable({ products, categories, sizes, colors, lookupById, 
 
   const columns: Column<ProductForInventory & { id: string }>[] = [
     {
-      key: "images", label: "Photo", width: 60,
+      key: "images", label: t("colPhoto"), width: 60,
       render: (_, row) => (
         <div style={{ width: 40, height: 40, borderRadius: 6, overflow: "hidden", background: "var(--surface-2)" }}>
           {row.images[0]
@@ -74,16 +74,13 @@ export function ProductTable({ products, categories, sizes, colors, lookupById, 
       ),
     },
     {
-      key: "name_fr", label: "Produit", sortable: true,
+      key: "name_ar", label: t("colProduct"), sortable: true,
       render: (_, row) => (
-        <div>
-          <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", margin: 0 }}>{row.name_fr}</p>
-          <p style={{ fontSize: 11, color: "var(--text-muted)", margin: "1px 0 0" }}>{row.name_ar}</p>
-        </div>
+        <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", margin: 0 }}>{row.name_ar}</p>
       ),
     },
     { key: "categoryId", label: t("category"),
-      render: (val) => <span style={{ fontSize: 12, color: "var(--text-muted)" }}>{(locale === "ar" ? lookupMap[val as string]?.label_ar : lookupMap[val as string]?.label_fr) ?? "-"}</span>,
+      render: (val) => <span style={{ fontSize: 12, color: "var(--text-muted)" }}>{lookupMap[val as string]?.label_ar ?? "-"}</span>,
     },
     {
       key: "totalStock", label: t("stock"), align: "center", sortable: true,
@@ -114,7 +111,7 @@ export function ProductTable({ products, categories, sizes, colors, lookupById, 
     ] : []),
     {
       key: "isActive", label: tCom("status"), align: "center",
-      render: (val) => <Badge variant={val ? "success" : "default"}>{val ? t("active") : t("inactive")}</Badge>,
+      render: (val) => <Badge variant={val ? "success" : "default"}>{val ? tCom("active") : tCom("inactive")}</Badge>,
     },
     {
       key: "id", label: "", width: 72,
@@ -151,7 +148,7 @@ export function ProductTable({ products, categories, sizes, colors, lookupById, 
           columns={columns as Column<ProductForInventory>[]}
           data={products}
           searchable
-          searchKeys={["name_fr", "name_ar"]}
+          searchKeys={["name_ar"]}
           emptyMessage={t("noProducts")}
         />
       </div>

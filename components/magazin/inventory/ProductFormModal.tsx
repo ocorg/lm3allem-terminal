@@ -1,10 +1,10 @@
 "use client"
 
 import { useState } from "react"
-import { useTranslations, useLocale } from "next-intl"
+import { useTranslations } from "next-intl"
 import { Modal }                from "@/components/ui/Modal"
 import { Input }                from "@/components/ui/Input"
-import { Select }               from "@/components/ui/Select"
+import { CreatableSelect }      from "@/components/ui/CreatableSelect"
 import { Button }               from "@/components/ui/Button"
 import { toast }                from "@/hooks/useToast"
 import { createProduct, updateProduct } from "@/lib/actions/magazin/inventory"
@@ -28,13 +28,11 @@ interface ProductFormModalProps {
   onSuccess:  () => void
 }
 
-export function ProductFormModal({ isOpen, mode, product, categories, sizes, colors, onClose, onSuccess }: ProductFormModalProps) {
+export function ProductFormModal({ isOpen, mode, product, categories: initialCategories, sizes, colors, onClose, onSuccess }: ProductFormModalProps) {
   const isEdit = mode === "edit"
   const tInv   = useTranslations("magazin.inventory")
   const tCom   = useTranslations("common")
-  const locale = useLocale()
 
-  const [nameFr,   setNameFr]   = useState(product?.name_fr ?? "")
   const [nameAr,   setNameAr]   = useState(product?.name_ar ?? "")
   const [catId,    setCatId]    = useState(product?.categoryId ?? "")
   const [buying,   setBuying]   = useState(product?.buyingPrice ?? "")
@@ -47,9 +45,13 @@ export function ProductFormModal({ isOpen, mode, product, categories, sizes, col
   const [loading,  setLoading]  = useState(false)
   const [errors,   setErrors]   = useState<Record<string, string>>({})
 
+  const [categories, setCategories] = useState<{ value: string; label: string }[]>(
+    initialCategories.map(c => ({ value: c.id, label: c.label_ar }))
+  )
+
   const validate = () => {
     const e: Record<string, string> = {}
-    if (!nameFr.trim())             e.nameFr   = tCom("required")
+    if (!nameAr.trim())             e.nameAr   = tCom("required")
     if (!catId)                     e.catId    = tCom("required")
     if (isNaN(parseFloat(selling))) e.selling  = tInv("invalidAmount")
     if (isNaN(parseFloat(buying)))  e.buying   = tInv("invalidAmount")
@@ -64,7 +66,7 @@ export function ProductFormModal({ isOpen, mode, product, categories, sizes, col
     setLoading(true)
     try {
       const data = {
-        name_fr:         nameFr.trim(),
+        name_fr:         nameAr.trim(),
         name_ar:         nameAr.trim(),
         categoryId:      catId,
         buyingPrice:     parseFloat(buying),
@@ -92,33 +94,28 @@ export function ProductFormModal({ isOpen, mode, product, categories, sizes, col
     <Modal isOpen={isOpen} onClose={onClose} title={isEdit ? tInv("editProduct") : tInv("newProduct")} size="lg">
       <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
 
-        {/* Names */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-          <Input label={tInv("productNameFr")} value={nameFr} onChange={e => setNameFr(e.target.value)} error={errors.nameFr} placeholder="ex: Costume Bleu" />
-          <Input label={tInv("productNameAr")} value={nameAr} onChange={e => setNameAr(e.target.value)} placeholder="مثال: بدلة زرقاء" />
-        </div>
+        <Input label={tInv("productNameAr")} value={nameAr} onChange={e => setNameAr(e.target.value)} error={errors.nameAr} dir="rtl" placeholder="مثال: بدلة زرقاء" />
 
-        {/* Category */}
-        <Select
+        <CreatableSelect
           label={tInv("categoryRequired")}
           value={catId}
-          onChange={e => setCatId(e.target.value)}
+          onChange={setCatId}
+          onCreated={opt => setCategories(prev => [...prev, opt])}
+          onDeleted={id => setCategories(prev => prev.filter(c => c.value !== id))}
+          slug="product_categories"
           error={errors.catId}
           placeholder={tInv("chooseCategory")}
-          options={categories.map(c => ({ value: c.id, label: locale === "ar" ? c.label_ar : c.label_fr }))}
+          options={categories}
         />
 
-        {/* Prices */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
           <Input label={tInv("buyingRequired")}  type="number" min="0" step="0.01" value={buying}  onChange={e => setBuying(e.target.value)}  error={errors.buying}  placeholder="0.00" />
           <Input label={tInv("sellingRequired")} type="number" min="0" step="0.01" value={selling} onChange={e => setSelling(e.target.value)} error={errors.selling} placeholder="0.00" />
           <Input label={tInv("minRequired")}     type="number" min="0" step="0.01" value={minSell} onChange={e => setMinSell(e.target.value)} error={errors.minSell} placeholder="0.00" />
         </div>
 
-        {/* Images */}
         <ImageUploader images={images} onChange={setImages} />
 
-        {/* Variants */}
         <div>
           <p style={{ fontSize: 12, fontWeight: 600, color: errors.variants ? "var(--danger)" : "var(--text-muted)", margin: "0 0 8px", textTransform: "uppercase", letterSpacing: "0.05em" }}>
             {tInv("variantsSectionLabel")}
@@ -127,7 +124,6 @@ export function ProductFormModal({ isOpen, mode, product, categories, sizes, col
           <VariantManager variants={variants} onChange={setVariants} sizes={sizes} colors={colors} />
         </div>
 
-        {/* Actions */}
         <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
           <Button variant="ghost" onClick={onClose} disabled={loading}>{tCom("cancel")}</Button>
           <Button onClick={handleSave} loading={loading}>{isEdit ? tCom("save") : tCom("confirm")}</Button>

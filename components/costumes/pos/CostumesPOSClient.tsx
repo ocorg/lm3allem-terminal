@@ -37,8 +37,8 @@ interface Props {
 }
 
 const PAYMENT_METHODS: { value: PaymentMethod; label: string }[] = [
-  { value: "cash",   label: "Espèces"  },
-  { value: "tpe",    label: "TPE"      },
+  { value: "cash",   label: "نقدا"  },
+  { value: "banque", label: "تحويل بنكي" },
   { value: "banque", label: "Virement" },
 ]
 
@@ -59,9 +59,9 @@ export function CostumesPOSClient({ items, costumeTypes, lookupById, locale }: P
 
   const label = (item: CostumeItemForPOS) => {
     const parts: string[] = []
-    if (item.sizeId  && lookupById[item.sizeId])  parts.push(lookupById[item.sizeId].label_fr)
-    if (item.colorId && lookupById[item.colorId]) parts.push(lookupById[item.colorId].label_fr)
-    return parts.join(" - ") || item.typeLabelFr
+    if (item.sizeId  && lookupById[item.sizeId])  parts.push(lookupById[item.sizeId].label_ar)
+    if (item.colorId && lookupById[item.colorId]) parts.push(lookupById[item.colorId].label_ar)
+    return parts.join(" - ") || item.typeLabelAr
   }
 
   const filtered = useMemo(() => items.filter(i => {
@@ -139,11 +139,11 @@ export function CostumesPOSClient({ items, costumeTypes, lookupById, locale }: P
           authorizedById:  authorized[c.costumeItemId],
         })),
       })
-      toast("Vente enregistrée", "success")
+      toast("تم تسجيل البيع", "success")
       setCart([]); setAuthorized({}); setShowPayment(false)
       router.refresh()
     } catch (e) {
-      toast(e instanceof Error ? e.message : "Erreur", "error")
+      toast(e instanceof Error ? e.message : "خطأ", "error")
     } finally {
       setLoading(false)
     }
@@ -158,7 +158,7 @@ export function CostumesPOSClient({ items, costumeTypes, lookupById, locale }: P
           {(["products", "cart"] as const).map(tab => {
             const active = mobileTab === tab
             const label  = tab === "products"
-              ? "Articles"
+              ? "المنتجات"
               : `Panier${totalQty > 0 ? ` (${totalQty})` : ""}`
             return (
               <button
@@ -185,24 +185,24 @@ export function CostumesPOSClient({ items, costumeTypes, lookupById, locale }: P
       {(!isMobile || mobileTab === "products") && (
       <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", borderInlineEnd: isMobile ? "none" : "1px solid var(--border)" }}>
         <div style={{ padding: "12px 16px 0", display: "flex", flexDirection: "column", gap: 10, flexShrink: 0 }}>
-          <SearchBar value={search} onChange={setSearch} placeholder="Rechercher..." />
+          <SearchBar value={search} onChange={setSearch} placeholder="بحث..." />
           <div style={{ display: "flex", gap: 6, overflowX: "auto", scrollbarWidth: "none", paddingBottom: 2 }}>
-            <Chip label="Tous"  active={!typeFilter}   onClick={() => setTypeFilter(null)} />
+            <Chip label="الكل"  active={!typeFilter}   onClick={() => setTypeFilter(null)} />
             {costumeTypes.map(t => (
-              <Chip key={t.id} label={t.label_fr} active={typeFilter === t.id} onClick={() => setTypeFilter(f => f === t.id ? null : t.id)} />
+              <Chip key={t.id} label={t.label_ar} active={typeFilter === t.id} onClick={() => setTypeFilter(f => f === t.id ? null : t.id)} />
             ))}
           </div>
         </div>
 
         <div style={{ flex: 1, overflowY: "auto", padding: "12px 16px 16px" }}>
           {filtered.length === 0 ? (
-            <p style={{ textAlign: "center", color: "var(--text-muted)", paddingTop: 64, fontSize: 13, margin: 0 }}>Aucun article</p>
+            <p style={{ textAlign: "center", color: "var(--text-muted)", paddingTop: 64, fontSize: 13, margin: 0 }}>لا توجد منتجات</p>
           ) : (
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(148px, 1fr))", gap: 12 }}>
               {filtered.map(item => {
                 const inCart = cart.some(c => c.costumeItemId === item.id)
                 const isOut  = item.stock === 0
-                const name   = locale === "ar" ? item.name_ar : item.name_fr
+                const name   = item.name_ar
                 return (
                   <button key={item.id} onClick={() => addToCart(item)} disabled={isOut} style={{
                     background:   isOut ? "var(--surface-2)" : "var(--surface)",
@@ -226,7 +226,7 @@ export function CostumesPOSClient({ items, costumeTypes, lookupById, locale }: P
                           color:       isOut ? "var(--danger)" : item.stock <= 2 ? "var(--warning)" : "var(--success)",
                           background:  isOut ? "color-mix(in srgb,var(--danger) 10%,transparent)" : item.stock <= 2 ? "color-mix(in srgb,var(--warning) 10%,transparent)" : "color-mix(in srgb,var(--success) 10%,transparent)",
                         }}>
-                          {isOut ? "Épuisé" : `×${item.stock}`}
+                          {isOut ? "نفذ المخزون" : `×${item.stock}`}
                         </span>
                       </div>
                     </div>
@@ -244,13 +244,13 @@ export function CostumesPOSClient({ items, costumeTypes, lookupById, locale }: P
       <div style={{ width: isMobile ? "100%" : 340, flexShrink: 0, display: "flex", flexDirection: "column", overflow: "hidden" }}>
         <div style={{ padding: "14px 16px 12px", borderBottom: "1px solid var(--border)", flexShrink: 0, display: "flex", alignItems: "center", gap: 8 }}>
           <ShoppingCart size={16} style={{ color: "var(--text-muted)" }} />
-          <span style={{ fontSize: 14, fontWeight: 600, color: "var(--text)" }}>Panier</span>
+          <span style={{ fontSize: 14, fontWeight: 600, color: "var(--text)" }}>السلة</span>
           {totalQty > 0 && <span style={{ background: "var(--primary)", color: "#1a1a1a", borderRadius: 999, fontSize: 10, fontWeight: 700, padding: "1px 7px", marginInlineStart: "auto" }}>{totalQty}</span>}
         </div>
 
         <div style={{ flex: 1, overflowY: "auto" }}>
           {cart.length === 0
-            ? <div style={{ display: "flex", flexDirection: "column", alignItems: "center", paddingTop: 56, gap: 8 }}><ShoppingCart size={36} style={{ color: "var(--border)" }} /><p style={{ fontSize: 13, color: "var(--text-muted)", margin: 0 }}>Panier vide</p></div>
+            ? <div style={{ display: "flex", flexDirection: "column", alignItems: "center", paddingTop: 56, gap: 8 }}><ShoppingCart size={36} style={{ color: "var(--border)" }} /><p style={{ fontSize: 13, color: "var(--text-muted)", margin: 0 }}>السلة فارغة</p></div>
             : cart.map(entry => (
               <div key={entry.costumeItemId} style={{ padding: "10px 16px", borderBottom: "1px solid var(--border)" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
@@ -286,14 +286,14 @@ export function CostumesPOSClient({ items, costumeTypes, lookupById, locale }: P
         <div style={{ padding: 16, borderTop: "1px solid var(--border)", flexShrink: 0 }}>
           {cart.some(c => c.unitPrice < c.minSellingPrice) && (
             <div style={{ background: "color-mix(in srgb,var(--warning) 10%,transparent)", border: "1px solid color-mix(in srgb,var(--warning) 30%,transparent)", borderRadius: 8, padding: "8px 12px", marginBottom: 12 }}>
-              <p style={{ fontSize: 11, color: "var(--warning)", margin: 0, fontWeight: 500 }}>⚠ Articles en dessous du prix minimum.</p>
+              <p style={{ fontSize: 11, color: "var(--warning)", margin: 0, fontWeight: 500 }}>⚠ منتجات بسعر أقل من الحد الأدنى.</p>
             </div>
           )}
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12 }}>
-            <span style={{ fontSize: 13, color: "var(--text-muted)" }}>Sous-total</span>
+            <span style={{ fontSize: 13, color: "var(--text-muted)" }}>المجموع الفرعي</span>
             <span style={{ fontSize: 16, fontWeight: 700, color: "var(--text)" }}>{formatMAD(subtotal)}</span>
           </div>
-          <Button fullWidth onClick={handleCheckout} disabled={!cart.length} loading={loading}>Encaisser</Button>
+          <Button fullWidth onClick={handleCheckout} disabled={!cart.length} loading={loading}>الدفع</Button>
         </div>
       </div>
       )}
@@ -310,14 +310,14 @@ export function CostumesPOSClient({ items, costumeTypes, lookupById, locale }: P
         onCancel={() => setShowBelowMin(false)}
       />
 
-      <Modal isOpen={showPayment} onClose={() => setShowPayment(false)} title="Paiement" size="sm">
+      <Modal isOpen={showPayment} onClose={() => setShowPayment(false)} title="الدفع" size="sm">
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           <div style={{ background: "var(--surface-2)", borderRadius: 10, padding: "14px 16px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <span style={{ fontSize: 13, color: "var(--text-muted)" }}>Total</span>
+            <span style={{ fontSize: 13, color: "var(--text-muted)" }}>المجموع</span>
             <span style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.02em" }}>{formatMAD(subtotal)}</span>
           </div>
           <div>
-            <p style={{ fontSize: 11, fontWeight: 600, color: "var(--text-muted)", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.05em" }}>Mode de paiement</p>
+            <p style={{ fontSize: 11, fontWeight: 600, color: "var(--text-muted)", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.05em" }}>طريقة الدفع</p>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
               {PAYMENT_METHODS.map(m => (
                 <button key={m.value} onClick={() => setPayMethod(m.value)} style={{
@@ -330,8 +330,8 @@ export function CostumesPOSClient({ items, costumeTypes, lookupById, locale }: P
             </div>
           </div>
           <div style={{ display: "flex", gap: 8 }}>
-            <Button variant="secondary" fullWidth onClick={() => setShowPayment(false)}>Annuler</Button>
-            <Button fullWidth onClick={handleConfirm} loading={loading}>Confirmer</Button>
+            <Button variant="secondary" fullWidth onClick={() => setShowPayment(false)}>إلغاء</Button>
+            <Button fullWidth onClick={handleConfirm} loading={loading}>تأكيد</Button>
           </div>
         </div>
       </Modal>

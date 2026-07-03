@@ -22,11 +22,6 @@ const STATUS_CONFIG_KEYS = {
   settled: { labelKey: "statusSettled",  variant: "success" as const },
 }
 
-const PAYMENT_METHODS = [
-  { value: "cash",   label: "Espèces"  },
-  { value: "tpe",    label: "TPE"      },
-  { value: "banque", label: "Virement" },
-]
 
 interface CreditListProps {
   credits: CreditForList[]
@@ -37,7 +32,14 @@ interface CreditListProps {
 export function CreditList({ credits }: CreditListProps) {
   const t      = useTranslations("magazin.credits")
   const tCom   = useTranslations("common")
+  const tP     = useTranslations("payment")
   const router = useRouter()
+
+  const PAYMENT_METHODS = [
+    { value: "cash",   label: tP("cash")   },
+    { value: "tpe",    label: tP("tpe")    },
+    { value: "banque", label: tP("banque") },
+  ]
   const [statusFilter, setStatusFilter] = useState("all")
   const [selected,     setSelected]     = useState<CreditForList | null>(null)
   const [payAmount,    setPayAmount]    = useState("")
@@ -55,17 +57,17 @@ export function CreditList({ credits }: CreditListProps) {
   const handlePayment = async () => {
     if (!selected) return
     const amount = parseFloat(payAmount)
-    if (isNaN(amount) || amount <= 0)                           { setPayError("Montant invalide"); return }
-    if (amount > parseFloat(selected.balance))                  { setPayError("Montant supérieur au solde"); return }
+    if (isNaN(amount) || amount <= 0)                           { setPayError(t("invalidAmount")); return }
+    if (amount > parseFloat(selected.balance))                  { setPayError(t("exceedsBalance")); return }
     setLoading(true)
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await addCreditPayment(selected.id, amount, payMethod as any)
-      toast("Paiement enregistré", "success")
+      toast(t("paymentSuccess"), "success")
       setSelected(null)
       router.refresh()
     } catch {
-      toast("Erreur", "error")
+      toast(tCom("error"), "error")
     } finally {
       setLoading(false)
     }
@@ -95,7 +97,7 @@ export function CreditList({ credits }: CreditListProps) {
         return <Badge variant={cfg?.variant ?? "default"} dot>{cfg ? t(cfg.labelKey as any) : String(v)}</Badge>
       },
     },
-    { key: "createdAt", label: "Date", render: (v) => <span style={{ fontSize: 12, color: "var(--text-muted)" }}>{formatDate(v as string)}</span> },
+    { key: "createdAt", label: tCom("date"), render: (v) => <span style={{ fontSize: 12, color: "var(--text-muted)" }}>{formatDate(v as string)}</span> },
   ]
 
   return (
@@ -126,17 +128,17 @@ export function CreditList({ credits }: CreditListProps) {
       </div>
 
       {/* Payment modal */}
-      <Modal isOpen={!!selected} onClose={() => setSelected(null)} title="Enregistrer un paiement" size="sm">
+      <Modal isOpen={!!selected} onClose={() => setSelected(null)} title={t("recordPayment")} size="sm">
         {selected && (
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             <div style={{ background: "var(--surface-2)", borderRadius: 8, padding: "12px 14px" }}>
               <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", margin: 0 }}>{selected.clientName}</p>
               <p style={{ fontSize: 12, color: "var(--text-muted)", margin: "4px 0 0" }}>
-                Solde restant : <strong style={{ color: "var(--danger)" }}>{formatMAD(selected.balance)}</strong>
+                {t("remainingBalance")}: <strong style={{ color: "var(--danger)" }}>{formatMAD(selected.balance)}</strong>
               </p>
             </div>
             <Input
-              label="Montant (MAD) *"
+              label={t("amount")}
               type="number"
               min="0.01"
               step="0.01"
@@ -147,14 +149,14 @@ export function CreditList({ credits }: CreditListProps) {
               autoFocus
             />
             <Select
-              label="Méthode"
+              label={t("method")}
               value={payMethod}
               onChange={e => setPayMethod(e.target.value)}
               options={PAYMENT_METHODS}
             />
             <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
-              <Button variant="ghost" onClick={() => setSelected(null)} disabled={loading}>Annuler</Button>
-              <Button onClick={handlePayment} loading={loading}>Confirmer</Button>
+              <Button variant="ghost" onClick={() => setSelected(null)} disabled={loading}>{tCom("cancel")}</Button>
+              <Button onClick={handlePayment} loading={loading}>{tCom("confirm")}</Button>
             </div>
           </div>
         )}

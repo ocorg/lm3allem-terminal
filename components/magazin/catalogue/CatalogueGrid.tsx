@@ -20,7 +20,7 @@ interface CatalogueGridProps {
   locale:     string
 }
 
-export function CatalogueGrid({ products, categories, sizes, colors, lookupById, locale }: CatalogueGridProps) {
+export function CatalogueGrid({ products, categories, sizes, colors, lookupById }: CatalogueGridProps) {
   const t = useTranslations("magazin.catalogue")
   const [catFilter,      setCatFilter]      = useState("")
   const [sizeFilter,     setSizeFilter]     = useState("")
@@ -45,11 +45,10 @@ export function CatalogueGrid({ products, categories, sizes, colors, lookupById,
         {t("title")}
       </h1>
 
-      {/* Filters */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(175px, 1fr))", gap: 12, alignItems: "end" }}>
-        <Select value={catFilter}   onChange={e => setCatFilter(e.target.value)}   placeholder={t("allCategories")} options={categories.map(c => ({ value: c.id, label: c.label_fr }))} />
-        <Select value={sizeFilter}  onChange={e => setSizeFilter(e.target.value)}  placeholder={t("allSizes")}   options={sizes.map(s => ({ value: s.id, label: s.label_fr }))} />
-        <Select value={colorFilter} onChange={e => setColorFilter(e.target.value)} placeholder={t("allColors")}  options={colors.map(c => ({ value: c.id, label: c.label_fr }))} />
+        <Select value={catFilter}   onChange={e => setCatFilter(e.target.value)}   placeholder={t("allCategories")} options={categories.map(c => ({ value: c.id, label: c.label_ar }))} />
+        <Select value={sizeFilter}  onChange={e => setSizeFilter(e.target.value)}  placeholder={t("allSizes")}   options={sizes.map(s => ({ value: s.id, label: s.label_ar }))} />
+        <Select value={colorFilter} onChange={e => setColorFilter(e.target.value)} placeholder={t("allColors")}  options={colors.map(c => ({ value: c.id, label: c.label_ar }))} />
         {anyFilter && (
           <button
             onClick={() => { setCatFilter(""); setSizeFilter(""); setColorFilter("") }}
@@ -60,7 +59,6 @@ export function CatalogueGrid({ products, categories, sizes, colors, lookupById,
         )}
       </div>
 
-      {/* Grid */}
       {filtered.length === 0 ? (
         <div style={{ textAlign: "center", color: "var(--text-muted)", paddingTop: 64, fontSize: 13 }}>
           {t("noProducts")}
@@ -70,11 +68,11 @@ export function CatalogueGrid({ products, categories, sizes, colors, lookupById,
           {filtered.map(p => {
             const totalStock = p.variants.reduce((s, v) => s + v.stock, 0)
             const isOut      = totalStock === 0
-            const name   = locale === "ar" ? p.name_ar : p.name_fr
+            const name       = p.name_ar
             const availSizes = [...new Set(
               p.variants
                 .filter((v): v is typeof v & { sizeId: string } => v.stock > 0 && v.sizeId !== null)
-                .map(v => lookupMap[v.sizeId]?.label_fr)
+                .map(v => lookupMap[v.sizeId]?.label_ar)
                 .filter((s): s is string => typeof s === "string")
             )]
 
@@ -94,7 +92,6 @@ export function CatalogueGrid({ products, categories, sizes, colors, lookupById,
                 onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.boxShadow = "0 4px 20px rgba(0,0,0,0.12)"; (e.currentTarget as HTMLDivElement).style.transform = "translateY(-2px)" }}
                 onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.boxShadow = "none"; (e.currentTarget as HTMLDivElement).style.transform = "none" }}
               >
-                {/* Image */}
                 <div style={{ aspectRatio: "4/3", background: "var(--surface-2)", overflow: "hidden", position: "relative" }}>
                   {p.images[0]
                     ? <Image src={p.images[0]} alt={name} fill style={{ objectFit: "cover" }} />
@@ -102,7 +99,6 @@ export function CatalogueGrid({ products, categories, sizes, colors, lookupById,
                   }
                 </div>
 
-                {/* Info */}
                 <div style={{ padding: "12px 14px", display: "flex", flexDirection: "column", gap: 6 }}>
                   <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", margin: 0, lineHeight: 1.3 }}>{name}</p>
                   <p style={{ fontSize: 14, fontWeight: 700, color: "var(--primary)", margin: 0 }}>{formatMAD(p.sellingPrice)}</p>
@@ -110,7 +106,6 @@ export function CatalogueGrid({ products, categories, sizes, colors, lookupById,
                     {isOut ? t("outOfStock") : `${totalStock} ${t("inStock")}`}
                   </p>
 
-                  {/* Size chips */}
                   {availSizes.length > 0 && (
                     <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
                       {availSizes.slice(0, 5).map(s => (
@@ -130,22 +125,21 @@ export function CatalogueGrid({ products, categories, sizes, colors, lookupById,
         </div>
       )}
 
-      {/* ── Expanded card overlay ── */}
       {selectedProduct && (() => {
         const sp         = selectedProduct
         const spStock    = sp.variants.reduce((s, v) => s + v.stock, 0)
         const spIsOut    = spStock === 0
-        const spName     = locale === "ar" ? sp.name_ar : sp.name_fr
+        const spName     = sp.name_ar
         const spSizes    = [...new Set(
           sp.variants
             .filter((v): v is typeof v & { sizeId: string } => v.stock > 0 && v.sizeId !== null)
-            .map(v => lookupMap[v.sizeId]?.label_fr)
+            .map(v => lookupMap[v.sizeId]?.label_ar)
             .filter((s): s is string => typeof s === "string")
         )]
         const spColors   = [...new Set(
           sp.variants
             .filter((v): v is typeof v & { colorId: string } => v.stock > 0 && v.colorId !== null)
-            .map(v => lookupMap[v.colorId]?.label_fr)
+            .map(v => lookupMap[v.colorId]?.label_ar)
             .filter((s): s is string => typeof s === "string")
         )]
         const imgs       = sp.images.length > 0 ? sp.images : []
@@ -172,7 +166,6 @@ export function CatalogueGrid({ products, categories, sizes, colors, lookupById,
                 boxShadow: "0 24px 64px rgba(0,0,0,0.4)",
               }}
             >
-              {/* Close button */}
               <button
                 onClick={() => setSelectedProduct(null)}
                 style={{
@@ -187,7 +180,6 @@ export function CatalogueGrid({ products, categories, sizes, colors, lookupById,
                 ✕
               </button>
 
-              {/* Image */}
               <div style={{ width: "100%", aspectRatio: "4/3", background: "var(--surface-2)", overflow: "hidden", flexShrink: 0, position: "relative" }}>
                 {imgs.length > 0 ? (
                   <>
@@ -215,7 +207,6 @@ export function CatalogueGrid({ products, categories, sizes, colors, lookupById,
                 )}
               </div>
 
-              {/* Details */}
               <div style={{ padding: "18px 22px 24px", overflowY: "auto", display: "flex", flexDirection: "column", gap: 14 }}>
                 <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10 }}>
                   <h2 style={{ fontSize: 19, fontWeight: 700, color: "var(--text)", margin: 0, lineHeight: 1.3, flex: 1 }}>{spName}</h2>
@@ -234,7 +225,7 @@ export function CatalogueGrid({ products, categories, sizes, colors, lookupById,
 
                 {spSizes.length > 0 && (
                   <div>
-                    <p style={{ fontSize: 11, fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", margin: "0 0 8px" }}>Tailles disponibles</p>
+                    <p style={{ fontSize: 11, fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", margin: "0 0 8px" }}>{t("availableSizes")}</p>
                     <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                       {spSizes.map(s => (
                         <span key={s} style={{ fontSize: 12, padding: "5px 13px", borderRadius: 6, background: "var(--surface-2)", color: "var(--text)", border: "1px solid var(--border)", fontWeight: 500 }}>{s}</span>
@@ -245,7 +236,7 @@ export function CatalogueGrid({ products, categories, sizes, colors, lookupById,
 
                 {spColors.length > 0 && (
                   <div>
-                    <p style={{ fontSize: 11, fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", margin: "0 0 8px" }}>Couleurs disponibles</p>
+                    <p style={{ fontSize: 11, fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", margin: "0 0 8px" }}>{t("availableColors")}</p>
                     <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                       {spColors.map(c => (
                         <span key={c} style={{ fontSize: 12, padding: "5px 13px", borderRadius: 6, background: "var(--surface-2)", color: "var(--text)", border: "1px solid var(--border)", fontWeight: 500 }}>{c}</span>
@@ -254,17 +245,16 @@ export function CatalogueGrid({ products, categories, sizes, colors, lookupById,
                   </div>
                 )}
 
-                {/* ── Variant stock breakdown ── */}
                 {sp.variants.length > 0 && (
                   <div>
                     <p style={{ fontSize: 11, fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", margin: "0 0 8px" }}>
-                      Stock par variante
+                      {t("stockByVariant")}
                     </p>
                     <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
                       {sp.variants.map((v, i) => {
-                        const sizeLabel  = v.sizeId  ? (locale === "ar" ? lookupMap[v.sizeId]?.label_ar  : lookupMap[v.sizeId]?.label_fr)  ?? "?" : null
-                        const colorLabel = v.colorId ? (locale === "ar" ? lookupMap[v.colorId]?.label_ar : lookupMap[v.colorId]?.label_fr) ?? "?" : null
-                        const label      = [sizeLabel, colorLabel].filter(Boolean).join(" / ") || "Variante"
+                        const sizeLabel  = v.sizeId  ? (lookupMap[v.sizeId]?.label_ar  ?? "?") : null
+                        const colorLabel = v.colorId ? (lookupMap[v.colorId]?.label_ar ?? "?") : null
+                        const label      = [sizeLabel, colorLabel].filter(Boolean).join(" / ") || "-"
                         const isOut      = v.stock === 0
                         const isLow      = v.stock > 0 && v.stock <= 2
                         return (
@@ -292,7 +282,7 @@ export function CatalogueGrid({ products, categories, sizes, colors, lookupById,
                                         : isLow ? "color-mix(in srgb,var(--warning) 12%,transparent)"
                                         :         "color-mix(in srgb,var(--success) 12%,transparent)",
                             }}>
-                              {isOut ? "Épuisé" : `${v.stock} pcs`}
+                              {isOut ? t("outOfStock") : `${v.stock} ${t("units")}`}
                             </span>
                           </div>
                         )

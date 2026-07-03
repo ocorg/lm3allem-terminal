@@ -1,18 +1,18 @@
 "use server"
 
-import { prisma }            from "@/lib/db/prisma"
-import { createLookupValue } from "@/lib/actions/lm3allem/options"
+import { prisma }                    from "@/lib/db/prisma"
+import { createLookupValue, toggleLookupValueActive } from "@/lib/actions/lm3allem/options"
 
-export async function createLookupBySlug(
-  slug: "product_categories" | "product_sizes" | "product_colors",
-  labelAr: string,
-  labelFr: string,
-) {
+export async function createLookupBySlug(slug: string, labelAr: string) {
   const cat = await prisma.lookupCategory.findFirst({ where: { slug } })
-  if (!cat) throw new Error(`Lookup category not found: ${slug}`)
+  if (!cat) throw new Error(`الفئة غير موجودة: ${slug}`)
   return createLookupValue({
     categoryId: cat.id,
-    label_fr:   labelFr || labelAr,
+    label_fr:   labelAr,
     label_ar:   labelAr,
   })
+}
+
+export async function removeLookupValue(id: string) {
+  return toggleLookupValueActive(id)
 }

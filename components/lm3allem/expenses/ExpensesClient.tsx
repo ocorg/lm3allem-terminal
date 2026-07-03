@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl"
 import { Button } from "@/components/ui/Button"
 import { Input } from "@/components/ui/Input"
 import { Select } from "@/components/ui/Select"
+import { CreatableSelect } from "@/components/ui/CreatableSelect"
 import { Textarea } from "@/components/ui/Textarea"
 import { Modal } from "@/components/ui/Modal"
 import { Badge } from "@/components/ui/Badge"
@@ -42,9 +43,11 @@ const EMPTY_FORM: CreateExpenseInput = {
   date: new Date().toISOString().slice(0, 10),
 }
 
-export function ExpensesClient({ initialExpenses, expenseValues }: Props) {
+export function ExpensesClient({ initialExpenses, expenseValues: initialExpenseValues }: Props) {
   const t = useTranslations("lm3allem.expenses")
+  const tCom = useTranslations("common")
   const router = useRouter()
+  const [expenseValues, setExpenseValues] = useState<{ id: string; label_fr: string; label_ar: string }[]>(initialExpenseValues)
   const { confirm, modal } = useConfirm()
   const [isPending, startTransition] = useTransition()
 
@@ -158,22 +161,23 @@ export function ExpensesClient({ initialExpenses, expenseValues }: Props) {
             onChange={(e) => setForm((f) => ({ ...f, portal: e.target.value as CreateExpenseInput["portal"] }))}
             options={PORTALS.map((p) => ({ value: p, label: p }))}
           />
-          <Select
+          <CreatableSelect
             label={t("category")}
             value={form.categoryId}
-            onChange={(e) => setForm((f) => ({ ...f, categoryId: e.target.value }))}
-            options={[
-              { value: "", label: "-" },
-              ...expenseValues.map((v) => ({ value: v.id, label: v.label_fr })),
-            ]}
+            onChange={(id) => setForm((f) => ({ ...f, categoryId: id }))}
+            onCreated={(opt) => setExpenseValues((prev) => [...prev, { id: opt.value, label_fr: opt.label, label_ar: opt.label }])}
+            onDeleted={(id) => setExpenseValues((prev) => prev.filter((v) => v.id !== id))}
+            slug="expense_categories"
+            placeholder="-"
+            options={expenseValues.map((v) => ({ value: v.id, label: v.label_ar }))}
           />
           <Input label={t("amount")} type="number" value={form.amount} onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))} />
           <Input label={t("date")} type="date" value={form.date} onChange={(e) => setForm((f) => ({ ...f, date: e.target.value }))} />
           <Textarea label={t("description")} value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} />
           <Input label={t("receiptUrl")} value={form.receiptUrl ?? ""} onChange={(e) => setForm((f) => ({ ...f, receiptUrl: e.target.value || undefined }))} />
           <div style={{ display: "flex", gap: 12, justifyContent: "flex-end" }}>
-            <Button variant="ghost" onClick={() => setModalOpen(false)}>Annuler</Button>
-            <Button variant="primary" onClick={handleSave} loading={isPending}>Enregistrer</Button>
+            <Button variant="ghost" onClick={() => setModalOpen(false)}>{tCom("cancel")}</Button>
+            <Button variant="primary" onClick={handleSave} loading={isPending}>{tCom("save")}</Button>
           </div>
         </div>
       </Modal>
