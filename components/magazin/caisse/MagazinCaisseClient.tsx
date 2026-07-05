@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
+import { useTranslations } from "next-intl"
 import { Plus, Lock } from "lucide-react"
 import { useCaisse }      from "@/components/caisse/CaisseProvider"
 import { Button }         from "@/components/ui/Button"
@@ -20,6 +21,7 @@ interface MagazinCaisseClientProps {
 export function MagazinCaisseClient({ initialStats, role }: MagazinCaisseClientProps) {
   const { session }    = useCaisse()
   const router         = useRouter()
+  const t              = useTranslations("caisse")
   const isAdmin        = role === "admin" || role === "superadmin"
   const [showManual, setShowManual] = useState(false)
   const [showClose,  setShowClose]  = useState(false)
@@ -30,15 +32,15 @@ export function MagazinCaisseClient({ initialStats, role }: MagazinCaisseClientP
       {/* Header */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.02em", margin: 0 }}>
-          Caisse
+          {t("title")}
         </h1>
         <div style={{ display: "flex", gap: 8 }}>
           <Button variant="secondary" size="sm" icon={<Plus size={14} />} onClick={() => setShowManual(true)}>
-            Entrée manuelle
+            {t("manualEntry")}
           </Button>
           {isAdmin && (
             <Button variant="danger" size="sm" icon={<Lock size={14} />} onClick={() => setShowClose(true)}>
-              Clôturer
+              {t("closeSession")}
             </Button>
           )}
         </div>

@@ -1,7 +1,8 @@
 "use client"
 
-import { useState, useMemo, useEffect } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
+import { useTranslations } from "next-intl"
 import { useCaisse } from "@/components/caisse/CaisseProvider"
 import { BelowMinModal, type BelowMinItem } from "@/components/caisse/BelowMinModal"
 import { ProductGrid } from "./ProductGrid"
@@ -11,6 +12,7 @@ import { PaymentModal } from "./PaymentModal"
 import { toast } from "@/hooks/useToast"
 import { createSale } from "@/lib/actions/magazin/pos"
 import type { ProductForPOS, SaleItemInput } from "@/lib/actions/magazin/pos"
+import type { PaymentMethod } from "@prisma/client"
 import React from "react"
 
 type LookupItem    = { id: string; label_fr: string; label_ar: string }
@@ -20,6 +22,7 @@ export interface CartItem {
   variantId:      string
   productId:      string
   name_fr:        string
+  name_ar:        string
   variantLabel:   string
   stock:          number
   sellingPrice:   number
@@ -36,9 +39,11 @@ interface POSClientProps {
   role:       string
 }
 
-export function POSClient({ products, categories, lookupById, locale, role }: POSClientProps) {
+export function POSClient({ products, categories, lookupById, locale }: POSClientProps) {
   const { session } = useCaisse()
   const router      = useRouter()
+  const tPos        = useTranslations("magazin.pos")
+  const tP          = useTranslations("payment")
 
   const [cart,          setCart]          = useState<CartItem[]>([])
   const [pickerProduct, setPickerProduct] = useState<ProductForPOS | null>(null)
@@ -50,8 +55,8 @@ export function POSClient({ products, categories, lookupById, locale, role }: PO
 
   const getVariantLabel = (v: { sizeId: string | null; colorId: string | null }) => {
     const parts: string[] = []
-    if (v.sizeId  && lookupById[v.sizeId])  parts.push(lookupById[v.sizeId].label_fr)
-    if (v.colorId && lookupById[v.colorId]) parts.push(lookupById[v.colorId].label_fr)
+    if (v.sizeId  && lookupById[v.sizeId])  parts.push(lookupById[v.sizeId].label_ar)
+    if (v.colorId && lookupById[v.colorId]) parts.push(lookupById[v.colorId].label_ar)
     return parts.join(" - ") || "Standard"
   }
 
@@ -68,6 +73,7 @@ export function POSClient({ products, categories, lookupById, locale, role }: PO
         variantId,
         productId:       product.id,
         name_fr:         product.name_fr,
+        name_ar:         product.name_ar,
         variantLabel:    getVariantLabel(variant),
         stock:           variant.stock,
         sellingPrice:    parseFloat(product.sellingPrice),
@@ -138,7 +144,7 @@ export function POSClient({ products, categories, lookupById, locale, role }: PO
       await createSale({
         caisseSessionId: session.id,
         items,
-        paymentMethod:   paymentMethod as any,
+        paymentMethod:   paymentMethod as PaymentMethod,
         totalAmount,
         amountPaid,
         isCredit,
@@ -146,13 +152,13 @@ export function POSClient({ products, categories, lookupById, locale, role }: PO
         clientPhone,
       })
 
-      toast("Vente enregistrée", "success")
+      toast(tP("saleSuccess"), "success")
       setCart([])
       setAuthorized({})
       setShowPayment(false)
       router.refresh()
     } catch (e) {
-      toast(e instanceof Error ? e.message : "Erreur lors de la vente", "error")
+      toast(e instanceof Error ? e.message : tP("saleError"), "error")
     } finally {
       setSaleLoading(false)
     }
@@ -163,7 +169,6 @@ export function POSClient({ products, categories, lookupById, locale, role }: PO
   const [isMobile,  setIsMobile]  = useState(false)
   const [mobileTab, setMobileTab] = useState<"products" | "cart">("products")
   const totalQty = cart.reduce((s, i) => s + i.quantity, 0)
-  const subtotal  = cart.reduce((s, i) => s + i.unitPrice * i.quantity, 0)
 
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768)
@@ -188,8 +193,8 @@ export function POSClient({ products, categories, lookupById, locale, role }: PO
             {(["products", "cart"] as const).map(tab => {
               const active = mobileTab === tab
               const label  = tab === "products"
-                ? "Produits"
-                : `Panier${totalQty > 0 ? ` (${totalQty})` : ""}`
+                ? tPos("products")
+                : `${tPos("cartTitle")}${totalQty > 0 ? ` (${totalQty})` : ""}`
               return (
                 <button
                   key={tab}

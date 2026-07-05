@@ -1,19 +1,13 @@
 "use client"
 
 import { useState, useMemo } from "react"
+import { useTranslations } from "next-intl"
 import { Modal }     from "@/components/ui/Modal"
 import { Input }     from "@/components/ui/Input"
 import { Button }    from "@/components/ui/Button"
 import { formatMAD } from "@/lib/utils/currency"
 import type { CartItem } from "./POSClient"
 import React from "react"
-
-const PAYMENT_METHODS = [
-  { value: "cash",   label: "Espèces"  },
-  { value: "tpe",    label: "TPE"      },
-  { value: "banque", label: "Virement" },
-  { value: "credit", label: "À crédit" },
-]
 
 interface PaymentModalProps {
   isOpen:    boolean
@@ -25,6 +19,16 @@ interface PaymentModalProps {
 }
 
 export function PaymentModal({ isOpen, cart, loading, onClose, onConfirm }: PaymentModalProps) {
+  const tP  = useTranslations("payment")
+  const tCom = useTranslations("common")
+
+  const PAYMENT_METHODS = [
+    { value: "cash",   label: tP("cash")   },
+    { value: "tpe",    label: tP("tpe")    },
+    { value: "banque", label: tP("banque") },
+    { value: "credit", label: tP("credit") },
+  ]
+
   const totalAmount = useMemo(() => cart.reduce((s, i) => s + i.unitPrice * i.quantity, 0), [cart])
 
   const [method,      setMethod]      = useState("cash")
@@ -40,29 +44,27 @@ export function PaymentModal({ isOpen, cart, loading, onClose, onConfirm }: Paym
   const handleConfirm = () => {
     setError("")
     if ((isCreditMode) && !clientName.trim()) {
-      setError("Le nom du client est requis pour une vente à crédit.")
+      setError(tP("clientRequired"))
       return
     }
     if (!isCreditMode && amountPaid < totalAmount) {
-      setError("Montant insuffisant.")
+      setError(tP("insufficientAmount"))
       return
     }
     onConfirm(method, isCreditMode ? amountPaid : amountPaid, isCreditMode, clientName || undefined, clientPhone || undefined)
   }
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Paiement" size="sm">
+    <Modal isOpen={isOpen} onClose={onClose} title={tP("title")} size="sm">
       <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
 
-        {/* Total */}
         <div style={{ background: "var(--surface-2)", borderRadius: 10, padding: "14px 16px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <span style={{ fontSize: 13, color: "var(--text-muted)" }}>Total à encaisser</span>
+          <span style={{ fontSize: 13, color: "var(--text-muted)" }}>{tP("totalToPay")}</span>
           <span style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.02em" }}>
             {formatMAD(totalAmount)}
           </span>
         </div>
 
-        {/* Method selector */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
           {PAYMENT_METHODS.map(m => (
             <button
@@ -85,9 +87,8 @@ export function PaymentModal({ isOpen, cart, loading, onClose, onConfirm }: Paym
           ))}
         </div>
 
-        {/* Amount paid */}
         <Input
-          label={isCreditMode ? "Avance payée (MAD)" : "Montant reçu (MAD)"}
+          label={isCreditMode ? tP("advancePaid") : tP("amountReceived")}
           type="number"
           min="0"
           step="0.01"
@@ -96,25 +97,23 @@ export function PaymentModal({ isOpen, cart, loading, onClose, onConfirm }: Paym
           placeholder="0.00"
         />
 
-        {/* Change */}
         {method === "cash" && !isNaN(change) && change >= 0 && (
           <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 14px", background: "color-mix(in srgb, var(--success) 10%, transparent)", borderRadius: 8 }}>
-            <span style={{ fontSize: 13, color: "var(--success)", fontWeight: 500 }}>Monnaie à rendre</span>
+            <span style={{ fontSize: 13, color: "var(--success)", fontWeight: 500 }}>{tP("change")}</span>
             <span style={{ fontSize: 15, fontWeight: 700, color: "var(--success)" }}>{formatMAD(change)}</span>
           </div>
         )}
 
-        {/* Credit client info */}
         {isCreditMode && (
           <div style={{ display: "flex", flexDirection: "column", gap: 10, padding: "12px 14px", background: "var(--surface-2)", borderRadius: 8 }}>
             <Input
-              label="Nom du client *"
+              label={tP("clientName")}
               value={clientName}
               onChange={e => { setClientName(e.target.value); setError("") }}
-              placeholder="ex: Mohammed Alaoui"
+              placeholder={tP("clientNamePlaceholder")}
             />
             <Input
-              label="Téléphone"
+              label={tP("phone")}
               value={clientPhone}
               onChange={e => setClientPhone(e.target.value)}
               placeholder="06..."
@@ -125,8 +124,8 @@ export function PaymentModal({ isOpen, cart, loading, onClose, onConfirm }: Paym
         {error && <p style={{ fontSize: 12, color: "var(--danger)", margin: 0 }}>{error}</p>}
 
         <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
-          <Button variant="ghost" onClick={onClose} disabled={loading}>Annuler</Button>
-          <Button onClick={handleConfirm} loading={loading}>Confirmer la vente</Button>
+          <Button variant="ghost" onClick={onClose} disabled={loading}>{tCom("cancel")}</Button>
+          <Button onClick={handleConfirm} loading={loading}>{tP("confirmSale")}</Button>
         </div>
       </div>
     </Modal>

@@ -1,13 +1,15 @@
+import { useTranslations } from "next-intl"
 import { formatMAD }      from "@/lib/utils/currency"
 import { formatRelative } from "@/lib/utils/date"
 import type { TransactionEntry } from "@/lib/actions/magazin/caisse"
 import React from "react"
 
 export function TransactionList({ transactions }: { transactions: TransactionEntry[] }) {
+  const t = useTranslations("caisse")
   if (transactions.length === 0) {
     return (
       <div style={{ textAlign: "center", color: "var(--text-muted)", padding: "32px 0", fontSize: 13 }}>
-        Aucune transaction pour cette session.
+        {t("noTransactions")}
       </div>
     )
   }
@@ -16,7 +18,7 @@ export function TransactionList({ transactions }: { transactions: TransactionEnt
     <div style={{ border: "1px solid var(--border)", borderRadius: 10, overflow: "hidden" }}>
       <div style={{ padding: "10px 16px", background: "var(--surface-2)", borderBottom: "1px solid var(--border)" }}>
         <span style={{ fontSize: 11, fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-          Transactions récentes
+          {t("recentTransactions")}
         </span>
       </div>
 

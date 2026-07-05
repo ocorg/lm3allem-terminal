@@ -389,23 +389,7 @@
   },
   "costumes": {
     "nav": {
-      "clients": {
-        "title": "العملاء",
-        "addClient": "إضافة زبون",
-        "addFirst": "إضافة أول زبون",
-        "address": "العنوان",
-        "addressOptional": "العنوان (اختياري)",
-        "createSuccess": "تم إضافة الزبون بنجاح",
-        "createdAtLabel": "تاريخ الإضافة",
-        "editClient": "تعديل الزبون",
-        "name": "الاسم",
-        "nameColumn": "الاسم",
-        "noClients": "لا يوجد عملاء بعد",
-        "notesOptional": "ملاحظات (اختياري)",
-        "phone": "رقم الهاتف",
-        "phoneTaken": "رقم الهاتف مستخدم بالفعل",
-        "rentalCount": "عدد الإيجارات"
-      },
+      "clients": "العملاء",
       "pos": "نقطة البيع",
       "rentals": "الإيجارات",
       "inventory": "المخزون",

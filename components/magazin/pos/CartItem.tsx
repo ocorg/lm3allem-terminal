@@ -1,6 +1,7 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
+import { useTranslations } from "next-intl"
 import { Minus, Plus, Trash2 } from "lucide-react"
 import { formatMAD } from "@/lib/utils/currency"
 import type { CartItem } from "./POSClient"
@@ -14,14 +15,17 @@ interface CartItemProps {
 }
 
 export function CartItem({ item, onUpdateQty, onUpdatePrice, onRemove }: CartItemProps) {
+  const t = useTranslations("magazin.pos")
   const [priceStr, setPriceStr] = useState(item.unitPrice.toFixed(2))
+  const [prevUnitPrice, setPrevUnitPrice] = useState(item.unitPrice)
   const isBelowMin = item.unitPrice < item.minSellingPrice
   const lineTotal  = item.unitPrice * item.quantity
 
-  // Sync if parent resets price
-  useEffect(() => {
+  // Sync if parent resets price (compared during render, not in an effect)
+  if (item.unitPrice !== prevUnitPrice) {
+    setPrevUnitPrice(item.unitPrice)
     setPriceStr(item.unitPrice.toFixed(2))
-  }, [item.unitPrice])
+  }
 
   const commitPrice = (raw: string) => {
     const parsed = parseFloat(raw)
@@ -45,14 +49,14 @@ export function CartItem({ item, onUpdateQty, onUpdatePrice, onRemove }: CartIte
       <div style={{ display: "flex", alignItems: "flex-start", gap: 8, marginBottom: 8 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
           <p style={{ fontSize: 12, fontWeight: 600, color: "var(--text)", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-            {item.name_fr}
+            {item.name_ar}
           </p>
           <p style={{ fontSize: 11, color: "var(--text-muted)", margin: "1px 0 0" }}>
             {item.variantLabel}
           </p>
           {isBelowMin && (
             <p style={{ fontSize: 10, color: "var(--danger)", margin: "2px 0 0", fontWeight: 600 }}>
-              ▼ En dessous du minimum ({formatMAD(item.minSellingPrice)})
+              ▼ {t("belowMin", { price: formatMAD(item.minSellingPrice) })}
             </p>
           )}
         </div>

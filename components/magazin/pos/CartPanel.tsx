@@ -1,6 +1,7 @@
 "use client"
 
 import { useMemo } from "react"
+import { useTranslations } from "next-intl"
 import { ShoppingCart } from "lucide-react"
 import { Button }    from "@/components/ui/Button"
 import { formatMAD } from "@/lib/utils/currency"
@@ -18,6 +19,7 @@ interface CartPanelProps {
 }
 
 export function CartPanel({ items, loading, onUpdateItem, onRemoveItem, onCheckout }: CartPanelProps) {
+  const t           = useTranslations("magazin.pos")
   const subtotal    = useMemo(() => items.reduce((s, i) => s + i.unitPrice * i.quantity, 0), [items])
   const hasBelowMin = items.some(i => i.unitPrice < i.minSellingPrice)
   const totalQty    = items.reduce((s, i) => s + i.quantity, 0)
@@ -29,7 +31,7 @@ export function CartPanel({ items, loading, onUpdateItem, onRemoveItem, onChecko
       <div style={{ padding: "16px 16px 12px", borderBottom: "1px solid var(--border)", flexShrink: 0 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <ShoppingCart size={16} style={{ color: "var(--text-muted)" }} />
-          <span style={{ fontSize: 14, fontWeight: 600, color: "var(--text)" }}>Panier</span>
+          <span style={{ fontSize: 14, fontWeight: 600, color: "var(--text)" }}>{t("cartTitle")}</span>
           {totalQty > 0 && (
             <span style={{
               background: "var(--primary)", color: "#1a1a1a",
@@ -47,7 +49,7 @@ export function CartPanel({ items, loading, onUpdateItem, onRemoveItem, onChecko
         {items.length === 0 ? (
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", paddingTop: 56, gap: 8 }}>
             <ShoppingCart size={36} style={{ color: "var(--border)" }} />
-            <p style={{ fontSize: 13, color: "var(--text-muted)", margin: 0 }}>Panier vide</p>
+            <p style={{ fontSize: 13, color: "var(--text-muted)", margin: 0 }}>{t("cartEmpty")}</p>
           </div>
         ) : (
           items.map(item => (
@@ -76,18 +78,18 @@ export function CartPanel({ items, loading, onUpdateItem, onRemoveItem, onChecko
             marginBottom: 12,
           }}>
             <p style={{ fontSize: 11, color: "var(--warning)", margin: 0, fontWeight: 500 }}>
-              ⚠ Certains articles sont en dessous du prix minimum. Une autorisation sera requise.
+              ⚠ {t("belowMinWarning")}
             </p>
           </div>
         )}
 
         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12 }}>
-          <span style={{ fontSize: 13, color: "var(--text-muted)" }}>Sous-total</span>
+          <span style={{ fontSize: 13, color: "var(--text-muted)" }}>{t("subtotal")}</span>
           <span style={{ fontSize: 16, fontWeight: 700, color: "var(--text)" }}>{formatMAD(subtotal)}</span>
         </div>
 
         <Button fullWidth onClick={onCheckout} disabled={items.length === 0} loading={loading}>
-          Encaisser
+          {t("checkout")}
         </Button>
       </div>
     </div>
