@@ -1,6 +1,7 @@
 "use client"
 
 import { useRef, useState } from "react"
+import { useTranslations } from "next-intl"
 import { Upload, X, ImageIcon } from "lucide-react"
 import { toast } from "@/hooks/useToast"
 import React from "react"
@@ -11,6 +12,7 @@ interface ImageUploaderProps {
 }
 
 export function ImageUploader({ images, onChange }: ImageUploaderProps) {
+  const t = useTranslations("magazin.inventory")
   const inputRef = useRef<HTMLInputElement>(null)
   const [uploading, setUploading] = useState(false)
 
@@ -31,7 +33,7 @@ export function ImageUploader({ images, onChange }: ImageUploaderProps) {
         const { url } = await res.json()
         newUrls.push(url as string)
       } catch (e) {
-        toast(e instanceof Error ? e.message : "Erreur lors de l'upload", "error")
+        toast(e instanceof Error ? e.message : t("uploadError"), "error")
       }
     }
 
@@ -42,7 +44,7 @@ export function ImageUploader({ images, onChange }: ImageUploaderProps) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
       <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-        Images
+        {t("imagesLabel")}
       </span>
 
       {/* Thumbnails */}
@@ -99,7 +101,7 @@ export function ImageUploader({ images, onChange }: ImageUploaderProps) {
         }}
       >
         {uploading ? <Upload size={14} /> : <ImageIcon size={14} />}
-        {uploading ? "Téléchargement en cours..." : "Ajouter des images"}
+        {uploading ? t("uploading") : t("addImages")}
       </button>
 
       <input

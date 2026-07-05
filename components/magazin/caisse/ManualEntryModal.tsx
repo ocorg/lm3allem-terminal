@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useTranslations } from "next-intl"
 import { Modal }  from "@/components/ui/Modal"
 import { Input }  from "@/components/ui/Input"
 import { Button } from "@/components/ui/Button"
@@ -16,6 +17,9 @@ interface ManualEntryModalProps {
 }
 
 export function ManualEntryModal({ isOpen, sessionId, onClose, onSuccess }: ManualEntryModalProps) {
+  const t    = useTranslations("caisse")
+  const tCom = useTranslations("common")
+
   const [amount,  setAmount]  = useState("")
   const [reason,  setReason]  = useState("")
   const [loading, setLoading] = useState(false)
@@ -24,49 +28,49 @@ export function ManualEntryModal({ isOpen, sessionId, onClose, onSuccess }: Manu
   const handleSave = async () => {
     const e: Record<string, string> = {}
     const num = parseFloat(amount)
-    if (isNaN(num))         e.amount = "Montant invalide"
-    if (!reason.trim())     e.reason = "Motif requis"
+    if (isNaN(num))         e.amount = tCom("invalidAmount")
+    if (!reason.trim())     e.reason = t("reasonRequired")
     setErrors(e)
     if (Object.keys(e).length) return
 
     setLoading(true)
     try {
       await addManualEntry(sessionId, num, reason.trim())
-      toast("Entrée enregistrée", "success")
+      toast(t("entryRecorded"), "success")
       setAmount(""); setReason("")
       onSuccess()
     } catch {
-      toast("Erreur lors de l'enregistrement", "error")
+      toast(t("entryError"), "error")
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Entrée manuelle" size="sm">
+    <Modal isOpen={isOpen} onClose={onClose} title={t("manualEntry")} size="sm">
       <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
         <p style={{ fontSize: 12, color: "var(--text-muted)", margin: 0, lineHeight: 1.5 }}>
-          Montant positif = entrée de fonds.&nbsp; Montant négatif = dépense ou sortie.
+          {t("manualEntryInstructions")}
         </p>
         <Input
-          label="Montant (MAD)"
+          label={t("amount")}
           type="number"
           step="0.01"
           value={amount}
           onChange={e => { setAmount(e.target.value); setErrors({}) }}
           error={errors.amount}
-          placeholder="ex: -50 ou 200"
+          placeholder={t("amountPlaceholder")}
         />
         <Input
-          label="Motif *"
+          label={t("reason")}
           value={reason}
           onChange={e => { setReason(e.target.value); setErrors({}) }}
           error={errors.reason}
-          placeholder="ex: Achat sacs, Remboursement client..."
+          placeholder={t("reasonPlaceholder")}
         />
         <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
-          <Button variant="ghost" onClick={onClose} disabled={loading}>Annuler</Button>
-          <Button onClick={handleSave} loading={loading}>Enregistrer</Button>
+          <Button variant="ghost" onClick={onClose} disabled={loading}>{tCom("cancel")}</Button>
+          <Button onClick={handleSave} loading={loading}>{tCom("save")}</Button>
         </div>
       </div>
     </Modal>
