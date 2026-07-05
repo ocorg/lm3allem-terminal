@@ -38,8 +38,8 @@ export function CreatableSelect({
         onCreated({ value: created.id, label: created.label_ar })
         setLabelAr(""); setAdding(false)
         toast("تمت الإضافة", "success")
-      } catch {
-        toast("خطأ في الإضافة", "error")
+      } catch (err) {
+        toast(err instanceof Error ? err.message : "خطأ في الإضافة", "error")
       }
     })
   }
