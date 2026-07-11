@@ -79,9 +79,9 @@ export function VariantManager({ variants, onChange, sizes: initialSizes, colors
             options={colors}
           />
           <input
-            type="number"
-            min="0"
-            value={v.stock}
+            type="text"
+            inputMode="decimal"
+            value={v.stock === 0 ? "" : v.stock}
             onChange={e => updateRow(i, { stock: Math.max(0, parseInt(e.target.value) || 0) })}
             style={{
               height:        42,

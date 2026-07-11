@@ -80,6 +80,8 @@ export function Input({
           onFocus={(e) => { setFocused(true);  onFocus?.(e) }}
           onBlur={(e)  => { setFocused(false); onBlur?.(e)  }}
           {...props}
+          type={props.type === "number" ? "text" : props.type}
+          inputMode={props.type === "number" ? "decimal" : props.inputMode}
         />
 
         {rightIcon && (

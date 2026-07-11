@@ -109,9 +109,9 @@ export function ProductFormModal({ isOpen, mode, product, categories: initialCat
         />
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
-          <Input label={tInv("buyingRequired")}  type="number" min="0" step="0.01" value={buying}  onChange={e => setBuying(e.target.value)}  error={errors.buying}  placeholder="0.00" />
-          <Input label={tInv("sellingRequired")} type="number" min="0" step="0.01" value={selling} onChange={e => setSelling(e.target.value)} error={errors.selling} placeholder="0.00" />
-          <Input label={tInv("minRequired")}     type="number" min="0" step="0.01" value={minSell} onChange={e => setMinSell(e.target.value)} error={errors.minSell} placeholder="0.00" />
+          <Input label={tInv("buyingRequired")}  type="number" value={buying}  onChange={e => setBuying(e.target.value)}  error={errors.buying}  />
+          <Input label={tInv("sellingRequired")} type="number" value={selling} onChange={e => setSelling(e.target.value)} error={errors.selling} />
+          <Input label={tInv("minRequired")}     type="number" value={minSell} onChange={e => setMinSell(e.target.value)} error={errors.minSell} />
         </div>
 
         <ImageUploader images={images} onChange={setImages} />

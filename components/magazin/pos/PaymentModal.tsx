@@ -32,7 +32,7 @@ export function PaymentModal({ isOpen, cart, loading, onClose, onConfirm }: Paym
   const totalAmount = useMemo(() => cart.reduce((s, i) => s + i.unitPrice * i.quantity, 0), [cart])
 
   const [method,      setMethod]      = useState("cash")
-  const [amountStr,   setAmountStr]   = useState(totalAmount.toFixed(2))
+  const [amountStr,   setAmountStr]   = useState(totalAmount > 0 ? String(totalAmount) : "")
   const [clientName,  setClientName]  = useState("")
   const [clientPhone, setClientPhone] = useState("")
   const [error,       setError]       = useState("")

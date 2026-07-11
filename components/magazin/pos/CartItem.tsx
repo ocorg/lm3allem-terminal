@@ -16,7 +16,7 @@ interface CartItemProps {
 
 export function CartItem({ item, onUpdateQty, onUpdatePrice, onRemove }: CartItemProps) {
   const t = useTranslations("magazin.pos")
-  const [priceStr, setPriceStr] = useState(item.unitPrice.toFixed(2))
+  const [priceStr, setPriceStr] = useState(String(item.unitPrice === 0 ? "" : item.unitPrice))
   const [prevUnitPrice, setPrevUnitPrice] = useState(item.unitPrice)
   const isBelowMin = item.unitPrice < item.minSellingPrice
   const lineTotal  = item.unitPrice * item.quantity
@@ -24,7 +24,7 @@ export function CartItem({ item, onUpdateQty, onUpdatePrice, onRemove }: CartIte
   // Sync if parent resets price (compared during render, not in an effect)
   if (item.unitPrice !== prevUnitPrice) {
     setPrevUnitPrice(item.unitPrice)
-    setPriceStr(item.unitPrice.toFixed(2))
+    setPriceStr(String(item.unitPrice === 0 ? "" : item.unitPrice))
   }
 
   const commitPrice = (raw: string) => {
