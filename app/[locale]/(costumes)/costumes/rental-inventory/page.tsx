@@ -1,6 +1,9 @@
-import { withModule }                          from "@/lib/auth/session"
-import { getCostumeItems, getInventoryLookups } from "@/lib/actions/costumes/inventory"
-import { CostumesInventoryClient }             from "@/components/costumes/inventory/CostumesInventoryClient"
+import { withModule }          from "@/lib/auth/session"
+import {
+  getCostumeItems,
+  getInventoryLookups,
+} from "@/lib/actions/costumes/inventory"
+import { CostumesInventoryClient } from "@/components/costumes/inventory/CostumesInventoryClient"
 import React from "react"
 
 export default async function RentalInventoryPage({
@@ -8,24 +11,25 @@ export default async function RentalInventoryPage({
 }: {
   params: Promise<{ locale: string }>
 }) {
-  const { locale }  = await params
+  await params
   const authSession = await withModule("costumes", "rental_inventory")
 
-  const [items, { sizes, colors, costumeTypes, lookupById }] = await Promise.all([
-    getCostumeItems("rental"),
-    getInventoryLookups(),
-  ])
+  const [items, { suitSizes, pantsSizes, shirtSizes, shoeSizes, costumeTypes, lookupById }] =
+    await Promise.all([
+      getCostumeItems(),
+      getInventoryLookups(),
+    ])
 
   return (
     <CostumesInventoryClient
       items={items}
-      segment="rental"
-      sizes={sizes}
-      colors={colors}
+      suitSizes={suitSizes}
+      pantsSizes={pantsSizes}
+      shirtSizes={shirtSizes}
+      shoeSizes={shoeSizes}
       costumeTypes={costumeTypes}
       lookupById={lookupById}
       role={authSession.user.role}
-      locale={locale}
     />
   )
 }

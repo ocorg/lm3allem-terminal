@@ -312,6 +312,8 @@ model CostumeItem {
   costumeType     LookupValue       @relation(fields: [typeId], references: [id])
   sizeId          String?
   colorId         String?
+  shirtSizeId     String?
+  shoeSizeId      String?
   stock           Int               @default(1)
   images          String[]
   buyingPrice     Decimal           @db.Decimal(10, 2)

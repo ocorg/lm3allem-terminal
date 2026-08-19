@@ -1,43 +1,91 @@
 "use client"
 
-import { useState } from "react"
-import { useRouter }            from "next/navigation"
-import { useTranslations }      from "next-intl"
-import { PencilLine, Plus }     from "lucide-react"
-import Image                    from "next/image"
+import { useState }          from "react"
+import { useRouter }         from "next/navigation"
+import { useTranslations }   from "next-intl"
+import { PencilLine, Plus }  from "lucide-react"
+import Image                 from "next/image"
 import { DataTable, type Column } from "@/components/ui/DataTable"
-import { Badge }                from "@/components/ui/Badge"
-import { Button }               from "@/components/ui/Button"
-import { Modal }                from "@/components/ui/Modal"
-import { Input }                from "@/components/ui/Input"
-import { Select }               from "@/components/ui/Select"
-import { CreatableSelect }      from "@/components/ui/CreatableSelect"
-import { toast }                from "@/hooks/useToast"
-import { formatMAD }            from "@/lib/utils/currency"
-import { ImageUploader }        from "@/components/magazin/inventory/ImageUploader"
-import { createCostumeItem, updateCostumeItem } from "@/lib/actions/costumes/inventory"
-import type { CostumeItemForInventory, CostumeItemInput } from "@/lib/actions/costumes/inventory"
+import { Badge }             from "@/components/ui/Badge"
+import { Button }            from "@/components/ui/Button"
+import { Modal }             from "@/components/ui/Modal"
+import { Input }             from "@/components/ui/Input"
+import { CreatableSelect }   from "@/components/ui/CreatableSelect"
+import { toast }             from "@/hooks/useToast"
+import { ImageUploader }     from "@/components/magazin/inventory/ImageUploader"
+import {
+  createCostumeItem,
+  updateCostumeItem,
+} from "@/lib/actions/costumes/inventory"
+import type {
+  CostumeItemForInventory,
+  CostumeItemInput,
+} from "@/lib/actions/costumes/inventory"
 import type { LookupItem, LookupById } from "@/lib/actions/costumes/pos"
-import type { ItemSegment } from "@prisma/client"
-import React from "react"
+
+// ── Props ──────────────────────────────────────────────────────
 
 interface Props {
   items:        CostumeItemForInventory[]
-  segment:      "sale" | "rental"
-  sizes:        LookupItem[]
-  colors:       LookupItem[]
+  suitSizes:    LookupItem[]
+  pantsSizes:   LookupItem[]
+  shirtSizes:   LookupItem[]
+  shoeSizes:    LookupItem[]
   costumeTypes: LookupItem[]
   lookupById:   LookupById
   role:         string
-  locale:       string
 }
 
-export function CostumesInventoryClient({ items, segment, sizes, colors, costumeTypes, lookupById, role }: Props) {
-  const router   = useRouter()
-  const tInv     = useTranslations("inventory")
-  const tCom     = useTranslations("common")
-  const tUi      = useTranslations("ui")
-  const isAdmin  = role === "admin" || role === "superadmin"
+// ── Shoe guide illustration ────────────────────────────────────
+
+function ShoeGuideIcon() {
+  return (
+    <svg
+      viewBox="0 0 88 40"
+      style={{ width: 52, height: 24, color: "var(--text-muted)", flexShrink: 0 }}
+      fill="currentColor"
+      aria-hidden="true"
+    >
+      {/* Heel block */}
+      <rect x="2" y="20" width="10" height="13" rx="2.5" opacity="0.85" />
+      {/* Sole */}
+      <rect x="2" y="30" width="84" height="5" rx="2.5" opacity="0.35" />
+      {/* Upper */}
+      <path
+        d="M12 29 L12 18 Q14 7 30 5 Q56 1 76 15 Q86 19 86 26 L86 30 Z"
+        opacity="0.55"
+      />
+      {/* Measurement dashes below sole */}
+      <line
+        x1="2" y1="38" x2="86" y2="38"
+        stroke="currentColor" strokeWidth="1.5" opacity="0.22"
+        strokeDasharray="4 3"
+      />
+      {/* End ticks */}
+      <line x1="2"  y1="35" x2="2"  y2="40" stroke="currentColor" strokeWidth="1.5" opacity="0.3" />
+      <line x1="86" y1="35" x2="86" y2="40" stroke="currentColor" strokeWidth="1.5" opacity="0.3" />
+    </svg>
+  )
+}
+
+// ── Main list component ────────────────────────────────────────
+
+export function CostumesInventoryClient({
+  items,
+  suitSizes:  initialSuitSizes,
+  pantsSizes: initialPantsSizes,
+  shirtSizes: initialShirtSizes,
+  shoeSizes:  initialShoeSizes,
+  costumeTypes,
+  lookupById,
+  role,
+}: Props) {
+  const router  = useRouter()
+  const tInv    = useTranslations("inventory")
+  const tCom    = useTranslations("common")
+  const tUi     = useTranslations("ui")
+  const isAdmin = role === "admin" || role === "superadmin"
+
   const [editing,  setEditing]  = useState<CostumeItemForInventory | null>(null)
   const [creating, setCreating] = useState(false)
 
@@ -45,29 +93,36 @@ export function CostumesInventoryClient({ items, segment, sizes, colors, costume
     {
       key: "images", label: tInv("colPhoto"), width: 56,
       render: (_, row) => row.images[0]
-        ? <Image src={row.images[0]} alt="" width={40} height={40} style={{ borderRadius: 6, objectFit: "cover" }} />
+        ? <Image src={row.images[0]} alt="" width={40} height={40}
+            style={{ borderRadius: 6, objectFit: "cover" }} />
         : <div style={{ width: 40, height: 40, borderRadius: 6, background: "var(--surface-2)" }} />,
     },
     {
-      key: "name_ar", label: tInv("colArticle"), sortable: true,
-      render: (_, row) => (
-        <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", margin: 0 }}>{row.name_ar}</p>
-      ),
-    },
-    {
-      key: "type", label: tInv("type"),
+      key: "typeId", label: tInv("type"),
       render: (_, row) => <Badge variant="default">{row.typeLabelAr}</Badge>,
     },
     {
-      key: "sizeId", label: tInv("size"),
+      key: "sizeId", label: "مقاس البدلة",
       render: (_, row) => row.sizeId && lookupById[row.sizeId]
         ? <span style={{ fontSize: 13 }}>{lookupById[row.sizeId].label_ar}</span>
         : <span style={{ color: "var(--text-muted)", fontSize: 13 }}>-</span>,
     },
     {
-      key: "colorId", label: tInv("color"),
+      key: "colorId", label: "مقاس السروال",
       render: (_, row) => row.colorId && lookupById[row.colorId]
         ? <span style={{ fontSize: 13 }}>{lookupById[row.colorId].label_ar}</span>
+        : <span style={{ color: "var(--text-muted)", fontSize: 13 }}>-</span>,
+    },
+    {
+      key: "shirtSizeId", label: "مقاس القميجة",
+      render: (_, row) => row.shirtSizeId && lookupById[row.shirtSizeId]
+        ? <span style={{ fontSize: 13 }}>{lookupById[row.shirtSizeId].label_ar}</span>
+        : <span style={{ color: "var(--text-muted)", fontSize: 13 }}>-</span>,
+    },
+    {
+      key: "shoeSizeId", label: "مقاس الصباط",
+      render: (_, row) => row.shoeSizeId && lookupById[row.shoeSizeId]
+        ? <span style={{ fontSize: 13 }}>{lookupById[row.shoeSizeId].label_ar}</span>
         : <span style={{ color: "var(--text-muted)", fontSize: 13 }}>-</span>,
     },
     {
@@ -78,12 +133,6 @@ export function CostumesInventoryClient({ items, segment, sizes, colors, costume
         </span>
       ),
     },
-    ...(segment === "sale" ? [
-      { key: "sellingPrice"    as const, label: tInv("colSellingPrice"), render: (_: unknown, row: CostumeItemForInventory) => formatMAD(row.sellingPrice) },
-      { key: "minSellingPrice" as const, label: tInv("colMinPrice"),     render: (_: unknown, row: CostumeItemForInventory) => formatMAD(row.minSellingPrice) },
-    ] : [
-      { key: "refGuidePrice"   as const, label: "السعر الاسترشادي",     render: (_: unknown, row: CostumeItemForInventory) => row.refGuidePrice ? formatMAD(row.refGuidePrice) : <span style={{ color: "var(--text-muted)" }}>-</span> },
-    ]),
     {
       key: "isActive", label: tCom("status"),
       render: (_, row) => (
@@ -122,7 +171,7 @@ export function CostumesInventoryClient({ items, segment, sizes, colors, costume
         columns={columns}
         data={items}
         searchable
-        searchKeys={["name_ar"]}
+        searchKeys={["typeLabelAr"]}
         emptyMessage={tUi("noResults")}
       />
 
@@ -131,9 +180,10 @@ export function CostumesInventoryClient({ items, segment, sizes, colors, costume
         isOpen={creating || !!editing}
         mode={editing ? "edit" : "create"}
         item={editing}
-        defaultSegment={segment}
-        sizes={sizes}
-        colors={colors}
+        initialSuitSizes={initialSuitSizes}
+        initialPantsSizes={initialPantsSizes}
+        initialShirtSizes={initialShirtSizes}
+        initialShoeSizes={initialShoeSizes}
         costumeTypes={costumeTypes}
         onClose={() => { setCreating(false); setEditing(null) }}
         onSuccess={() => { setCreating(false); setEditing(null); router.refresh() }}
@@ -142,51 +192,53 @@ export function CostumesInventoryClient({ items, segment, sizes, colors, costume
   )
 }
 
+// ── Add / Edit form modal ──────────────────────────────────────
+
 interface FormModalProps {
-  isOpen:          boolean
-  mode:            "create" | "edit"
-  item:            CostumeItemForInventory | null
-  defaultSegment:  "sale" | "rental"
-  sizes:           LookupItem[]
-  colors:          LookupItem[]
-  costumeTypes:    LookupItem[]
-  onClose:         () => void
-  onSuccess:       () => void
+  isOpen:            boolean
+  mode:              "create" | "edit"
+  item:              CostumeItemForInventory | null
+  initialSuitSizes:  LookupItem[]
+  initialPantsSizes: LookupItem[]
+  initialShirtSizes: LookupItem[]
+  initialShoeSizes:  LookupItem[]
+  costumeTypes:      LookupItem[]
+  onClose:           () => void
+  onSuccess:         () => void
 }
 
-function CostumeItemFormModal({ isOpen, mode, item, defaultSegment, sizes: initialSizes, colors: initialColors, costumeTypes, onClose, onSuccess }: FormModalProps) {
+function CostumeItemFormModal({
+  isOpen, mode, item,
+  initialSuitSizes, initialPantsSizes, initialShirtSizes, initialShoeSizes,
+  costumeTypes,
+  onClose, onSuccess,
+}: FormModalProps) {
   const isEdit = mode === "edit"
   const tInv   = useTranslations("inventory")
   const tCom   = useTranslations("common")
 
-  const [nameAr,     setNameAr]     = useState(item?.name_ar          ?? "")
-  const [typeId,     setTypeId]     = useState(item?.typeId            ?? costumeTypes[0]?.id ?? "")
-  const [segment,    setSegment]    = useState<ItemSegment>(item?.segment ?? defaultSegment)
-  const [sizeId,     setSizeId]     = useState(item?.sizeId            ?? "")
-  const [colorId,    setColorId]    = useState(item?.colorId           ?? "")
-  const [stock,      setStock]      = useState(item ? String(item.stock) : "")
-  const [buying,     setBuying]     = useState(item?.buyingPrice       ?? "")
-  const [selling,    setSelling]    = useState(item?.sellingPrice      ?? "")
-  const [minSell,    setMinSell]    = useState(item?.minSellingPrice   ?? "")
-  const [guidePrice, setGuidePrice] = useState(item?.refGuidePrice     ?? "")
-  const [images,     setImages]     = useState<string[]>(item?.images  ?? [])
-  const [loading,    setLoading]    = useState(false)
-  const [errors,     setErrors]     = useState<Record<string, string>>({})
+  const [typeId,      setTypeId]      = useState(item?.typeId      ?? costumeTypes[0]?.id ?? "")
+  const [suitSizeId,  setSuitSizeId]  = useState(item?.sizeId      ?? "")
+  const [pantsSizeId, setPantsSizeId] = useState(item?.colorId     ?? "")
+  const [shirtSizeId, setShirtSizeId] = useState(item?.shirtSizeId ?? "")
+  const [shoeSizeId,  setShoeSizeId]  = useState(item?.shoeSizeId  ?? "")
+  const [stock,       setStock]       = useState(item ? String(item.stock) : "")
+  const [images,      setImages]      = useState<string[]>(item?.images ?? [])
+  const [loading,     setLoading]     = useState(false)
+  const [errors,      setErrors]      = useState<Record<string, string>>({})
 
   const [localTypes, setLocalTypes] = useState<LookupItem[]>(costumeTypes)
-  const [sizes,  setSizes]  = useState<{ value: string; label: string }[]>(initialSizes.map(s => ({ value: s.id, label: s.label_ar })))
-  const [colors, setColors] = useState<{ value: string; label: string }[]>(initialColors.map(c => ({ value: c.id, label: c.label_ar })))
+  const [suitSizes,  setSuitSizes]  = useState(initialSuitSizes.map( s => ({ value: s.id, label: s.label_ar })))
+  const [pantsSizes, setPantsSizes] = useState(initialPantsSizes.map(s => ({ value: s.id, label: s.label_ar })))
+  const [shirtSizes, setShirtSizes] = useState(initialShirtSizes.map(s => ({ value: s.id, label: s.label_ar })))
+  const [shoeSizes,  setShoeSizes]  = useState(initialShoeSizes.map( s => ({ value: s.id, label: s.label_ar })))
+
   const TYPE_OPTIONS = localTypes.map(t => ({ value: t.id, label: t.label_ar }))
 
   const validate = () => {
     const e: Record<string, string> = {}
-    if (!nameAr.trim())              e.nameAr  = tCom("required")
-    if (!typeId)                     e.typeId  = tCom("required")
-    if (isNaN(+stock) || +stock < 0) e.stock   = tCom("required")
-    if (isNaN(+buying))                                          e.buying  = tCom("required")
-    if (segment === "sale" && isNaN(+selling))                   e.selling = tCom("required")
-    if (segment === "sale" && isNaN(+minSell))                   e.minSell = tCom("required")
-    if (segment === "rental" && guidePrice && isNaN(+guidePrice)) e.guidePrice = tCom("required")
+    if (!typeId)                                e.typeId = tCom("required")
+    if (!stock || isNaN(+stock) || +stock < 0)  e.stock  = tCom("required")
     return e
   }
 
@@ -197,14 +249,12 @@ function CostumeItemFormModal({ isOpen, mode, item, defaultSegment, sizes: initi
 
     setLoading(true)
     const input: CostumeItemInput = {
-      name_fr: nameAr, name_ar: nameAr, typeId, segment,
-      sizeId:  sizeId  || null,
-      colorId: colorId || null,
-      stock:   parseInt(stock),
-      buyingPrice:     parseFloat(buying) || 0,
-      sellingPrice:    segment === "sale"   ? parseFloat(selling)   : 0,
-      minSellingPrice: segment === "sale"   ? parseFloat(minSell)   : 0,
-      refGuidePrice:   segment === "rental" ? (parseFloat(guidePrice) || null) : null,
+      typeId,
+      sizeId:      suitSizeId  || null,
+      colorId:     pantsSizeId || null,
+      shirtSizeId: shirtSizeId || null,
+      shoeSizeId:  shoeSizeId  || null,
+      stock:       parseInt(stock),
       images,
     }
 
@@ -221,74 +271,118 @@ function CostumeItemFormModal({ isOpen, mode, item, defaultSegment, sizes: initi
   }
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={isEdit ? tInv("editItem") : tInv("addItem")} size="lg">
-      <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-        <Input label="الاسم" value={nameAr} onChange={e => setNameAr(e.target.value)} dir="rtl" error={errors.nameAr} />
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={isEdit ? tInv("editItem") : tInv("addItem")}
+      size="lg"
+    >
+      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+
+        {/* ── النوع ── */}
+        <CreatableSelect
+          label={tInv("type")}
+          value={typeId}
+          onChange={setTypeId}
+          onCreated={opt => setLocalTypes(prev => [...prev, { id: opt.value, label_fr: opt.label, label_ar: opt.label }])}
+          onDeleted={id  => setLocalTypes(prev => prev.filter(t => t.id !== id))}
+          slug="costume_item_types"
+          placeholder="اختر النوع"
+          options={TYPE_OPTIONS}
+          error={errors.typeId}
+        />
+
+        {/* ── مقاس البدلة + مقاس السروال ── */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
           <CreatableSelect
-            label={tInv("type")} value={typeId}
-            onChange={setTypeId}
-            onCreated={opt => setLocalTypes(prev => [...prev, { id: opt.value, label_fr: opt.label, label_ar: opt.label }])}
-            onDeleted={id => setLocalTypes(prev => prev.filter(t => t.id !== id))}
-            slug="costume_item_types"
-            placeholder="اختر النوع"
-            options={TYPE_OPTIONS}
-            error={errors.typeId}
-          />
-          <CreatableSelect
-            label={tInv("size")} value={sizeId}
-            onChange={setSizeId}
-            onCreated={opt => setSizes(prev => [...prev, opt])}
-            onDeleted={id => setSizes(prev => prev.filter(s => s.value !== id))}
+            label="مقاس البدلة"
+            value={suitSizeId}
+            onChange={setSuitSizeId}
+            onCreated={opt => setSuitSizes(prev  => [...prev,  opt])}
+            onDeleted={id  => setSuitSizes(prev  => prev.filter(s => s.value !== id))}
             slug="suit_sizes"
             placeholder="بدون"
-            options={sizes}
+            options={suitSizes}
           />
           <CreatableSelect
-            label={tInv("color")} value={colorId}
-            onChange={setColorId}
-            onCreated={opt => setColors(prev => [...prev, opt])}
-            onDeleted={id => setColors(prev => prev.filter(c => c.value !== id))}
-            slug="suit_colors"
+            label="مقاس السروال"
+            value={pantsSizeId}
+            onChange={setPantsSizeId}
+            onCreated={opt => setPantsSizes(prev => [...prev,  opt])}
+            onDeleted={id  => setPantsSizes(prev => prev.filter(s => s.value !== id))}
+            slug="pants_sizes"
             placeholder="بدون"
-            options={colors}
+            options={pantsSizes}
           />
         </div>
+
+        {/* ── مقاس القميجة + مقاس الصباط ── */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-          <Select
-            label="القطاع"
-            value={segment}
-            onChange={e => setSegment(e.target.value as ItemSegment)}
-            disabled={isEdit}
-            options={[
-              { value: "sale",   label: "بيع" },
-              { value: "rental", label: "إيجار" },
-            ]}
+          <CreatableSelect
+            label="مقاس القميجة"
+            value={shirtSizeId}
+            onChange={setShirtSizeId}
+            onCreated={opt => setShirtSizes(prev => [...prev,  opt])}
+            onDeleted={id  => setShirtSizes(prev => prev.filter(s => s.value !== id))}
+            slug="shirt_sizes"
+            placeholder="بدون"
+            options={shirtSizes}
           />
-          <Input label={tInv("stock")} type="number" value={stock} onChange={e => setStock(e.target.value)} error={errors.stock} />
+
+          {/* Shoe size with visual guide */}
+          <div>
+            <CreatableSelect
+              label="مقاس الصباط"
+              value={shoeSizeId}
+              onChange={setShoeSizeId}
+              onCreated={opt => setShoeSizes(prev => [...prev,  opt])}
+              onDeleted={id  => setShoeSizes(prev => prev.filter(s => s.value !== id))}
+              slug="shoe_sizes"
+              placeholder="بدون"
+              options={shoeSizes}
+            />
+            <div style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              marginTop: 6,
+              padding: "5px 10px",
+              borderRadius: 6,
+              background: "var(--surface-2)",
+            }}>
+              <ShoeGuideIcon />
+              <span style={{ fontSize: 11, color: "var(--text-muted)", lineHeight: 1.4 }}>
+                من الكعب للأصابع
+              </span>
+            </div>
+          </div>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12 }}>
-          <Input label={tInv("buyingPrice")} type="number" value={buying} onChange={e => setBuying(e.target.value)} error={errors.buying} />
-          {segment === "sale" && (
-            <>
-              <Input label={tInv("sellingPrice")}    type="number" value={selling}    onChange={e => setSelling(e.target.value)}    error={errors.selling} />
-              <Input label={tInv("minSellingPrice")} type="number" value={minSell}    onChange={e => setMinSell(e.target.value)}    error={errors.minSell} />
-            </>
-          )}
-          {segment === "rental" && (
-            <Input label="السعر الاسترشادي (اختياري)" type="number" value={guidePrice} onChange={e => setGuidePrice(e.target.value)} error={errors.guidePrice} hint="مرجع داخلي للتفاوض - لا يظهر للزبون" />
-          )}
-        </div>
+
+        {/* ── المخزون ── */}
+        <Input
+          label={tInv("stock")}
+          type="number"
+          value={stock}
+          onChange={e => setStock(e.target.value)}
+          error={errors.stock}
+        />
+
+        {/* ── الصور ── */}
         <div>
           <p style={{ fontSize: 12, fontWeight: 600, color: "var(--text-muted)", marginBottom: 8 }}>
             {tInv("images")}
           </p>
           <ImageUploader images={images} onChange={setImages} />
         </div>
+
+        {/* ── Actions ── */}
         <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", paddingTop: 4 }}>
           <Button variant="secondary" onClick={onClose}>{tCom("cancel")}</Button>
-          <Button onClick={handleSave} loading={loading}>{isEdit ? tCom("save") : tCom("confirm")}</Button>
+          <Button onClick={handleSave} loading={loading}>
+            {isEdit ? tCom("save") : tCom("confirm")}
+          </Button>
         </div>
+
       </div>
     </Modal>
   )

@@ -121,6 +121,22 @@ const LOOKUP_DATA = [
       { fr: "XL",  ar: "XL"  }, { fr: "XXL", ar: "XXL" },
     ],
   },
+  {
+    slug: "pants_sizes", name_fr: "Tailles de pantalon", name_ar: "مقاسات السروال",
+    values: [
+      { fr: "38", ar: "38" }, { fr: "40", ar: "40" }, { fr: "42", ar: "42" },
+      { fr: "44", ar: "44" }, { fr: "46", ar: "46" }, { fr: "48", ar: "48" },
+      { fr: "50", ar: "50" }, { fr: "52", ar: "52" },
+    ],
+  },
+  {
+    slug: "shirt_sizes", name_fr: "Tailles de chemise", name_ar: "مقاسات القميجة",
+    values: [
+      { fr: "37", ar: "37" }, { fr: "38", ar: "38" }, { fr: "39", ar: "39" },
+      { fr: "40", ar: "40" }, { fr: "41", ar: "41" }, { fr: "42", ar: "42" },
+      { fr: "43", ar: "43" },
+    ],
+  },
 ] as const
 
 // ── Main ─────────────────────────────────────────────────

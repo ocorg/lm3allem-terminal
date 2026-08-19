@@ -23,7 +23,6 @@ const NAV_CONFIG: Record<Portal, NavConfigItem[]> = {
   ],
   costumes: [
     { key: "pos",              path: "pos",              module: "pos" },
-    { key: "inventory",        path: "inventory",        module: "inventory" },
     { key: "rentals",          path: "rentals",          module: "rentals" },
     { key: "rental_inventory", path: "rental-inventory", module: "rental_inventory" },
     { key: "clients",          path: "clients",          module: "clients" },

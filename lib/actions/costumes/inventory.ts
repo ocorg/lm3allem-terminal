@@ -3,77 +3,64 @@
 import { prisma }      from "@/lib/db/prisma"
 import { auth }        from "@/lib/auth/auth"
 import { logActivity } from "@/lib/activity/logger"
-import type { ItemSegment } from "@prisma/client"
 import type { LookupItem, LookupById } from "./pos"
 
 // ── Shapes ─────────────────────────────────────────────────────
+
 export interface CostumeItemForInventory {
-  id:              string
-  name_fr:         string
-  name_ar:         string
-  typeId:          string
-  typeLabelFr:     string
-  typeLabelAr:     string
-  segment:         ItemSegment
-  sizeId:          string | null
-  colorId:         string | null
-  stock:           number
-  buyingPrice:     string
-  sellingPrice:    string
-  minSellingPrice: string
-  refGuidePrice:   string | null
-  images:          string[]
-  isActive:        boolean
-  createdAt:       string
+  id:          string
+  typeId:      string
+  typeLabelAr: string
+  sizeId:      string | null  // مقاس البدلة
+  colorId:     string | null  // مقاس السروال
+  shirtSizeId: string | null  // مقاس القميجة
+  shoeSizeId:  string | null  // مقاس الصباط
+  stock:       number
+  images:      string[]
+  isActive:    boolean
+  createdAt:   string
 }
 
 export interface CostumeItemInput {
-  name_fr:         string
-  name_ar:         string
-  typeId:          string
-  segment:         ItemSegment
-  sizeId:          string | null
-  colorId:         string | null
-  stock:           number
-  buyingPrice:     number
-  sellingPrice:    number
-  minSellingPrice: number
-  refGuidePrice:   number | null
-  images:          string[]
+  typeId:      string
+  sizeId:      string | null
+  colorId:     string | null
+  shirtSizeId: string | null
+  shoeSizeId:  string | null
+  stock:       number
+  images:      string[]
 }
 
 // ── getCostumeItems ────────────────────────────────────────────
-export async function getCostumeItems(segment?: ItemSegment): Promise<CostumeItemForInventory[]> {
+
+export async function getCostumeItems(): Promise<CostumeItemForInventory[]> {
   const items = await prisma.costumeItem.findMany({
-    where:   segment ? { segment } : undefined,
+    where:   { segment: "rental" },
     include: { costumeType: true },
     orderBy: { createdAt: "desc" },
   })
   return items.map((i) => ({
-    id:              i.id,
-    name_fr:         i.name_fr,
-    name_ar:         i.name_ar,
-    typeId:          i.typeId,
-    typeLabelFr:     i.costumeType.label_fr,
-    typeLabelAr:     i.costumeType.label_ar,
-    segment:         i.segment,
-    sizeId:          i.sizeId,
-    colorId:         i.colorId,
-    stock:           i.stock,
-    buyingPrice:     i.buyingPrice.toString(),
-    sellingPrice:    i.sellingPrice.toString(),
-    minSellingPrice: i.minSellingPrice.toString(),
-    refGuidePrice:   i.refGuidePrice?.toString() ?? null,
-    images:          i.images,
-    isActive:        i.isActive,
-    createdAt:       i.createdAt.toISOString(),
+    id:          i.id,
+    typeId:      i.typeId,
+    typeLabelAr: i.costumeType.label_ar,
+    sizeId:      i.sizeId,
+    colorId:     i.colorId,
+    shirtSizeId: i.shirtSizeId ?? null,
+    shoeSizeId:  i.shoeSizeId  ?? null,
+    stock:       i.stock,
+    images:      i.images,
+    isActive:    i.isActive,
+    createdAt:   i.createdAt.toISOString(),
   }))
 }
 
 // ── getInventoryLookups ────────────────────────────────────────
+
 export async function getInventoryLookups(): Promise<{
-  sizes:        LookupItem[]
-  colors:       LookupItem[]
+  suitSizes:    LookupItem[]
+  pantsSizes:   LookupItem[]
+  shirtSizes:   LookupItem[]
+  shoeSizes:    LookupItem[]
   costumeTypes: LookupItem[]
   lookupById:   LookupById
 }> {
@@ -83,46 +70,53 @@ export async function getInventoryLookups(): Promise<{
     orderBy: { order: "asc" },
   })
 
-  const sizes = rawLookup
-    .filter((lv) => lv.category.slug.endsWith("_sizes"))
-    .map(({ id, label_fr, label_ar }) => ({ id, label_fr, label_ar }))
-
-  const colors = rawLookup
-    .filter((lv) => lv.category.slug === "suit_colors")
-    .map(({ id, label_fr, label_ar }) => ({ id, label_fr, label_ar }))
+  const bySlug = (slug: string): LookupItem[] =>
+    rawLookup
+      .filter((lv) => lv.category.slug === slug)
+      .map(({ id, label_fr, label_ar }) => ({ id, label_fr, label_ar }))
 
   const lookupById: LookupById = {}
   for (const lv of rawLookup) {
     lookupById[lv.id] = { label_fr: lv.label_fr, label_ar: lv.label_ar }
   }
 
-  const costumeTypes = rawLookup
-    .filter((lv) => lv.category.slug === "costume_item_types")
-    .map(({ id, label_fr, label_ar }) => ({ id, label_fr, label_ar }))
-
-  return { sizes, colors, costumeTypes, lookupById }
+  return {
+    suitSizes:    bySlug("suit_sizes"),
+    pantsSizes:   bySlug("pants_sizes"),
+    shirtSizes:   bySlug("shirt_sizes"),
+    shoeSizes:    bySlug("shoe_sizes"),
+    costumeTypes: bySlug("costume_item_types"),
+    lookupById,
+  }
 }
 
 // ── createCostumeItem ──────────────────────────────────────────
-export async function createCostumeItem(
-  input: CostumeItemInput
-): Promise<{ id: string }> {
+
+export async function createCostumeItem(input: CostumeItemInput): Promise<{ id: string }> {
   const authSession = await auth()
   if (!authSession?.user) throw new Error("Unauthorized")
 
+  const typeLabel = await prisma.lookupValue.findUnique({
+    where:  { id: input.typeId },
+    select: { label_ar: true },
+  })
+  const autoName = typeLabel?.label_ar ?? "قطعة"
+
   const item = await prisma.costumeItem.create({
     data: {
-      name_fr:         input.name_fr,
-      name_ar:         input.name_ar,
+      name_fr:         autoName,
+      name_ar:         autoName,
       typeId:          input.typeId,
-      segment:         input.segment,
+      segment:         "rental",
       sizeId:          input.sizeId,
       colorId:         input.colorId,
+      shirtSizeId:     input.shirtSizeId,
+      shoeSizeId:  input.shoeSizeId,
       stock:           input.stock,
-      buyingPrice:     input.buyingPrice,
-      sellingPrice:    input.segment === "sale" ? input.sellingPrice    : 0,
-      minSellingPrice: input.segment === "sale" ? input.minSellingPrice : 0,
-      refGuidePrice:   input.segment === "rental" ? input.refGuidePrice : null,
+      buyingPrice:     0,
+      sellingPrice:    0,
+      minSellingPrice: 0,
+      refGuidePrice:   null,
       images:          input.images,
     },
   })
@@ -133,76 +127,36 @@ export async function createCostumeItem(
     entityId:   item.id,
     actorId:    authSession.user.id,
     action:     "costume_item.created",
-    diff:       { name_fr: input.name_fr, typeId: input.typeId, stock: input.stock },
+    diff:       { typeId: input.typeId, stock: input.stock },
   })
 
   return { id: item.id }
 }
 
-// ── addCostumeType ─────────────────────────────────────────────
-export async function addCostumeType(
-  labelFr: string,
-  labelAr: string
-): Promise<LookupItem> {
-  const authSession = await auth()
-  if (!authSession?.user) throw new Error("Unauthorized")
-  if (authSession.user.role !== "admin" && authSession.user.role !== "superadmin")
-    throw new Error("Forbidden")
-
-  const category = await prisma.lookupCategory.findUniqueOrThrow({
-    where: { slug: "costume_item_types" },
-  })
-
-  const maxResult = await prisma.lookupValue.aggregate({
-    where: { categoryId: category.id },
-    _max:  { order: true },
-  })
-
-  const value = await prisma.lookupValue.create({
-    data: {
-      categoryId: category.id,
-      label_fr:   labelFr,
-      label_ar:   labelAr,
-      order:      (maxResult._max.order ?? 0) + 1,
-      isActive:   true,
-    },
-  })
-
-  await logActivity({
-    portal:     "costumes",
-    entityType: "lookup_value",
-    entityId:   value.id,
-    actorId:    authSession.user.id,
-    action:     "lookup_value.created",
-    diff:       { label_fr: labelFr, categoryId: category.id },
-  })
-
-  return { id: value.id, label_fr: value.label_fr, label_ar: value.label_ar }
-}
-
 // ── updateCostumeItem ──────────────────────────────────────────
-export async function updateCostumeItem(
-  id: string,
-  input: CostumeItemInput
-): Promise<void> {
+
+export async function updateCostumeItem(id: string, input: CostumeItemInput): Promise<void> {
   const authSession = await auth()
   if (!authSession?.user) throw new Error("Unauthorized")
+
+  const typeLabel = await prisma.lookupValue.findUnique({
+    where:  { id: input.typeId },
+    select: { label_ar: true },
+  })
+  const autoName = typeLabel?.label_ar ?? "قطعة"
 
   await prisma.costumeItem.update({
     where: { id },
     data: {
-      name_fr:         input.name_fr,
-      name_ar:         input.name_ar,
-      typeId:          input.typeId,
-      segment:         input.segment,
-      sizeId:          input.sizeId,
-      colorId:         input.colorId,
-      stock:           input.stock,
-      buyingPrice:     input.buyingPrice,
-      sellingPrice:    input.segment === "sale" ? input.sellingPrice    : 0,
-      minSellingPrice: input.segment === "sale" ? input.minSellingPrice : 0,
-      refGuidePrice:   input.segment === "rental" ? input.refGuidePrice : null,
-      images:          input.images,
+      name_fr:     autoName,
+      name_ar:     autoName,
+      typeId:      input.typeId,
+      sizeId:      input.sizeId,
+      colorId:     input.colorId,
+      shirtSizeId: input.shirtSizeId,
+      shoeSizeId:  input.shoeSizeId,
+      stock:       input.stock,
+      images:      input.images,
     },
   })
 
@@ -212,6 +166,6 @@ export async function updateCostumeItem(
     entityId:   id,
     actorId:    authSession.user.id,
     action:     "costume_item.updated",
-    diff:       { name_fr: input.name_fr, typeId: input.typeId, stock: input.stock },
+    diff:       { typeId: input.typeId, stock: input.stock },
   })
 }
