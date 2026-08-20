@@ -20,6 +20,13 @@ import React from "react"
 
 const STATUS_ORDER: RentalStatus[] = ["booked", "in_preparation", "ready_for_pickup", "picked_up", "returned", "cleaning", "available"]
 
+const GUARANTEE_LABELS: Record<string, string> = {
+  cash_deposit:    "وديعة نقدية",
+  id_card:         "بطاقة التعريف الوطنية",
+  passport:        "جواز السفر",
+  drivers_license: "رخصة السياقة",
+}
+
 const PAYMENT_TYPE_KEYS: Record<string, string> = {
   rental_payment:    "payTypeRental",
   remaining_balance: "payTypeBalance",
@@ -110,7 +117,7 @@ export function RentalDetailModal({ rentalId, onClose }: Props) {
             <InfoBox label={tR("infoPickupReturn")} value={`${new Date(rental.scheduledPickupDate).toLocaleDateString("ar-MA")} → ${new Date(rental.scheduledReturnDate).toLocaleDateString("ar-MA")}`} />
             <InfoBox label={tR("infoTotalDeposit")} value={`${formatMAD(rental.totalAmount)} / ${formatMAD(rental.amountPaid)}`} />
             <InfoBox label={tR("infoBalance")} value={<span style={{ color: parseFloat(rental.balance) > 0 ? "var(--warning)" : "var(--success)", fontWeight: 700 }}>{formatMAD(rental.balance)}</span>} />
-            <InfoBox label={tR("infoGuarantee")} value={rental.guaranteeType} />
+            <InfoBox label={tR("infoGuarantee")} value={GUARANTEE_LABELS[rental.guaranteeType] ?? rental.guaranteeType} />
             {rental.notes && <InfoBox label={tR("infoNotes")} value={rental.notes} />}
           </div>
 

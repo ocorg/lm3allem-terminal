@@ -13,18 +13,15 @@ import type { RentalForList }   from "@/lib/actions/costumes/rentals"
 import type { CostumeItemForRental }   from "@/lib/actions/costumes/rentals"
 import type { LookupById }             from "@/lib/actions/costumes/pos"
 import type { ClientForList }   from "@/lib/actions/costumes/clients"
-import type { LookupItem }      from "@/lib/actions/costumes/pos"
 import type { RentalStatus }    from "@prisma/client"
 import React from "react"
 
 interface Props {
-  rentals:               RentalForList[]
-  costumeItems:          CostumeItemForRental[]
-  clients:               ClientForList[]
-  measurementCategories: LookupItem[]
-  lookupById:            LookupById
-  role:                  string
-  locale:                string
+  rentals:      RentalForList[]
+  costumeItems: CostumeItemForRental[]
+  clients:      ClientForList[]
+  lookupById:   LookupById
+  role:         string
 }
 
 const STATUS_VARIANT: Record<RentalStatus, "primary" | "warning" | "success" | "default" | "danger"> = {
@@ -39,7 +36,7 @@ const STATUS_VARIANT: Record<RentalStatus, "primary" | "warning" | "success" | "
 
 const ALL_STATUSES: RentalStatus[] = ["booked", "in_preparation", "ready_for_pickup", "picked_up", "returned", "cleaning", "available"]
 
-export function RentalsClient({ rentals, costumeItems, clients, measurementCategories, lookupById, locale }: Props) {
+export function RentalsClient({ rentals, costumeItems, clients, lookupById }: Props) {
   const tR   = useTranslations("costumes.rentals")
   const tS   = useTranslations("costumes.status")
   const tCom = useTranslations("common")
@@ -117,9 +114,7 @@ export function RentalsClient({ rentals, costumeItems, clients, measurementCateg
         onClose={() => setShowWizard(false)}
         costumeItems={costumeItems}
         clients={clients}
-        measurementCategories={measurementCategories}
         lookupById={lookupById}
-        locale={locale}
       />
 
       {detailId && (

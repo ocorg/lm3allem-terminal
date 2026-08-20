@@ -21,18 +21,14 @@ import type { ClientForList }           from "@/lib/actions/costumes/clients"
 import type { GuaranteeType, PaymentMethod } from "@prisma/client"
 import React from "react"
 
+// ── Local types ────────────────────────────────────────────────
+
 interface KitLine {
   costumeItemId: string
   quantity:      number
   name_ar:       string
   stock:         number
   refGuidePrice: number | null
-}
-
-interface MeasurementLine {
-  categoryId: string
-  value:      string
-  unit:       string
 }
 
 interface WizardData {
@@ -45,7 +41,6 @@ interface WizardData {
   eventDate:           string
   scheduledPickupDate: string
   scheduledReturnDate: string
-  measurements:        MeasurementLine[]
   guaranteeType:       GuaranteeType
   guaranteeAmount:     string
   guaranteePhotoUrl:   string
@@ -58,26 +53,38 @@ const INITIAL: WizardData = {
   clientId: null, isNewClient: false, newClientName: "", newClientPhone: "", newClientAddress: "",
   kitItems: [],
   eventDate: "", scheduledPickupDate: "", scheduledReturnDate: "",
-  measurements: [],
   guaranteeType: "id_card", guaranteeAmount: "", guaranteePhotoUrl: "",
   totalAmount: "", amountPaid: "0", paymentMethod: "cash",
 }
 
-const STEP_KEYS    = ["client", "kit", "dates", "measurements", "guarantee", "payment", "confirmation"] as const
+// 6 steps (measurements removed)
+const STEP_KEYS  = ["client", "kit", "dates", "guarantee", "payment", "confirmation"] as const
 const GUARANTEE_KEYS: GuaranteeType[] = ["cash_deposit", "id_card", "passport", "drivers_license"]
 const PAYMENT_KEYS:   PaymentMethod[] = ["cash", "tpe", "banque"]
 
-interface Props {
-  isOpen:                boolean
-  onClose:               () => void
-  costumeItems:          CostumeItemForRental[]
-  clients:               ClientForList[]
-  measurementCategories: LookupItem[]
-  lookupById:            LookupById
-  locale:                string
+// Hardcoded Arabic — these are fixed DB enum values, not user-configurable strings
+const GUARANTEE_LABELS: Record<GuaranteeType, string> = {
+  cash_deposit:    "وديعة نقدية",
+  id_card:         "بطاقة التعريف الوطنية",
+  passport:        "جواز السفر",
+  drivers_license: "رخصة السياقة",
 }
 
-export function RentalWizard({ isOpen, onClose, costumeItems, clients, measurementCategories, lookupById }: Props) {
+// ── Props ──────────────────────────────────────────────────────
+
+interface Props {
+  isOpen:                 boolean
+  onClose:                () => void
+  costumeItems:           CostumeItemForRental[]
+  clients:                ClientForList[]
+  measurementCategories?: LookupItem[]  // kept for call-site compat, no longer used
+  lookupById:             LookupById
+  locale?:                string        // kept for call-site compat, no longer used
+}
+
+// ── Wizard ─────────────────────────────────────────────────────
+
+export function RentalWizard({ isOpen, onClose, costumeItems, clients, lookupById }: Props) {
   const { session } = useCaisse()
   const router      = useRouter()
   const { confirm, modal: confirmModal } = useConfirm()
@@ -96,10 +103,7 @@ export function RentalWizard({ isOpen, onClose, costumeItems, clients, measureme
 
   useEffect(() => {
     if (!isOpen) { setTimeout(() => { setStep(0); setData(INITIAL); setErrors({}) }, 0) }
-    else if (measurementCategories.length && !data.measurements.length) {
-      setTimeout(() => { upd({ measurements: measurementCategories.map(c => ({ categoryId: c.id, value: "", unit: "cm" })) }) }, 0)
-    }
-  }, [isOpen, measurementCategories]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [isOpen])
 
   const validate = (): boolean => {
     const e: Record<string, string> = {}
@@ -116,7 +120,7 @@ export function RentalWizard({ isOpen, onClose, costumeItems, clients, measureme
       if (!data.scheduledPickupDate) e.pickupDate = tCommon("required")
       if (!data.scheduledReturnDate) e.returnDate = tCommon("required")
     }
-    if (step === 5) {
+    if (step === 4) {
       if (!data.totalAmount || isNaN(+data.totalAmount)) e.totalAmount = tCommon("required")
       if (isNaN(+data.amountPaid))                       e.amountPaid  = tRental("validation.invalidAmount")
     }
@@ -124,7 +128,7 @@ export function RentalWizard({ isOpen, onClose, costumeItems, clients, measureme
     return Object.keys(e).length === 0
   }
 
-  const next = () => { if (validate()) setStep(s => Math.min(s + 1, 6)) }
+  const next = () => { if (validate()) setStep(s => Math.min(s + 1, 5)) }
   const prev = () => setStep(s => Math.max(s - 1, 0))
 
   const handleSubmit = async () => {
@@ -148,7 +152,6 @@ export function RentalWizard({ isOpen, onClose, costumeItems, clients, measureme
         guaranteeAmount:     data.guaranteeType === "cash_deposit" && data.guaranteeAmount ? parseFloat(data.guaranteeAmount) : undefined,
         guaranteePhotoUrl:   data.guaranteePhotoUrl || undefined,
         kitItems:            data.kitItems.map(ki => ({ costumeItemId: ki.costumeItemId, quantity: ki.quantity })),
-        measurements:        data.measurements.filter(m => m.value).map(m => ({ categoryId: m.categoryId, value: m.value, unit: m.unit || undefined })),
       })
       toast(tRental("createSuccess"), "success")
       onClose(); router.refresh()
@@ -174,6 +177,7 @@ export function RentalWizard({ isOpen, onClose, costumeItems, clients, measureme
     <Modal isOpen={isOpen} onClose={handleRequestClose} title={tRental("newRental")} size="xl" closeOnOverlayClick={false}>
       {confirmModal}
 
+      {/* Step indicator */}
       <div style={{ display: "flex", alignItems: "center", gap: 0, marginBottom: 24, overflowX: "auto", paddingBottom: 4 }}>
         {STEPS.map((s, i) => (
           <div key={s} style={{ display: "flex", alignItems: "center", gap: 0 }}>
@@ -194,21 +198,22 @@ export function RentalWizard({ isOpen, onClose, costumeItems, clients, measureme
         ))}
       </div>
 
+      {/* Step content */}
       <div style={{ minHeight: 280 }}>
-        {step === 0 && <StepClient data={data} upd={upd} clients={clients} errors={errors} />}
-        {step === 1 && <StepKit    data={data} upd={upd} costumeItems={costumeItems} lookupById={lookupById} errors={errors} />}
-        {step === 2 && <StepDates  data={data} upd={upd} errors={errors} />}
-        {step === 3 && <StepMeasurements data={data} upd={upd} measurementCategories={measurementCategories} />}
-        {step === 4 && <StepGuarantee data={data} upd={upd} />}
-        {step === 5 && <StepPayment   data={data} upd={upd} errors={errors} />}
-        {step === 6 && <StepConfirm   data={data} clients={clients} />}
+        {step === 0 && <StepClient    data={data} upd={upd} clients={clients} errors={errors} />}
+        {step === 1 && <StepKit       data={data} upd={upd} costumeItems={costumeItems} lookupById={lookupById} errors={errors} />}
+        {step === 2 && <StepDates     data={data} upd={upd} errors={errors} />}
+        {step === 3 && <StepGuarantee data={data} upd={upd} />}
+        {step === 4 && <StepPayment   data={data} upd={upd} errors={errors} />}
+        {step === 5 && <StepConfirm   data={data} clients={clients} />}
       </div>
 
+      {/* Navigation */}
       <div style={{ display: "flex", justifyContent: "space-between", paddingTop: 20, borderTop: "1px solid var(--border)", marginTop: 20 }}>
         <Button variant="secondary" onClick={step === 0 ? handleRequestClose : prev}>
           {step === 0 ? tCommon("cancel") : tCommon("back")}
         </Button>
-        {step < 6
+        {step < 5
           ? <Button onClick={next} icon={<ChevronRight size={14} />}>{tCommon("next")}</Button>
           : <Button onClick={handleSubmit} loading={loading}>{tRental("confirmRental")}</Button>
         }
@@ -216,6 +221,8 @@ export function RentalWizard({ isOpen, onClose, costumeItems, clients, measureme
     </Modal>
   )
 }
+
+// ── Step 1 — Client ────────────────────────────────────────────
 
 function StepClient({ data, upd, clients, errors }: { data: WizardData; upd: (p: Partial<WizardData>) => void; clients: ClientForList[]; errors: Record<string, string> }) {
   const tRental  = useTranslations("rental")
@@ -291,6 +298,8 @@ function StepClient({ data, upd, clients, errors }: { data: WizardData; upd: (p:
     </div>
   )
 }
+
+// ── Step 2 — Kit ───────────────────────────────────────────────
 
 function StepKit({ data, upd, costumeItems, lookupById, errors }: { data: WizardData; upd: (p: Partial<WizardData>) => void; costumeItems: CostumeItemForRental[]; lookupById: LookupById; errors: Record<string, string> }) {
   const tRental = useTranslations("rental")
@@ -393,6 +402,8 @@ function StepKit({ data, upd, costumeItems, lookupById, errors }: { data: Wizard
   )
 }
 
+// ── Step 3 — Dates ─────────────────────────────────────────────
+
 function StepDates({ data, upd, errors }: { data: WizardData; upd: (p: Partial<WizardData>) => void; errors: Record<string, string> }) {
   const tRental = useTranslations("rental")
   return (
@@ -406,47 +417,12 @@ function StepDates({ data, upd, errors }: { data: WizardData; upd: (p: Partial<W
   )
 }
 
-function StepMeasurements({ data, upd, measurementCategories }: { data: WizardData; upd: (p: Partial<WizardData>) => void; measurementCategories: LookupItem[] }) {
-  const tRental = useTranslations("rental")
-  const tCommon = useTranslations("common")
-
-  const setMeasurement = (categoryId: string, field: "value" | "unit", val: string) => {
-    upd({ measurements: data.measurements.map(m => m.categoryId === categoryId ? { ...m, [field]: val } : m) })
-  }
-
-  if (!measurementCategories.length) return (
-    <p style={{ color: "var(--text-muted)", fontSize: 13, textAlign: "center", paddingTop: 40 }}>
-      {tRental("noMeasurementCats")}
-    </p>
-  )
-
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-      <p style={{ fontSize: 12, color: "var(--text-muted)", margin: "0 0 12px" }}>{tRental("measurementNote")}</p>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-        {measurementCategories.map(cat => {
-          const m = data.measurements.find(x => x.categoryId === cat.id)
-          return (
-            <div key={cat.id} style={{ display: "flex", gap: 6, alignItems: "flex-end" }}>
-              <div style={{ flex: 1 }}>
-                <Input label={cat.label_ar} type="number" value={m?.value ?? ""} onChange={e => setMeasurement(cat.id, "value", e.target.value)} />
-              </div>
-              <div style={{ width: 64 }}>
-                <Input label={tCommon("unit")} value={m?.unit ?? "cm"} onChange={e => setMeasurement(cat.id, "unit", e.target.value)} />
-              </div>
-            </div>
-          )
-        })}
-      </div>
-    </div>
-  )
-}
+// ── Step 4 — Guarantee ─────────────────────────────────────────
 
 function StepGuarantee({ data, upd }: { data: WizardData; upd: (p: Partial<WizardData>) => void }) {
-  const tG      = useTranslations("costumes.guarantee")
   const tRental = useTranslations("rental")
 
-  const GUARANTEE_OPTIONS = GUARANTEE_KEYS.map(k => ({ value: k, label: tG(k as Parameters<typeof tG>[0]) }))
+  const GUARANTEE_OPTIONS = GUARANTEE_KEYS.map(k => ({ value: k, label: GUARANTEE_LABELS[k] }))
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
@@ -468,6 +444,8 @@ function StepGuarantee({ data, upd }: { data: WizardData; upd: (p: Partial<Wizar
     </div>
   )
 }
+
+// ── Step 5 — Payment ───────────────────────────────────────────
 
 function StepPayment({ data, upd, errors }: { data: WizardData; upd: (p: Partial<WizardData>) => void; errors: Record<string, string> }) {
   const tP      = useTranslations("payment")
@@ -529,6 +507,8 @@ function StepPayment({ data, upd, errors }: { data: WizardData; upd: (p: Partial
   )
 }
 
+// ── Step 6 — Confirm ───────────────────────────────────────────
+
 function ConfirmRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", padding: "6px 0", borderBottom: "1px solid var(--border)" }}>
@@ -539,13 +519,11 @@ function ConfirmRow({ label, value }: { label: string; value: React.ReactNode })
 }
 
 function StepConfirm({ data, clients }: { data: WizardData; clients: ClientForList[] }) {
-  const tG      = useTranslations("costumes.guarantee")
   const tP      = useTranslations("payment")
   const tRental = useTranslations("rental")
   const tCommon = useTranslations("common")
 
-  const GUARANTEE_OPTIONS = GUARANTEE_KEYS.map(k => ({ value: k, label: tG(k as Parameters<typeof tG>[0]) }))
-  const PAYMENT_OPTIONS   = PAYMENT_KEYS.map(k => ({ value: k, label: tP(k as Parameters<typeof tP>[0]) }))
+  const PAYMENT_OPTIONS = PAYMENT_KEYS.map(k => ({ value: k, label: tP(k as Parameters<typeof tP>[0]) }))
 
   const client     = clients.find(c => c.id === data.clientId)
   const clientName = data.isNewClient ? data.newClientName : (client?.name ?? "-")
@@ -553,14 +531,14 @@ function StepConfirm({ data, clients }: { data: WizardData; clients: ClientForLi
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
-      <ConfirmRow label={tRental("confirmClientRow")}  value={clientName} />
-      <ConfirmRow label={tRental("confirmPickup")}     value={data.scheduledPickupDate ? new Date(data.scheduledPickupDate).toLocaleDateString("ar-MA") : "-"} />
-      <ConfirmRow label={tRental("confirmReturn")}     value={data.scheduledReturnDate ? new Date(data.scheduledReturnDate).toLocaleDateString("ar-MA") : "-"} />
-      <ConfirmRow label={tRental("confirmKitItems")}   value={tRental("kitSummary", { items: data.kitItems.length, pieces: kitPieces })} />
-      <ConfirmRow label={tRental("confirmGuarantee")}  value={GUARANTEE_OPTIONS.find(g => g.value === data.guaranteeType)?.label ?? data.guaranteeType} />
-      <ConfirmRow label={tCommon("total")}             value={formatMAD(data.totalAmount)} />
-      <ConfirmRow label={tRental("acompteLabel")}      value={formatMAD(data.amountPaid)} />
-      <ConfirmRow label={tRental("balance")}           value={formatMAD(Math.max(0, parseFloat(data.totalAmount || "0") - parseFloat(data.amountPaid || "0")))} />
+      <ConfirmRow label={tRental("confirmClientRow")}    value={clientName} />
+      <ConfirmRow label={tRental("confirmPickup")}       value={data.scheduledPickupDate ? new Date(data.scheduledPickupDate).toLocaleDateString("ar-MA") : "-"} />
+      <ConfirmRow label={tRental("confirmReturn")}       value={data.scheduledReturnDate ? new Date(data.scheduledReturnDate).toLocaleDateString("ar-MA") : "-"} />
+      <ConfirmRow label={tRental("confirmKitItems")}     value={tRental("kitSummary", { items: data.kitItems.length, pieces: kitPieces })} />
+      <ConfirmRow label={tRental("confirmGuarantee")}    value={GUARANTEE_LABELS[data.guaranteeType] ?? data.guaranteeType} />
+      <ConfirmRow label={tCommon("total")}               value={formatMAD(data.totalAmount)} />
+      <ConfirmRow label={tRental("acompteLabel")}        value={formatMAD(data.amountPaid)} />
+      <ConfirmRow label={tRental("balance")}             value={formatMAD(Math.max(0, parseFloat(data.totalAmount || "0") - parseFloat(data.amountPaid || "0")))} />
       <ConfirmRow label={tRental("paymentMethodColumn")} value={PAYMENT_OPTIONS.find(p => p.value === data.paymentMethod)?.label ?? data.paymentMethod} />
       <div style={{ marginTop: 12, padding: "10px 0" }}>
         <p style={{ fontSize: 12, color: "var(--success)", fontWeight: 600, margin: 0 }}>

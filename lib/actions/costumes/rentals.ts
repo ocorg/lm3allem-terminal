@@ -68,12 +68,6 @@ export interface RentalKitItemInput {
   quantity:      number
 }
 
-export interface RentalMeasurementInput {
-  categoryId: string
-  value:      string
-  unit?:      string
-}
-
 export interface CreateRentalInput {
   clientId:            string
   eventDate?:          string
@@ -87,7 +81,6 @@ export interface CreateRentalInput {
   guaranteePhotoUrl?:  string
   notes?:              string
   kitItems:            RentalKitItemInput[]
-  measurements:        RentalMeasurementInput[]
   caisseSessionId:     string
 }
 
@@ -141,7 +134,6 @@ export async function getRentalById(
           },
         },
       },
-      measurements: true,
       payments: {
         include: { recordedBy: { select: { name: true } } },
         orderBy: { createdAt: "desc" },
@@ -169,11 +161,7 @@ export async function getRentalById(
     depositApplied:      r.depositApplied,
     depositReturned:     r.depositReturned,
     createdAt:           r.createdAt.toISOString(),
-    measurements: r.measurements.map((m) => ({
-      categoryId: m.categoryId,
-      value:      m.value,
-      unit:       m.unit,
-    })),
+    measurements: [],
     kitItems: (r.kit?.items ?? []).map((ki) => ({
       id:            ki.id,
       costumeItemId: ki.costumeItemId,
@@ -244,13 +232,6 @@ export async function createRental(
               })),
             },
           },
-        },
-        measurements: {
-          create: input.measurements.map((m) => ({
-            categoryId: m.categoryId,
-            value:      m.value,
-            unit:       m.unit ?? null,
-          })),
         },
       },
     })
@@ -399,17 +380,8 @@ import type { LookupItem, LookupById } from "./pos"
 export async function getRentalLookups(): Promise<{
   measurementCategories: LookupItem[]
 }> {
-  const rawLookup = await prisma.lookupValue.findMany({
-    where:   { isActive: true },
-    include: { category: { select: { slug: true } } },
-    orderBy: { order: "asc" },
-  })
-
-  const measurementCategories = rawLookup
-    .filter((lv) => lv.category.slug === "measurement_categories")
-    .map(({ id, label_fr, label_ar }) => ({ id, label_fr, label_ar }))
-
-  return { measurementCategories }
+  // Measurements step removed — kept for call-site compatibility
+  return { measurementCategories: [] }
 }
 
 // ── advanceRentalStatus ────────────────────────────────────────

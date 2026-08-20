@@ -1,6 +1,5 @@
 import { withModule }                        from "@/lib/auth/session"
-import { getRentals, getRentalLookups }      from "@/lib/actions/costumes/rentals"
-import { getRentalItems }                    from "@/lib/actions/costumes/rentals"
+import { getRentals, getRentalItems }        from "@/lib/actions/costumes/rentals"
 import { getClients }                        from "@/lib/actions/costumes/clients"
 import { CaisseGuard }                       from "@/components/caisse/CaisseGuard"
 import { RentalsClient }                     from "@/components/costumes/rentals/RentalsClient"
@@ -18,12 +17,10 @@ export default async function RentalsPage({
     rentals,
     { items: costumeItems, lookupById },
     clients,
-    { measurementCategories },
   ] = await Promise.all([
     getRentals(),
     getRentalItems(),
     getClients(),
-    getRentalLookups(),
   ])
 
   return (
@@ -32,10 +29,8 @@ export default async function RentalsPage({
         rentals={rentals}
         costumeItems={costumeItems}
         clients={clients}
-        measurementCategories={measurementCategories}
         lookupById={lookupById}
         role={authSession.user.role}
-        locale={locale}
       />
     </CaisseGuard>
   )

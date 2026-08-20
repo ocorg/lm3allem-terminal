@@ -358,7 +358,6 @@ model Rental {
 
   kit                 RentalKit?
   payments            RentalPayment[]
-  measurements        RentalMeasurement[]
 }
 
 model RentalKit {
@@ -380,15 +379,6 @@ model RentalKitItem {
   costumeItem   CostumeItem @relation(fields: [costumeItemId], references: [id])
   quantity      Int         @default(1)
   returned      Boolean     @default(false)
-}
-
-model RentalMeasurement {
-  id         String   @id @default(cuid())
-  rentalId   String
-  rental     Rental   @relation(fields: [rentalId], references: [id])
-  categoryId String
-  value      String
-  unit       String?
 }
 
 model RentalPayment {
