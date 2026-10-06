@@ -6,6 +6,7 @@ import { Minus, Plus, Trash2 } from "lucide-react"
 import { formatMAD } from "@/lib/utils/currency"
 import type { CartItem } from "./POSClient"
 import React from "react"
+import { IconButton } from "@/components/ui/IconButton"
 
 interface CartItemProps {
   item:          CartItem
@@ -51,21 +52,18 @@ export function CartItem({ item, onUpdateQty, onUpdatePrice, onRemove }: CartIte
           <p style={{ fontSize: 12, fontWeight: 600, color: "var(--text)", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
             {item.name_ar}
           </p>
-          <p style={{ fontSize: 11, color: "var(--text-muted)", margin: "1px 0 0" }}>
+          <p style={{ fontSize: 12, color: "var(--text-muted)", margin: "1px 0 0" }}>
             {item.variantLabel}
           </p>
           {isBelowMin && (
-            <p style={{ fontSize: 10, color: "var(--danger)", margin: "2px 0 0", fontWeight: 600 }}>
+            <p style={{ fontSize: 12, color: "var(--danger)", margin: "2px 0 0", fontWeight: 600 }}>
               ▼ {t("belowMin", { price: formatMAD(item.minSellingPrice) })}
             </p>
           )}
         </div>
-        <button
-          onClick={onRemove}
-          style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)", padding: 2, flexShrink: 0 }}
-        >
-          <Trash2 size={13} />
-        </button>
+        <IconButton label="حذف من السلة" tone="danger" size="sm" onClick={onRemove}>
+          <Trash2 size={16} />
+        </IconButton>
       </div>
 
       {/* Controls row */}
@@ -73,22 +71,15 @@ export function CartItem({ item, onUpdateQty, onUpdatePrice, onRemove }: CartIte
 
         {/* Qty */}
         <div style={{ display: "flex", alignItems: "center", border: "1px solid var(--border)", borderRadius: 6, overflow: "hidden", flexShrink: 0 }}>
-          <button
-            onClick={() => onUpdateQty(item.quantity - 1)}
-            style={{ background: "var(--surface-2)", border: "none", cursor: "pointer", width: 28, height: 28, display: "flex", alignItems: "center", justifyContent: "center" }}
-          >
-            <Minus size={11} style={{ color: "var(--text-muted)" }} />
-          </button>
-          <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", minWidth: 24, textAlign: "center" }}>
+          <IconButton label="إنقاص الكمية" size="sm" onClick={() => onUpdateQty(item.quantity - 1)} style={{ border: "none", borderRadius: 0, background: "var(--surface-2)" }}>
+            <Minus size={16} />
+          </IconButton>
+          <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", minWidth: 32, textAlign: "center" }}>
             {item.quantity}
           </span>
-          <button
-            onClick={() => item.quantity < item.stock && onUpdateQty(item.quantity + 1)}
-            disabled={item.quantity >= item.stock}
-            style={{ background: "var(--surface-2)", border: "none", cursor: item.quantity >= item.stock ? "not-allowed" : "pointer", width: 28, height: 28, display: "flex", alignItems: "center", justifyContent: "center", opacity: item.quantity >= item.stock ? 0.4 : 1 }}
-          >
-            <Plus size={11} style={{ color: "var(--text-muted)" }} />
-          </button>
+          <IconButton label="زيادة الكمية" size="sm" disabled={item.quantity >= item.stock} onClick={() => onUpdateQty(item.quantity + 1)} style={{ border: "none", borderRadius: 0, background: "var(--surface-2)" }}>
+            <Plus size={16} />
+          </IconButton>
         </div>
 
         {/* Unit price (editable) */}
@@ -112,7 +103,7 @@ export function CartItem({ item, onUpdateQty, onUpdatePrice, onRemove }: CartIte
               outline:     "none",
             }}
           />
-          <span style={{ fontSize: 10, color: "var(--text-muted)", flexShrink: 0 }}>MAD</span>
+          <span style={{ fontSize: 12, color: "var(--text-muted)", flexShrink: 0 }}>درهم</span>
         </div>
 
         {/* Line total */}

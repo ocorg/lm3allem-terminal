@@ -11,10 +11,11 @@ import { Select }       from "@/components/ui/Select"
 import { toast }        from "@/hooks/useToast"
 import { addCreditPayment } from "@/lib/actions/magazin/credits"
 import { formatMAD }    from "@/lib/utils/currency"
-import { formatDate }   from "@/lib/utils/date"
+import { parseAmount }  from "@/lib/utils/money"
 import { useTranslations } from "next-intl"
 import type { CreditForList } from "@/lib/actions/magazin/credits"
 import React from "react"
+import { DateText } from "@/components/ui/DateText"
 
 const STATUS_CONFIG_KEYS = {
   open:    { labelKey: "statusOpen",     variant: "danger"  as const },
@@ -43,7 +44,7 @@ export function CreditList({ credits }: CreditListProps) {
   const [statusFilter, setStatusFilter] = useState("all")
   const [selected,     setSelected]     = useState<CreditForList | null>(null)
   const [payAmount,    setPayAmount]    = useState("")
-  const [payMethod,    setPayMethod]    = useState("cash")
+  const [payMethod,    setPayMethod]    = useState<"cash" | "tpe" | "banque">("cash")
   const [loading,      setLoading]      = useState(false)
   const [payError,     setPayError]     = useState("")
 
@@ -56,18 +57,16 @@ export function CreditList({ credits }: CreditListProps) {
 
   const handlePayment = async () => {
     if (!selected) return
-    const amount = parseFloat(payAmount)
+    const amount = parseAmount(payAmount)
     if (isNaN(amount) || amount <= 0)                           { setPayError(t("invalidAmount")); return }
     if (amount > parseFloat(selected.balance))                  { setPayError(t("exceedsBalance")); return }
     setLoading(true)
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await addCreditPayment(selected.id, amount, payMethod as any)
+      const res = await addCreditPayment(selected.id, amount, payMethod)
+      if (!res.ok) { toast(res.message || tCom("error"), "error"); return }
       toast(t("paymentSuccess"), "success")
       setSelected(null)
       router.refresh()
-    } catch {
-      toast(tCom("error"), "error")
     } finally {
       setLoading(false)
     }
@@ -79,7 +78,7 @@ export function CreditList({ credits }: CreditListProps) {
       render: (_, row) => (
         <div>
           <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", margin: 0 }}>{row.clientName}</p>
-          {row.clientPhone && <p style={{ fontSize: 11, color: "var(--text-muted)", margin: "1px 0 0" }}>{row.clientPhone}</p>}
+          {row.clientPhone && <p style={{ fontSize: 12, color: "var(--text-muted)", margin: "1px 0 0" }}>{row.clientPhone}</p>}
         </div>
       ),
     },
@@ -97,22 +96,22 @@ export function CreditList({ credits }: CreditListProps) {
         return <Badge variant={cfg?.variant ?? "default"} dot>{cfg ? t(cfg.labelKey as any) : String(v)}</Badge>
       },
     },
-    { key: "createdAt", label: tCom("date"), render: (v) => <span style={{ fontSize: 12, color: "var(--text-muted)" }}>{formatDate(v as string)}</span> },
+    { key: "createdAt", label: tCom("date"), render: (v) => <span style={{ fontSize: 12, color: "var(--text-muted)" }}><DateText value={v as string} /></span> },
   ]
 
   return (
     <>
       <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-        <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.02em", margin: 0 }}>{t("title")}</h1>
+        <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text)",margin: 0 }}>{t("title")}</h1>
 
         {/* Status filter tabs */}
-        <div style={{ display: "flex", gap: 4 }}>
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
           {[{ v: "all", l: t("filterAll") }, { v: "open", l: t("filterOpen") }, { v: "partial", l: t("filterPartial") }, { v: "settled", l: t("filterSettled") }].map(f => (
             <button key={f.v} onClick={() => setStatusFilter(f.v)} style={{
-              padding: "6px 14px", borderRadius: 999, fontSize: 12, fontWeight: 600,
+              padding: "8px 16px", minHeight: 36, borderRadius: 999, fontSize: 12, fontWeight: 600,
               cursor: "pointer", border: "none",
-              background: statusFilter === f.v ? "var(--primary)" : "var(--surface-2)",
-              color:      statusFilter === f.v ? "#1a1a1a"        : "var(--text-muted)",
+              background: statusFilter === f.v ? "var(--brand)" : "var(--surface-2)",
+              color:      statusFilter === f.v ? "var(--on-brand)"        : "var(--text-muted)",
             }}>
               {f.l}
             </button>
@@ -151,7 +150,7 @@ export function CreditList({ credits }: CreditListProps) {
             <Select
               label={t("method")}
               value={payMethod}
-              onChange={e => setPayMethod(e.target.value)}
+              onChange={e => setPayMethod(e.target.value as "cash" | "tpe" | "banque")}
               options={PAYMENT_METHODS}
             />
             <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>

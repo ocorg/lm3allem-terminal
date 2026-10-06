@@ -24,7 +24,7 @@ export default async function RentalsPage({
   ])
 
   return (
-    <CaisseGuard portal="costumes" locale={locale} role={authSession.user.role}>
+    <CaisseGuard portal="costumes" locale={locale} role={authSession.user.role} optional>
       <RentalsClient
         rentals={rentals}
         costumeItems={costumeItems}

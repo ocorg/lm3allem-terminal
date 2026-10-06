@@ -1,12 +1,15 @@
 "use server"
 
-import { prisma }       from "@/lib/db/prisma"
-import { auth }         from "@/lib/auth/auth"
-import { logActivity }  from "@/lib/activity/logger"
+import { prisma } from "@/lib/db/prisma"
+import { requireModule } from "@/lib/auth/guard"
+import { computeCaisseTotals } from "@/lib/finance/caisse"
+import { ActionError } from "@/lib/actions/result"
+import { actorLabel } from "@/lib/utils/actor"
+import { asId } from "@/lib/validation"
 
 // ── Shapes ─────────────────────────────────────────
 export interface TransactionEntry {
-  type:       "sale" | "manual"
+  type:       "sale" | "credit_payment" | "manual"
   id:         string
   amount:     string
   label:      string
@@ -16,105 +19,105 @@ export interface TransactionEntry {
 }
 
 export interface SessionStats {
-  sessionId:    string
-  openingAmount: string
-  totalSales:   number
-  totalManual:  number
-  runningTotal: number
-  salesCount:   number
-  transactions: TransactionEntry[]
+  sessionId:      string
+  openingAmount:  string
+  /** cash received from sales (advances included) */
+  totalSales:     number
+  /** cash received from credit repayments */
+  creditPayments: number
+  totalManual:    number
+  /** card + bank transfers: NOT in the drawer */
+  nonCash:        number
+  /** expected CASH in the drawer */
+  runningTotal:   number
+  salesCount:     number
+  transactions:   TransactionEntry[]
 }
 
 // ── getSessionStats ────────────────────────────────
 export async function getSessionStats(
   sessionId: string
 ): Promise<SessionStats> {
-  const session = await prisma.caisseSession.findUniqueOrThrow({
-    where:   { id: sessionId },
-    include: {
-      sales: {
-        select: {
-          id:            true,
-          amountPaid:    true,
-          paymentMethod: true,
-          createdAt:     true,
-          cashier:       { select: { name: true } },
-        },
-        orderBy: { createdAt: "desc" },
-      },
-      manualEntries: {
-        select: {
-          id:         true,
-          amount:     true,
-          reason:     true,
-          createdAt:  true,
-          recordedBy: { select: { name: true } },
-        },
-        orderBy: { createdAt: "desc" },
-      },
-    },
-  })
+  sessionId = asId(sessionId)
+  await requireModule("magazin", "caisse")
 
-  const totalSales  = session.sales.reduce((s, x) => s + Number(x.amountPaid), 0)
-  const totalManual = session.manualEntries.reduce((s, x) => s + Number(x.amount), 0)
-  const runningTotal = Number(session.openingAmount) + totalSales + totalManual
+  const session = await prisma.caisseSession.findUnique({
+    where:  { id: sessionId },
+    select: { id: true, portal: true },
+  })
+  if (!session || session.portal !== "magazin") throw new ActionError("not_found")
+
+  const [totals, sales, creditPayments, manualEntries] = await Promise.all([
+    computeCaisseTotals(sessionId, "magazin"),
+    prisma.sale.findMany({
+      where:   { caisseSessionId: sessionId },
+      select:  {
+        id: true, amountPaid: true, paymentMethod: true, createdAt: true,
+        cashier: { select: { name: true, role: true } },
+      },
+      orderBy: { createdAt: "desc" },
+      take:    40,
+    }),
+    prisma.creditPayment.findMany({
+      where:   { caisseSessionId: sessionId },
+      select:  {
+        id: true, amount: true, method: true, createdAt: true,
+        recordedBy: { select: { name: true, role: true } },
+      },
+      orderBy: { createdAt: "desc" },
+      take:    40,
+    }),
+    prisma.caisseManualEntry.findMany({
+      where:   { sessionId },
+      select:  {
+        id: true, amount: true, reason: true, createdAt: true,
+        recordedBy: { select: { name: true, role: true } },
+      },
+      orderBy: { createdAt: "desc" },
+      take:    40,
+    }),
+  ])
 
   const transactions: TransactionEntry[] = [
-    ...session.sales.map((s) => ({
-      type:      "sale"  as const,
+    ...sales.map((s) => ({
+      type:      "sale" as const,
       id:        s.id,
       amount:    s.amountPaid.toString(),
-      label:     "Vente",
+      label:     "بيع",
       method:    s.paymentMethod,
-      actorName: s.cashier.name,
+      actorName: actorLabel(s.cashier),
       createdAt: s.createdAt.toISOString(),
     })),
-    ...session.manualEntries.map((e) => ({
+    ...creditPayments.map((p) => ({
+      type:      "credit_payment" as const,
+      id:        p.id,
+      amount:    p.amount.toString(),
+      label:     "أداء دين",
+      method:    p.method,
+      actorName: actorLabel(p.recordedBy),
+      createdAt: p.createdAt.toISOString(),
+    })),
+    ...manualEntries.map((e) => ({
       type:      "manual" as const,
       id:        e.id,
       amount:    e.amount.toString(),
       label:     e.reason,
-      actorName: e.recordedBy.name,
+      actorName: actorLabel(e.recordedBy),
       createdAt: e.createdAt.toISOString(),
     })),
-  ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-   .slice(0, 40)
+  ]
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .slice(0, 40)
 
   return {
     sessionId,
-    openingAmount: session.openingAmount.toString(),
-    totalSales,
-    totalManual,
-    runningTotal,
-    salesCount: session.sales.length,
+    openingAmount:  totals.openingAmount.toString(),
+    totalSales:     totals.lines.sales,
+    creditPayments: totals.lines.creditPayments,
+    totalManual:    totals.manual,
+    nonCash:        totals.nonCash,
+    runningTotal:   totals.expectedCash,
+    salesCount:     totals.salesCount,
     transactions,
   }
-}
-
-// ── addManualEntry ─────────────────────────────────
-export async function addManualEntry(
-  sessionId: string,
-  amount:    number,
-  reason:    string
-): Promise<void> {
-  const authSession = await auth()
-  if (!authSession?.user) throw new Error("Unauthorized")
-
-  await prisma.caisseManualEntry.create({
-    data: {
-      sessionId,
-      amount,
-      reason,
-      recordedById: authSession.user.id,
-    },
-  })
-
-  await logActivity({
-    portal:     "magazin",
-    entityType: "caisse",
-    entityId:   sessionId,
-    actorId:    authSession.user.id,
-    action:     "caisse.manual_entry",
-    diff:       { amount, reason },
-  })
 }

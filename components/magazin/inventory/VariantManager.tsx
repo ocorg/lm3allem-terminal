@@ -6,6 +6,7 @@ import { Plus, Trash2 }    from "lucide-react"
 import { CreatableSelect } from "@/components/ui/CreatableSelect"
 import type { VariantInput } from "@/lib/actions/magazin/inventory"
 import React from "react"
+import { IconButton } from "@/components/ui/IconButton"
 
 type LookupItem = { id: string; label_fr: string; label_ar: string }
 
@@ -40,9 +41,9 @@ export function VariantManager({ variants, onChange, sizes: initialSizes, colors
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
       {variants.length > 0 && (
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 80px 36px", gap: 8 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 80px 42px", gap: 8 }}>
           {[tInv("size"), tInv("color"), tInv("stock"), ""].map(h => (
-            <span key={h} style={{ fontSize: 10, fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+            <span key={h} style={{ fontSize: 12, fontWeight: 600, color: "var(--text-muted)" }}>
               {h}
             </span>
           ))}
@@ -54,7 +55,7 @@ export function VariantManager({ variants, onChange, sizes: initialSizes, colors
           key={i}
           style={{
             display:             "grid",
-            gridTemplateColumns: "1fr 1fr 80px 36px",
+            gridTemplateColumns: "1fr 1fr 80px 42px",
             gap:                 8,
             alignItems:          "center",
             opacity:             v.id && v.stock === 0 ? 0.5 : 1,
@@ -65,6 +66,7 @@ export function VariantManager({ variants, onChange, sizes: initialSizes, colors
             onChange={id => updateRow(i, { sizeId: id || null })}
             onCreated={opt => setSizes(prev => [...prev, opt])}
             onDeleted={id => setSizes(prev => prev.filter(s => s.value !== id))}
+            canDelete
             slug="product_sizes"
             placeholder="-"
             options={sizes}
@@ -74,6 +76,7 @@ export function VariantManager({ variants, onChange, sizes: initialSizes, colors
             onChange={id => updateRow(i, { colorId: id || null })}
             onCreated={opt => setColors(prev => [...prev, opt])}
             onDeleted={id => setColors(prev => prev.filter(c => c.value !== id))}
+            canDelete
             slug="product_colors"
             placeholder="-"
             options={colors}
@@ -95,13 +98,9 @@ export function VariantManager({ variants, onChange, sizes: initialSizes, colors
               width:         "100%",
             }}
           />
-          <button
-            onClick={() => removeRow(i)}
-            title={v.id ? tInv("zeroStock") : tCom("delete")}
-            style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)", display: "flex", alignItems: "center", justifyContent: "center", height: 42 }}
-          >
-            <Trash2 size={14} />
-          </button>
+          <IconButton label={v.id ? tInv("zeroStock") : tCom("delete")} tone="danger" onClick={() => removeRow(i)} style={{ height: 42, width: 42 }}>
+            <Trash2 size={18} />
+          </IconButton>
         </div>
       ))}
 

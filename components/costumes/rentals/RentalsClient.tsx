@@ -1,5 +1,6 @@
 "use client"
 
+import { formatDay } from "@/lib/utils/date"
 import { useState }             from "react"
 import { useTranslations }      from "next-intl"
 import { Plus, Eye }            from "lucide-react"
@@ -7,6 +8,7 @@ import { DataTable, type Column } from "@/components/ui/DataTable"
 import { Badge }                from "@/components/ui/Badge"
 import { Button }               from "@/components/ui/Button"
 import { formatMAD }            from "@/lib/utils/currency"
+import { useOptionalCaisse }    from "@/components/caisse/CaisseProvider"
 import { RentalWizard }         from "./RentalWizard"
 import { RentalDetailModal }    from "./RentalDetailModal"
 import type { RentalForList }   from "@/lib/actions/costumes/rentals"
@@ -15,6 +17,7 @@ import type { LookupById }             from "@/lib/actions/costumes/pos"
 import type { ClientForList }   from "@/lib/actions/costumes/clients"
 import type { RentalStatus }    from "@prisma/client"
 import React from "react"
+import { IconButton } from "@/components/ui/IconButton"
 
 interface Props {
   rentals:      RentalForList[]
@@ -32,14 +35,16 @@ const STATUS_VARIANT: Record<RentalStatus, "primary" | "warning" | "success" | "
   returned:         "success",
   cleaning:         "default",
   available:        "success",
+  cancelled:        "danger",
 }
 
-const ALL_STATUSES: RentalStatus[] = ["booked", "in_preparation", "ready_for_pickup", "picked_up", "returned", "cleaning", "available"]
+const ALL_STATUSES: RentalStatus[] = ["booked", "in_preparation", "ready_for_pickup", "picked_up", "returned", "cleaning", "available", "cancelled"]
 
 export function RentalsClient({ rentals, costumeItems, clients, lookupById }: Props) {
   const tR   = useTranslations("costumes.rentals")
   const tS   = useTranslations("costumes.status")
   const tCom = useTranslations("common")
+  const { session } = useOptionalCaisse()
   const [statusFilter, setStatusFilter] = useState<RentalStatus | null>(null)
   const [showWizard,   setShowWizard]   = useState(false)
   const [detailId,     setDetailId]     = useState<string | null>(null)
@@ -49,14 +54,14 @@ export function RentalsClient({ rentals, costumeItems, clients, lookupById }: Pr
   const columns: Column<RentalForList>[] = [
     {
       key: "kitReference", label: tR("colKit"),
-      render: (_, row) => <span style={{ fontFamily: "monospace", fontSize: 12, fontWeight: 600, color: "var(--text)" }}>{row.kitReference ?? "-"}</span>,
+      render: (_, row) => <span style={{ fontFamily: "var(--font-mono)", fontSize: 12, fontWeight: 600, color: "var(--text)" }}>{row.kitReference ?? "-"}</span>,
     },
     {
       key: "clientName", label: tR("colClient"), sortable: true,
       render: (_, row) => (
         <div>
           <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", margin: 0 }}>{row.clientName}</p>
-          <p style={{ fontSize: 11, color: "var(--text-muted)", margin: "2px 0 0" }}>{row.clientPhone}</p>
+          <p style={{ fontSize: 12, color: "var(--text-muted)", margin: "2px 0 0" }}>{row.clientPhone}</p>
         </div>
       ),
     },
@@ -66,7 +71,7 @@ export function RentalsClient({ rentals, costumeItems, clients, lookupById }: Pr
     },
     {
       key: "scheduledPickupDate", label: tR("colPickup"),
-      render: (_, row) => <span style={{ fontSize: 12, color: "var(--text-muted)" }}>{new Date(row.scheduledPickupDate).toLocaleDateString("ar-MA")}</span>,
+      render: (_, row) => <span style={{ fontSize: 12, color: "var(--text-muted)" }}>{formatDay(row.scheduledPickupDate)}</span>,
     },
     {
       key: "balance", label: tR("colBalance"),
@@ -76,11 +81,11 @@ export function RentalsClient({ rentals, costumeItems, clients, lookupById }: Pr
       },
     },
     {
-      key: "id", label: "", width: 40,
+      key: "id", label: "", width: 64,
       render: (_, row) => (
-        <button onClick={() => setDetailId(row.id)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)", padding: 4 }}>
-          <Eye size={15} />
-        </button>
+        <IconButton label="عرض تفاصيل الإيجار" onClick={() => setDetailId(row.id)}>
+          <Eye size={18} />
+        </IconButton>
       ),
     },
   ]
@@ -88,11 +93,11 @@ export function RentalsClient({ rentals, costumeItems, clients, lookupById }: Pr
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-        <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.02em", margin: 0 }}>{tR("title")}</h1>
-        <Button size="sm" icon={<Plus size={14} />} onClick={() => setShowWizard(true)}>{tR("newRental")}</Button>
+        <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text)",margin: 0 }}>{tR("title")}</h1>
+        <Button size="sm" icon={<Plus size={14} />} onClick={() => setShowWizard(true)} disabled={!session} title={session ? undefined : tR("caisseClosedHint")}>{tR("newRental")}</Button>
       </div>
 
-      <div style={{ display: "flex", gap: 6, overflowX: "auto", scrollbarWidth: "none", marginBottom: 16, paddingBottom: 2 }}>
+      <div style={{ display: "flex", gap: 10, overflowX: "auto", scrollbarWidth: "none", marginBottom: 16, paddingBottom: 2 }}>
         <StatusChip label={`الكل (${rentals.length})`} active={!statusFilter} onClick={() => setStatusFilter(null)} />
         {ALL_STATUSES.map(s => {
           const count = rentals.filter(r => r.status === s).length
@@ -120,6 +125,7 @@ export function RentalsClient({ rentals, costumeItems, clients, lookupById }: Pr
       {detailId && (
         <RentalDetailModal
           rentalId={detailId}
+          lookupById={lookupById}
           onClose={() => setDetailId(null)}
         />
       )}
@@ -130,7 +136,7 @@ export function RentalsClient({ rentals, costumeItems, clients, lookupById }: Pr
 function StatusChip({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
   return (
     <button onClick={onClick} style={{
-      padding: "5px 12px", borderRadius: 999, fontSize: 12, fontWeight: active ? 600 : 500,
+      padding: "8px 16px", minHeight: 36, borderRadius: 999, fontSize: 12, fontWeight: active ? 600 : 500,
       cursor: "pointer", whiteSpace: "nowrap",
       border: `1px solid ${active ? "var(--primary)" : "var(--border)"}`,
       background: active ? "color-mix(in srgb,var(--primary) 12%,transparent)" : "transparent",

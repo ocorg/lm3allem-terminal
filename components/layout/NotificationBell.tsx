@@ -12,6 +12,7 @@ import {
   type SerializedNotification,
 } from "@/lib/actions/lm3allem/notifications"
 import React from "react"
+import { portalLabel } from "@/lib/utils/labels"
 
 const TYPE_COLOR: Record<string, string> = {
   rental:       "var(--primary)",
@@ -38,8 +39,15 @@ export default function NotificationBell() {
 
   const unreadCount = notifications.filter(n => !n.isRead).length
 
+  // "now" is state (refreshed every 30s) so rendering stays pure
+  const [now, setNow] = useState(() => Date.now())
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 30_000)
+    return () => clearInterval(id)
+  }, [])
+
   function timeAgo(iso: string): string {
-    const diff = Date.now() - new Date(iso).getTime()
+    const diff = now - new Date(iso).getTime()
     const m = Math.floor(diff / 60000)
     if (m < 1)  return t("justNow")
     if (m < 60) return t("minutesAgo", { count: m })
@@ -115,7 +123,7 @@ export default function NotificationBell() {
         }}
         onMouseEnter={e => { if (!open) { e.currentTarget.style.color = "var(--primary)"; e.currentTarget.style.borderColor = "var(--primary)" } }}
         onMouseLeave={e => { if (!open) { e.currentTarget.style.color = "var(--text-muted)"; e.currentTarget.style.borderColor = "var(--border)" } }}
-        title={!pusherOk ? "Notifications en temps réel indisponibles" : undefined}
+        title={!pusherOk ? "الإشعارات الفورية غير متاحة حاليا" : undefined}
       >
         <Bell
           size={15}
@@ -130,8 +138,8 @@ export default function NotificationBell() {
           <span style={{
             position: "absolute", top: -4, insetInlineEnd: -4,
             minWidth: 16, height: 16, borderRadius: 8,
-            background: "var(--danger)", color: "#ffffff",
-            fontSize: 10, fontWeight: 700,
+            background: "var(--brand-red)", color: "#ffffff",
+            fontSize: 12, fontWeight: 700,
             display: "flex", alignItems: "center", justifyContent: "center",
             padding: "0 3px", lineHeight: 1,
             border: "1.5px solid var(--surface)",
@@ -157,7 +165,7 @@ export default function NotificationBell() {
             </span>
             {unreadCount > 0 && (
               <button onClick={handleMarkAllRead} style={{
-                fontSize: 11, color: "var(--primary)",
+                fontSize: 12, color: "var(--primary)",
                 background: "none", border: "none", cursor: "pointer", padding: 0,
               }}>
                 {t("markAllRead")}
@@ -194,22 +202,22 @@ export default function NotificationBell() {
                       <span style={{ fontSize: 12, fontWeight: n.isRead ? 400 : 600, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                         {n.title}
                       </span>
-                      <span style={{ fontSize: 10, color: "var(--text-muted)", flexShrink: 0 }}>
+                      <span style={{ fontSize: 12, color: "var(--text-muted)", flexShrink: 0 }}>
                         {timeAgo(n.createdAt)}
                       </span>
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 2 }}>
-                      <span style={{ fontSize: 11, color: "var(--text-muted)", fontWeight: 500 }}>
+                      <span style={{ fontSize: 12, color: "var(--text-muted)", fontWeight: 500 }}>
                         {t(`typeLabels.${n.type}` as Parameters<typeof t>[0])}
                       </span>
-                      <Badge variant={PORTAL_VARIANT[n.portal] ?? "default"}>{n.portal}</Badge>
+                      <Badge variant={PORTAL_VARIANT[n.portal] ?? "default"}>{portalLabel(n.portal)}</Badge>
                     </div>
                     <p style={{ margin: "3px 0 0", fontSize: 12, color: "var(--text-muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       {n.body}
                     </p>
                   </div>
                   {!n.isRead && (
-                    <div style={{ flexShrink: 0, width: 6, height: 6, borderRadius: "50%", background: "var(--primary)", marginTop: 6 }} />
+                    <div style={{ flexShrink: 0, width: 6, height: 6, borderRadius: "50%", background: "var(--brand)", marginTop: 6 }} />
                   )}
                 </div>
               ))

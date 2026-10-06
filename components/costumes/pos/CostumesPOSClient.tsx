@@ -2,7 +2,8 @@
 
 import { useState, useMemo, useEffect }  from "react"
 import { useRouter }          from "next/navigation"
-import { ShoppingCart, Package } from "lucide-react"
+import { useTranslations }   from "next-intl"
+import { ShoppingCart, Package, Trash2, Minus, Plus } from "lucide-react"
 import Image                     from "next/image"
 import { useCaisse }          from "@/components/caisse/CaisseProvider"
 import { BelowMinModal, type BelowMinItem } from "@/components/caisse/BelowMinModal"
@@ -12,9 +13,14 @@ import { SearchBar }          from "@/components/ui/SearchBar"
 import { toast }              from "@/hooks/useToast"
 import { formatMAD }          from "@/lib/utils/currency"
 import { createCostumeSale }  from "@/lib/actions/costumes/pos"
+import { newRequestId }       from "@/lib/utils/request-id"
+import { isNetworkError }        from "@/lib/client/online"
+import { enqueueSale }           from "@/lib/offline/queue"
+import { useReservedStock }      from "@/hooks/useOfflineQueue"
 import type { CostumeItemForPOS, LookupById, LookupItem } from "@/lib/actions/costumes/pos"
-import type { PaymentMethod }                              from "@prisma/client"
 import React from "react"
+import { useBreakpoint } from "@/hooks/useBreakpoint"
+import { IconButton } from "@/components/ui/IconButton"
 
 // ── Types ──────────────────────────────────────────────────────
 interface CartEntry {
@@ -36,16 +42,22 @@ interface Props {
   role:         string
 }
 
-const PAYMENT_METHODS: { value: PaymentMethod; label: string }[] = [
-  { value: "cash",   label: "نقدا"  },
-  { value: "banque", label: "تحويل بنكي" },
-  { value: "banque", label: "Virement" },
-]
+type SettlementMethod = "cash" | "tpe" | "banque"
+const PAYMENT_METHOD_KEYS: SettlementMethod[] = ["cash", "tpe", "banque"]
 
 // ── Component ──────────────────────────────────────────────────
-export function CostumesPOSClient({ items, costumeTypes, lookupById, locale }: Props) {
+export function CostumesPOSClient({ items: serverItems, costumeTypes, lookupById, locale }: Props) {
   const { session } = useCaisse()
   const router      = useRouter()
+  const tP          = useTranslations("payment")
+  const PAYMENT_METHODS = PAYMENT_METHOD_KEYS.map(k => ({ value: k, label: tP(k) }))
+
+  // Stock promised to sales saved on this device but not yet sent: the till never sells it twice
+  const reserved = useReservedStock("costumes")
+  const items = useMemo(
+    () => serverItems.map((i) => ({ ...i, stock: Math.max(0, i.stock - (reserved[i.id] ?? 0)) })),
+    [serverItems, reserved]
+  )
 
   const [cart,         setCart]         = useState<CartEntry[]>([])
   const [search,       setSearch]       = useState("")
@@ -53,8 +65,10 @@ export function CostumesPOSClient({ items, costumeTypes, lookupById, locale }: P
   const [showPayment,  setShowPayment]  = useState(false)
   const [showBelowMin, setShowBelowMin] = useState(false)
   const [pendingItems, setPendingItems] = useState<BelowMinItem[]>([])
-  const [authorized,   setAuthorized]   = useState<Record<string, string>>({})
-  const [payMethod,    setPayMethod]    = useState<PaymentMethod>("cash")
+  // Signed manager-override token (verified by the SERVER when the sale is saved)
+  const [overrideToken, setOverrideToken] = useState<string | null>(null)
+  const [requestId,    setRequestId]    = useState(() => newRequestId())
+  const [payMethod,    setPayMethod]    = useState<SettlementMethod>("cash")
   const [loading,      setLoading]      = useState(false)
 
   const label = (item: CostumeItemForPOS) => {
@@ -103,19 +117,17 @@ export function CostumesPOSClient({ items, costumeTypes, lookupById, locale }: P
   const totalQty  = cart.reduce((s, c) => s + c.quantity, 0)
   const isRTL     = locale === "ar"
 
-  const [isMobile,  setIsMobile]  = useState(false)
+  const { isMobile } = useBreakpoint()
   const [mobileTab, setMobileTab] = useState<"products" | "cart">("products")
 
-  useEffect(() => {
-    const check = () => setIsMobile(window.innerWidth < 768)
-    check()
-    window.addEventListener("resize", check)
-    return () => window.removeEventListener("resize", check)
-  }, [])
 
   const handleCheckout = () => {
     if (!cart.length) return
-    const below = cart.filter(c => c.unitPrice < c.minSellingPrice && !authorized[c.costumeItemId])
+    const below = cart.filter(c => c.unitPrice < c.minSellingPrice && !overrideToken)
+    if (below.length && !navigator.onLine) {
+      toast("لا يمكن البيع بسعر أقل من الحد الأدنى بدون اتصال بالإنترنت، لأن تفويض المسؤول يتطلب الاتصال بالخادم", "error", 8000)
+      return
+    }
     if (below.length) {
       setPendingItems(below.map(c => ({ name: c.name_fr, requestedPrice: c.unitPrice, minPrice: c.minSellingPrice })))
       setShowBelowMin(true)
@@ -127,23 +139,50 @@ export function CostumesPOSClient({ items, costumeTypes, lookupById, locale }: P
   const handleConfirm = async () => {
     setLoading(true)
     try {
-      await createCostumeSale({
+      const saleInput = {
+        requestId,
         caisseSessionId: session.id,
         paymentMethod:   payMethod,
-        totalAmount:     subtotal,
+        totalAmount:     Math.round(subtotal * 100) / 100,
+        overrideToken:   overrideToken ?? undefined,
         items: cart.map(c => ({
-          costumeItemId:   c.costumeItemId,
-          quantity:        c.quantity,
-          unitPrice:       c.unitPrice,
-          wasBelowMin:     c.unitPrice < c.minSellingPrice,
-          authorizedById:  authorized[c.costumeItemId],
+          costumeItemId: c.costumeItemId,
+          quantity:      c.quantity,
+          unitPrice:     c.unitPrice,
         })),
-      })
+      }
+
+      // No connection (or it dropped mid-way): keep the sale on this device (same request id: no duplicate possible)
+      const saveOffline = async () => {
+        await enqueueSale({
+          requestId,
+          kind:        "costumes",
+          payload:     saleInput as unknown as Record<string, unknown>,
+          totalAmount: saleInput.totalAmount,
+          itemCount:   saleInput.items.length,
+          quantities:  Object.fromEntries(saleInput.items.map((i) => [i.costumeItemId, i.quantity])),
+        })
+        toast("لا يوجد اتصال: حُفظ البيع على هذا الجهاز وسيُرسل تلقائيا عند عودة الإنترنت", "info", 8000)
+        setCart([]); setOverrideToken(null); setRequestId(newRequestId()); setShowPayment(false)
+      }
+
+      if (!navigator.onLine) { await saveOffline(); return }
+
+      let res
+      try {
+        res = await createCostumeSale(saleInput)
+      } catch (err) {
+        if (isNetworkError(err)) { await saveOffline(); return }
+        throw err
+      }
+      if (!res.ok) {
+        toast(res.message || "خطأ", "error")
+        if (res.code === "below_min_not_authorized") setOverrideToken(null)
+        return
+      }
       toast("تم تسجيل البيع", "success")
-      setCart([]); setAuthorized({}); setShowPayment(false)
+      setCart([]); setOverrideToken(null); setRequestId(newRequestId()); setShowPayment(false)
       router.refresh()
-    } catch (e) {
-      toast(e instanceof Error ? e.message : "خطأ", "error")
     } finally {
       setLoading(false)
     }
@@ -152,6 +191,7 @@ export function CostumesPOSClient({ items, costumeTypes, lookupById, locale }: P
   return (
     <div style={{ display: "flex", flexDirection: isMobile ? "column" : (isRTL ? "row-reverse" : "row"), height: "calc(100vh - 64px)", overflow: "hidden" }}>
 
+      <h1 className="sr-only">نقطة بيع البدلات</h1>
       {/* Mobile: tab switcher */}
       {isMobile && (
         <div style={{ display: "flex", flexShrink: 0, background: "var(--surface)", borderBottom: "1px solid var(--border)" }}>
@@ -186,7 +226,7 @@ export function CostumesPOSClient({ items, costumeTypes, lookupById, locale }: P
       <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", borderInlineEnd: isMobile ? "none" : "1px solid var(--border)" }}>
         <div style={{ padding: "12px 16px 0", display: "flex", flexDirection: "column", gap: 10, flexShrink: 0 }}>
           <SearchBar value={search} onChange={setSearch} placeholder="بحث..." />
-          <div style={{ display: "flex", gap: 6, overflowX: "auto", scrollbarWidth: "none", paddingBottom: 2 }}>
+          <div style={{ display: "flex", gap: 10, overflowX: "auto", scrollbarWidth: "none", paddingBottom: 2 }}>
             <Chip label="الكل"  active={!typeFilter}   onClick={() => setTypeFilter(null)} />
             {costumeTypes.map(t => (
               <Chip key={t.id} label={t.label_ar} active={typeFilter === t.id} onClick={() => setTypeFilter(f => f === t.id ? null : t.id)} />
@@ -208,7 +248,7 @@ export function CostumesPOSClient({ items, costumeTypes, lookupById, locale }: P
                     background:   isOut ? "var(--surface-2)" : "var(--surface)",
                     border:       `1px solid ${inCart ? "var(--primary)" : "var(--border)"}`,
                     borderRadius: 10, padding: 0, cursor: isOut ? "not-allowed" : "pointer",
-                    textAlign: "left", overflow: "hidden", opacity: isOut ? 0.5 : 1, transition: "border-color 0.15s",
+                    textAlign: "start", overflow: "hidden", opacity: isOut ? 0.5 : 1, transition: "border-color 0.15s",
                   }}>
                     <div style={{ position: "relative", width: "100%", aspectRatio: "1", overflow: "hidden", background: "var(--surface-2)" }}>
                       {item.images[0]
@@ -218,11 +258,11 @@ export function CostumesPOSClient({ items, costumeTypes, lookupById, locale }: P
                     </div>
                     <div style={{ padding: "8px 10px 10px" }}>
                       <p style={{ fontSize: 12, fontWeight: 600, color: "var(--text)", margin: "0 0 2px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{name}</p>
-                      <p style={{ fontSize: 11, color: "var(--text-muted)", margin: "0 0 6px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{label(item)}</p>
+                      <p style={{ fontSize: 12, color: "var(--text-muted)", margin: "0 0 6px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{label(item)}</p>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                         <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text)" }}>{formatMAD(item.sellingPrice)}</span>
                         <span style={{
-                          fontSize: 10, fontWeight: 600, padding: "2px 6px", borderRadius: 999,
+                          fontSize: 12, fontWeight: 600, padding: "2px 6px", borderRadius: 999,
                           color:       isOut ? "var(--danger)" : item.stock <= 2 ? "var(--warning)" : "var(--success)",
                           background:  isOut ? "color-mix(in srgb,var(--danger) 10%,transparent)" : item.stock <= 2 ? "color-mix(in srgb,var(--warning) 10%,transparent)" : "color-mix(in srgb,var(--success) 10%,transparent)",
                         }}>
@@ -245,7 +285,7 @@ export function CostumesPOSClient({ items, costumeTypes, lookupById, locale }: P
         <div style={{ padding: "14px 16px 12px", borderBottom: "1px solid var(--border)", flexShrink: 0, display: "flex", alignItems: "center", gap: 8 }}>
           <ShoppingCart size={16} style={{ color: "var(--text-muted)" }} />
           <span style={{ fontSize: 14, fontWeight: 600, color: "var(--text)" }}>السلة</span>
-          {totalQty > 0 && <span style={{ background: "var(--primary)", color: "#1a1a1a", borderRadius: 999, fontSize: 10, fontWeight: 700, padding: "1px 7px", marginInlineStart: "auto" }}>{totalQty}</span>}
+          {totalQty > 0 && <span style={{ background: "var(--brand)", color: "var(--on-brand)", borderRadius: 999, fontSize: 12, fontWeight: 700, padding: "1px 7px", marginInlineStart: "auto" }}>{totalQty}</span>}
         </div>
 
         <div style={{ flex: 1, overflowY: "auto" }}>
@@ -256,15 +296,15 @@ export function CostumesPOSClient({ items, costumeTypes, lookupById, locale }: P
                 <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
                   <div style={{ flex: 1, minWidth: 0, marginInlineEnd: 8 }}>
                     <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{entry.name_fr}</p>
-                    <p style={{ fontSize: 11, color: "var(--text-muted)", margin: "2px 0 0" }}>{entry.itemLabel}</p>
+                    <p style={{ fontSize: 12, color: "var(--text-muted)", margin: "2px 0 0" }}>{entry.itemLabel}</p>
                   </div>
-                  <button onClick={() => updateQty(entry.costumeItemId, 0)} style={{ background: "none", border: "none", color: "var(--text-muted)", cursor: "pointer", padding: 2, fontSize: 14 }}>✕</button>
+                  <IconButton label="حذف من السلة" tone="danger" size="sm" onClick={() => updateQty(entry.costumeItemId, 0)}><Trash2 size={16} /></IconButton>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 4, background: "var(--surface-2)", borderRadius: 8, padding: "2px 6px" }}>
-                    <button onClick={() => updateQty(entry.costumeItemId, entry.quantity - 1)} style={{ width: 22, height: 22, border: "none", background: "none", cursor: "pointer", color: "var(--text)", fontSize: 16 }}>-</button>
-                    <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", minWidth: 20, textAlign: "center" }}>{entry.quantity}</span>
-                    <button onClick={() => updateQty(entry.costumeItemId, entry.quantity + 1)} style={{ width: 22, height: 22, border: "none", background: "none", cursor: "pointer", color: "var(--text)", fontSize: 16 }}>+</button>
+                  <div style={{ display: "flex", alignItems: "center", border: "1px solid var(--border)", borderRadius: 8, overflow: "hidden", flexShrink: 0 }}>
+                    <IconButton label="إنقاص الكمية" size="sm" onClick={() => updateQty(entry.costumeItemId, entry.quantity - 1)} style={{ border: "none", borderRadius: 0, background: "var(--surface-2)" }}><Minus size={16} /></IconButton>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", minWidth: 32, textAlign: "center" }}>{entry.quantity}</span>
+                    <IconButton label="زيادة الكمية" size="sm" onClick={() => updateQty(entry.costumeItemId, entry.quantity + 1)} style={{ border: "none", borderRadius: 0, background: "var(--surface-2)" }}><Plus size={16} /></IconButton>
                   </div>
                   <input
                     type="number"
@@ -286,7 +326,7 @@ export function CostumesPOSClient({ items, costumeTypes, lookupById, locale }: P
         <div style={{ padding: 16, borderTop: "1px solid var(--border)", flexShrink: 0 }}>
           {cart.some(c => c.unitPrice < c.minSellingPrice) && (
             <div style={{ background: "color-mix(in srgb,var(--warning) 10%,transparent)", border: "1px solid color-mix(in srgb,var(--warning) 30%,transparent)", borderRadius: 8, padding: "8px 12px", marginBottom: 12 }}>
-              <p style={{ fontSize: 11, color: "var(--warning)", margin: 0, fontWeight: 500 }}>⚠ منتجات بسعر أقل من الحد الأدنى.</p>
+              <p style={{ fontSize: 12, color: "var(--warning)", margin: 0, fontWeight: 500 }}>⚠ منتجات بسعر أقل من الحد الأدنى.</p>
             </div>
           )}
           <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12 }}>
@@ -302,11 +342,7 @@ export function CostumesPOSClient({ items, costumeTypes, lookupById, locale }: P
       <BelowMinModal
         isOpen={showBelowMin}
         items={pendingItems}
-        onAuthorized={adminId => {
-          const next = { ...authorized }
-          cart.filter(c => c.unitPrice < c.minSellingPrice).forEach(c => { next[c.costumeItemId] = adminId })
-          setAuthorized(next); setShowBelowMin(false); setShowPayment(true)
-        }}
+        onAuthorized={token => { setOverrideToken(token); setShowBelowMin(false); setShowPayment(true) }}
         onCancel={() => setShowBelowMin(false)}
       />
 
@@ -314,10 +350,10 @@ export function CostumesPOSClient({ items, costumeTypes, lookupById, locale }: P
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           <div style={{ background: "var(--surface-2)", borderRadius: 10, padding: "14px 16px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <span style={{ fontSize: 13, color: "var(--text-muted)" }}>المجموع</span>
-            <span style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.02em" }}>{formatMAD(subtotal)}</span>
+            <span style={{ fontSize: 22, fontWeight: 700, color: "var(--text)" }}>{formatMAD(subtotal)}</span>
           </div>
           <div>
-            <p style={{ fontSize: 11, fontWeight: 600, color: "var(--text-muted)", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.05em" }}>طريقة الدفع</p>
+            <p style={{ fontSize: 12, fontWeight: 600, color: "var(--text-muted)", marginBottom: 8 }}>طريقة الدفع</p>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
               {PAYMENT_METHODS.map(m => (
                 <button key={m.value} onClick={() => setPayMethod(m.value)} style={{
@@ -342,7 +378,7 @@ export function CostumesPOSClient({ items, costumeTypes, lookupById, locale }: P
 function Chip({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
   return (
     <button onClick={onClick} style={{
-      padding: "5px 14px", borderRadius: 999, fontSize: 12, fontWeight: active ? 600 : 500,
+      padding: "8px 16px", minHeight: 36, borderRadius: 999, fontSize: 12, fontWeight: active ? 600 : 500,
       cursor: "pointer", whiteSpace: "nowrap",
       border: `1px solid ${active ? "var(--primary)" : "var(--border)"}`,
       background: active ? "color-mix(in srgb,var(--primary) 12%,transparent)" : "transparent",

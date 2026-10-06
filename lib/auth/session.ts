@@ -1,49 +1,54 @@
+import "server-only"
 import { redirect } from "next/navigation"
-import { auth } from "./auth"
 import type { Portal } from "@prisma/client"
+import { getCurrentUser, type SessionUser } from "@/lib/auth/guard"
+import { routing } from "@/lib/i18n/routing"
+import { canAccessModule, canAccessPortal, isAdminRole } from "@/lib/permissions"
+import { checkMaintenanceMode } from "@/lib/utils/maintenance"
+import { firstAccessiblePath } from "@/lib/utils/nav"
+
+const L = routing.defaultLocale
 
 export async function getSession() {
-  return auth()
+  const user = await getCurrentUser()
+  return user ? { user } : null
 }
 
-/**
- * Ensures the current user has access to the requested portal.
- * Superadmin and admin bypass all portal checks.
- * Redirects to /select-portal if the user doesn't have access.
- */
-export async function withPortal(portal: Portal) {
-  const session = await auth()
-
-  if (!session?.user) {
-    redirect("/")
+async function requireSessionUser(locale: string): Promise<SessionUser> {
+  const user = await getCurrentUser()
+  if (!user) redirect(`/${locale}`)
+  if (user.mustChangePassword) redirect(`/${locale}/change-password`)
+  if (user.role === "staff") {
+    const maintenance = await checkMaintenanceMode()
+    if (maintenance.isActive) redirect(`/${locale}/select-portal`)
   }
-
-  const { role, portalAccess } = session.user
-
-  if (role !== "superadmin" && role !== "admin" && !portalAccess.includes(portal)) {
-    redirect("/select-portal")
-  }
-
-  return session
+  return user
 }
 
-/**
- * Ensures the current user has the specific module permission within a portal.
- * Superadmin and admin always pass.
- * Staff are checked against their modulePermissions JSON, with role defaults as fallback.
- */
-export async function withModule(portal: Portal, module: string) {
-  const session = await withPortal(portal)
+/** Page-level guard: the user must be allowed into the portal. (Actions re-check on their own.) */
+export async function withPortal(portal: Portal, locale: string = L) {
+  const user = await requireSessionUser(locale)
+  if (!canAccessPortal(user, portal)) redirect(`/${locale}/select-portal`)
+  return { user }
+}
 
-  const { role, modulePermissions } = session.user
-
-  if (role === "superadmin" || role === "admin") return session
-
-  const allowed = (modulePermissions as Record<string, Record<string, boolean>> | null)?.[portal]?.[module]
-
-  if (!allowed) {
-    redirect(`/${portal}`)
+/** Page-level guard: the user must be allowed to open the module. */
+export async function withModule(portal: Portal, module: string, locale: string = L) {
+  const { user } = await withPortal(portal, locale)
+  if (!canAccessModule(user, portal, module)) {
+    // Send them to a screen they CAN open. Never back to the portal root: it points to the default
+    // screen, and if that is the one refused here the browser would loop forever.
+    const home = firstAccessiblePath(user, portal)
+    const homeModule = home.replace(/-/g, "_")
+    if (home === module || homeModule === module) redirect(`/${locale}/select-portal`)
+    redirect(`/${locale}/${portal}/${home}`)
   }
+  return { user }
+}
 
-  return session
+/** Page-level guard for admin-only screens (the whole lm3allem portal). */
+export async function withAdmin(locale: string = L) {
+  const user = await requireSessionUser(locale)
+  if (!isAdminRole(user.role)) redirect(`/${locale}/select-portal`)
+  return { user }
 }

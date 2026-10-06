@@ -6,6 +6,7 @@ import { Modal }     from "@/components/ui/Modal"
 import { Input }     from "@/components/ui/Input"
 import { Button }    from "@/components/ui/Button"
 import { formatMAD } from "@/lib/utils/currency"
+import { parseAmount } from "@/lib/utils/money"
 import type { CartItem } from "./POSClient"
 import React from "react"
 
@@ -37,9 +38,12 @@ export function PaymentModal({ isOpen, cart, loading, onClose, onConfirm }: Paym
   const [clientPhone, setClientPhone] = useState("")
   const [error,       setError]       = useState("")
 
-  const amountPaid   = parseFloat(amountStr) || 0
+  const parsedAmount = parseAmount(amountStr)
+  const amountPaid   = Number.isNaN(parsedAmount) ? 0 : parsedAmount
   const isCreditMode = method === "credit"
   const change       = method === "cash" ? amountPaid - totalAmount : 0
+
+  const isCredit = (m: string) => m === "credit"
 
   const handleConfirm = () => {
     setError("")
@@ -47,11 +51,17 @@ export function PaymentModal({ isOpen, cart, loading, onClose, onConfirm }: Paym
       setError(tP("clientRequired"))
       return
     }
+    if (isCreditMode && (amountPaid < 0 || amountPaid >= totalAmount)) {
+      setError(tP("creditAdvanceInvalid"))
+      return
+    }
     if (!isCreditMode && amountPaid < totalAmount) {
       setError(tP("insufficientAmount"))
       return
     }
-    onConfirm(method, isCreditMode ? amountPaid : amountPaid, isCreditMode, clientName || undefined, clientPhone || undefined)
+    // The shop keeps the sale total; anything above it was change handed back to the customer.
+    // (The server recomputes this as well.)
+    onConfirm(method, isCreditMode ? amountPaid : totalAmount, isCredit(method), clientName || undefined, clientPhone || undefined)
   }
 
   return (
@@ -60,7 +70,7 @@ export function PaymentModal({ isOpen, cart, loading, onClose, onConfirm }: Paym
 
         <div style={{ background: "var(--surface-2)", borderRadius: 10, padding: "14px 16px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <span style={{ fontSize: 13, color: "var(--text-muted)" }}>{tP("totalToPay")}</span>
-          <span style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.02em" }}>
+          <span style={{ fontSize: 22, fontWeight: 700, color: "var(--text)" }}>
             {formatMAD(totalAmount)}
           </span>
         </div>
@@ -69,7 +79,12 @@ export function PaymentModal({ isOpen, cart, loading, onClose, onConfirm }: Paym
           {PAYMENT_METHODS.map(m => (
             <button
               key={m.value}
-              onClick={() => { setMethod(m.value); setError("") }}
+              onClick={() => {
+                setMethod(m.value)
+                setError("")
+                // credit: the advance starts at 0; otherwise the amount received starts at the total
+                setAmountStr(m.value === "credit" ? "0" : String(totalAmount))
+              }}
               style={{
                 padding:     "10px 12px",
                 borderRadius: 8,

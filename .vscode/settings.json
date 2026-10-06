@@ -12,8 +12,8 @@
     "messages",
     "lib/i18n"
   ],
-  "i18n-ally.locales": ["fr", "ar"],
-  "i18n-ally.sourceLanguage": "fr",
-  "i18n-ally.displayLanguage": "fr",
+  "i18n-ally.locales": ["ar"],
+  "i18n-ally.sourceLanguage": "ar",
+  "i18n-ally.displayLanguage": "ar",
   "i18n-ally.keystyle": "nested"
 }

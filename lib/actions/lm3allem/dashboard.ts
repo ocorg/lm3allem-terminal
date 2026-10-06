@@ -1,7 +1,11 @@
 "use server"
 
-import { auth }   from "@/lib/auth/auth"
 import { prisma } from "@/lib/db/prisma"
+import { requireAdmin } from "@/lib/auth/guard"
+import { getRevenueRows, getRevenueTotals } from "@/lib/finance/revenue"
+import { getLowStock, lowStockLabel } from "@/lib/inventory/low-stock"
+import { toNum } from "@/lib/utils/money"
+import { dayKey, startOfDay } from "@/lib/utils/time"
 
 export interface ActivityEntry {
   id:         string
@@ -21,7 +25,7 @@ export interface LowStockItem {
 }
 
 export interface RevenueTrendEntry {
-  date:     string   // "Lun", "Mar", etc.
+  date:     string   // short weekday label
   magazin:  number
   costumes: number
 }
@@ -38,120 +42,62 @@ export interface DashboardStats {
   revenueTrend:       RevenueTrendEntry[]
 }
 
-// ── Helpers ────────────────────────────────────────────────────
-function dayKey(date: Date): string {
-  return date.toISOString().slice(0, 10) // "YYYY-MM-DD"
-}
+const DAY_LABELS = ["أحد", "اثنين", "ثلاثاء", "أربعاء", "خميس", "جمعة", "سبت"]
 
-const DAY_LABELS_FR = ["Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"]
+/** Rentals that still need attention: from booking until the kit is back in the shop. */
+const OPEN_RENTAL_STATUSES = ["booked", "in_preparation", "ready_for_pickup", "picked_up"] as const
 
-// ── getDashboardStats ──────────────────────────────────────────
 export async function getDashboardStats(): Promise<DashboardStats> {
-  const session = await auth()
-  if (!session?.user) throw new Error("Unauthorized")
+  await requireAdmin()
 
-  // 7-day window (today + 6 days prior, starting at midnight)
-  const sevenDaysAgo = new Date()
-  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6)
-  sevenDaysAgo.setHours(0, 0, 0, 0)
+  // 7-day window in Morocco time (today + 6 days prior)
+  const days: string[] = []
+  for (let i = 6; i >= 0; i--) days.push(dayKey(new Date(Date.now() - i * 86_400_000)))
+  const window = { from: startOfDay(days[0]), to: new Date() }
 
   const [
-    magazinSalesAgg,
-    costumesSalesAgg,
-    costumesRentalsAgg,
+    totals,
     openRentals,
     activeUsers,
     openCaisseSessions,
     recentActivityRaw,
-    lowVariants,
-    lowCostumes,
-    magazinSalesRecent,
-    costumesSalesRecent,
-    rentalPaymentsRecent,
+    lowStock,
+    trendRows,
   ] = await Promise.all([
-    prisma.sale.aggregate({ _sum: { totalAmount: true } }),
-    prisma.costumeSale.aggregate({ _sum: { totalAmount: true } }),
-    prisma.rentalPayment.aggregate({
-      where: { type: { not: "deposit_returned" } },
-      _sum:  { amount: true },
-    }),
-    prisma.rental.count({ where: { status: { not: "available" } } }),
-    prisma.user.count({ where: { isActive: true } }),
+    getRevenueTotals(),
+    prisma.rental.count({ where: { status: { in: [...OPEN_RENTAL_STATUSES] } } }),
+    // the invisible ghost account is never counted
+    prisma.user.count({ where: { isActive: true, role: { not: "ghost" } } }),
     prisma.caisseSession.count({ where: { closedAt: null } }),
     prisma.activityLog.findMany({
+      where:   { actor: { role: { not: "ghost" } } },
       take:    10,
       orderBy: { createdAt: "desc" },
       include: { actor: { select: { name: true } } },
     }),
-    prisma.productVariant.findMany({
-      where:   { stock: { lte: 2 }, product: { isActive: true } },
-      include: { product: { select: { name_fr: true } } },
-      take:    20,
-    }),
-    prisma.costumeItem.findMany({
-      where:  { stock: { lte: 2 }, isActive: true },
-      select: { id: true, name_fr: true, stock: true },
-      take:   20,
-    }),
-    // 7-day trend - magazin sales
-    prisma.sale.findMany({
-      where:  { createdAt: { gte: sevenDaysAgo } },
-      select: { totalAmount: true, createdAt: true },
-    }),
-    // 7-day trend - costume sales
-    prisma.costumeSale.findMany({
-      where:  { createdAt: { gte: sevenDaysAgo } },
-      select: { totalAmount: true, createdAt: true },
-    }),
-    // 7-day trend - rental payments
-    prisma.rentalPayment.findMany({
-      where:  { createdAt: { gte: sevenDaysAgo }, type: { not: "deposit_returned" } },
-      select: { amount: true, createdAt: true },
-    }),
+    getLowStock(20),
+    getRevenueRows(window),
   ])
 
-  // ── Totals ─────────────────────────────────────────────────
-  const magazinRev  = Number(magazinSalesAgg._sum.totalAmount  ?? 0)
-  const costumesRev =
-    Number(costumesSalesAgg._sum.totalAmount   ?? 0) +
-    Number(costumesRentalsAgg._sum.amount      ?? 0)
-  const totalRev = magazinRev + costumesRev
+  const magazinRev  = totals.magazin
+  const costumesRev = toNum(totals.costumes + totals.rentals)
 
-  // ── 7-day trend ────────────────────────────────────────────
-  // Build a map: "YYYY-MM-DD" → { magazin, costumes }
-  const trendMap: Record<string, { magazin: number; costumes: number }> = {}
+  // ── 7-day trend, bucketed by Morocco day ───────────────────
+  const trendMap = new Map<string, { magazin: number; costumes: number }>(
+    days.map((d) => [d, { magazin: 0, costumes: 0 }])
+  )
+  for (const r of trendRows.magazin)  { const b = trendMap.get(dayKey(r.at)); if (b) b.magazin  += r.amount }
+  for (const r of trendRows.costumes) { const b = trendMap.get(dayKey(r.at)); if (b) b.costumes += r.amount }
+  for (const r of trendRows.rentals)  { const b = trendMap.get(dayKey(r.at)); if (b) b.costumes += r.amount }
 
-  // Initialise all 7 days with zeros
-  for (let i = 6; i >= 0; i--) {
-    const d = new Date()
-    d.setDate(d.getDate() - i)
-    trendMap[dayKey(d)] = { magazin: 0, costumes: 0 }
-  }
-
-  for (const s of magazinSalesRecent) {
-    const k = dayKey(s.createdAt)
-    if (trendMap[k]) trendMap[k].magazin += Number(s.totalAmount)
-  }
-  for (const s of costumesSalesRecent) {
-    const k = dayKey(s.createdAt)
-    if (trendMap[k]) trendMap[k].costumes += Number(s.totalAmount)
-  }
-  for (const p of rentalPaymentsRecent) {
-    const k = dayKey(p.createdAt)
-    if (trendMap[k]) trendMap[k].costumes += Number(p.amount)
-  }
-
-  const revenueTrend: RevenueTrendEntry[] = Object.entries(trendMap).map(([iso, vals]) => {
-    const dayIndex = new Date(iso + "T12:00:00").getDay()
-    return {
-      date:     DAY_LABELS_FR[dayIndex],
-      magazin:  Math.round(vals.magazin),
-      costumes: Math.round(vals.costumes),
-    }
-  })
+  const revenueTrend: RevenueTrendEntry[] = [...trendMap.entries()].map(([iso, vals]) => ({
+    date:     DAY_LABELS[new Date(iso + "T12:00:00Z").getUTCDay()],
+    magazin:  Math.round(vals.magazin),
+    costumes: Math.round(vals.costumes),
+  }))
 
   return {
-    totalRevenue:       totalRev.toString(),
+    totalRevenue:       toNum(magazinRev + costumesRev).toString(),
     magazinRevenue:     magazinRev.toString(),
     costumesRevenue:    costumesRev.toString(),
     openRentals,
@@ -166,20 +112,12 @@ export async function getDashboardStats(): Promise<DashboardStats> {
       actorName:  a.actor?.name ?? "-",
       createdAt:  a.createdAt.toISOString(),
     })),
-    lowStockItems: [
-      ...lowVariants.map((v) => ({
-        id:     v.id,
-        name:   v.product.name_fr,
-        portal: "magazin" as const,
-        stock:  v.stock,
-      })),
-      ...lowCostumes.map((c) => ({
-        id:     c.id,
-        name:   c.name_fr,
-        portal: "costumes" as const,
-        stock:  c.stock,
-      })),
-    ],
+    lowStockItems: lowStock.map((e) => ({
+      id:     e.id,
+      name:   lowStockLabel(e),
+      portal: e.portal,
+      stock:  e.stock,
+    })),
     revenueTrend,
   }
 }

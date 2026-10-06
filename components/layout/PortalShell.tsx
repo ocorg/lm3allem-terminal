@@ -2,6 +2,7 @@ import type { ReactNode } from "react"
 import type { Portal, Role } from "@prisma/client"
 import { getTranslations } from "next-intl/server"
 import { buildNavItems } from "@/lib/utils/nav"
+import { isAdminRole, type ModulePermissions } from "@/lib/permissions"
 import LayoutShell from "@/components/layout/LayoutShell"
 import React from "react"
 
@@ -11,7 +12,7 @@ interface Props {
   role:              Role
   userName:          string
   portalAccess:      Portal[]
-  modulePermissions: Record<string, Record<string, boolean>> | null
+  modulePermissions: ModulePermissions | null
   children:          ReactNode
 }
 
@@ -24,8 +25,7 @@ export default async function PortalShell({
   modulePermissions,
   children,
 }: Props) {
-  const canSwitchPortal =
-    role === "superadmin" || role === "admin" || portalAccess.length > 1
+  const canSwitchPortal = isAdminRole(role) || portalAccess.length > 1
 
   const tNav =
     portal === "magazin"
@@ -37,6 +37,7 @@ export default async function PortalShell({
   const navItems = buildNavItems({
     portal,
     role,
+    portalAccess,
     modulePermissions,
     getLabel: (key: string) => tNav(key as Parameters<typeof tNav>[0]),
     locale,

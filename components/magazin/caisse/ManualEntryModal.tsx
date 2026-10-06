@@ -6,7 +6,8 @@ import { Modal }  from "@/components/ui/Modal"
 import { Input }  from "@/components/ui/Input"
 import { Button } from "@/components/ui/Button"
 import { toast }  from "@/hooks/useToast"
-import { addManualEntry } from "@/lib/actions/magazin/caisse"
+import { addManualEntry } from "@/lib/actions/caisse"
+import { parseAmount } from "@/lib/utils/money"
 import React from "react"
 
 interface ManualEntryModalProps {
@@ -27,20 +28,19 @@ export function ManualEntryModal({ isOpen, sessionId, onClose, onSuccess }: Manu
 
   const handleSave = async () => {
     const e: Record<string, string> = {}
-    const num = parseFloat(amount)
-    if (isNaN(num))         e.amount = tCom("invalidAmount")
+    const num = parseAmount(amount)
+    if (isNaN(num) || num === 0) e.amount = tCom("invalidAmount")
     if (!reason.trim())     e.reason = t("reasonRequired")
     setErrors(e)
     if (Object.keys(e).length) return
 
     setLoading(true)
     try {
-      await addManualEntry(sessionId, num, reason.trim())
+      const res = await addManualEntry(sessionId, num, reason.trim())
+      if (!res.ok) { toast(res.message || t("entryError"), "error"); return }
       toast(t("entryRecorded"), "success")
       setAmount(""); setReason("")
       onSuccess()
-    } catch {
-      toast(t("entryError"), "error")
     } finally {
       setLoading(false)
     }

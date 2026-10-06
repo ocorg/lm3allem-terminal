@@ -7,6 +7,7 @@ import { Input }                from "@/components/ui/Input"
 import { CreatableSelect }      from "@/components/ui/CreatableSelect"
 import { Button }               from "@/components/ui/Button"
 import { toast }                from "@/hooks/useToast"
+import { parseAmount }          from "@/lib/utils/money"
 import { createProduct, updateProduct } from "@/lib/actions/magazin/inventory"
 import { ImageUploader }        from "./ImageUploader"
 import { VariantManager }       from "./VariantManager"
@@ -40,7 +41,7 @@ export function ProductFormModal({ isOpen, mode, product, categories: initialCat
   const [minSell,  setMinSell]  = useState(product?.minSellingPrice ?? "")
   const [images,   setImages]   = useState<string[]>(product?.images ?? [])
   const [variants, setVariants] = useState<VariantInput[]>(
-    product?.variants.map(v => ({ id: v.id, sizeId: v.sizeId, colorId: v.colorId, stock: v.stock })) ?? []
+    product?.variants.map(v => ({ id: v.id, sizeId: v.sizeId, colorId: v.colorId, stock: v.stock, originalStock: v.stock })) ?? []
   )
   const [loading,  setLoading]  = useState(false)
   const [errors,   setErrors]   = useState<Record<string, string>>({})
@@ -53,9 +54,10 @@ export function ProductFormModal({ isOpen, mode, product, categories: initialCat
     const e: Record<string, string> = {}
     if (!nameAr.trim())             e.nameAr   = tCom("required")
     if (!catId)                     e.catId    = tCom("required")
-    if (isNaN(parseFloat(selling))) e.selling  = tInv("invalidAmount")
-    if (isNaN(parseFloat(buying)))  e.buying   = tInv("invalidAmount")
-    if (isNaN(parseFloat(minSell))) e.minSell  = tInv("invalidAmount")
+    if (isNaN(parseAmount(selling))) e.selling  = tInv("invalidAmount")
+    if (isNaN(parseAmount(buying)))  e.buying   = tInv("invalidAmount")
+    if (isNaN(parseAmount(minSell))) e.minSell  = tInv("invalidAmount")
+    else if (!isNaN(parseAmount(selling)) && parseAmount(minSell) > parseAmount(selling)) e.minSell = tInv("minAboveSelling")
     if (variants.length === 0)      e.variants = tInv("variantsRequired")
     setErrors(e)
     return Object.keys(e).length === 0
@@ -69,22 +71,16 @@ export function ProductFormModal({ isOpen, mode, product, categories: initialCat
         name_fr:         nameAr.trim(),
         name_ar:         nameAr.trim(),
         categoryId:      catId,
-        buyingPrice:     parseFloat(buying),
-        sellingPrice:    parseFloat(selling),
-        minSellingPrice: parseFloat(minSell),
+        buyingPrice:     parseAmount(buying),
+        sellingPrice:    parseAmount(selling),
+        minSellingPrice: parseAmount(minSell),
         images,
         variants,
       }
-      if (isEdit && product) {
-        await updateProduct(product.id, data)
-        toast(tInv("productUpdated"), "success")
-      } else {
-        await createProduct(data)
-        toast(tInv("productCreated"), "success")
-      }
+      const res = isEdit && product ? await updateProduct(product.id, data) : await createProduct(data)
+      if (!res.ok) { toast(res.message || tCom("error"), "error"); return }
+      toast(isEdit ? tInv("productUpdated") : tInv("productCreated"), "success")
       onSuccess()
-    } catch (e) {
-      toast(e instanceof Error ? e.message : tCom("error"), "error")
     } finally {
       setLoading(false)
     }
@@ -102,6 +98,7 @@ export function ProductFormModal({ isOpen, mode, product, categories: initialCat
           onChange={setCatId}
           onCreated={opt => setCategories(prev => [...prev, opt])}
           onDeleted={id => setCategories(prev => prev.filter(c => c.value !== id))}
+          canDelete
           slug="product_categories"
           error={errors.catId}
           placeholder={tInv("chooseCategory")}
@@ -117,10 +114,10 @@ export function ProductFormModal({ isOpen, mode, product, categories: initialCat
         <ImageUploader images={images} onChange={setImages} />
 
         <div>
-          <p style={{ fontSize: 12, fontWeight: 600, color: errors.variants ? "var(--danger)" : "var(--text-muted)", margin: "0 0 8px", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+          <p style={{ fontSize: 12, fontWeight: 600, color: errors.variants ? "var(--danger)" : "var(--text-muted)", margin: "0 0 8px" }}>
             {tInv("variantsSectionLabel")}
           </p>
-          {errors.variants && <p style={{ fontSize: 11, color: "var(--danger)", margin: "0 0 8px" }}>{errors.variants}</p>}
+          {errors.variants && <p style={{ fontSize: 12, color: "var(--danger)", margin: "0 0 8px" }}>{errors.variants}</p>}
           <VariantManager variants={variants} onChange={setVariants} sizes={sizes} colors={colors} />
         </div>
 

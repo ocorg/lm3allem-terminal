@@ -15,6 +15,9 @@ interface ModalProps {
   hideClose?:           boolean
 }
 
+// Several modals can be open at once (confirm over wizard...): the page only unlocks when the last closes.
+let openModalCount = 0
+
 const panelWidths: Record<string, number> = {
   sm: 400, md: 520, lg: 640, xl: 768,
 }
@@ -52,7 +55,12 @@ export function Modal({
         )
       )
 
-    const timer = setTimeout(() => getFocusable()[0]?.focus(), 60)
+    // Start in the first field (not on the close button), and give the focus back on close
+    const opener = document.activeElement as HTMLElement | null
+    const timer = setTimeout(() => {
+      const field = panel.querySelector<HTMLElement>("input:not([disabled]):not([type=file]), select:not([disabled]), textarea:not([disabled])")
+      ;(field ?? getFocusable()[0])?.focus()
+    }, 60)
 
     const trap = (e: KeyboardEvent) => {
       if (e.key !== "Tab") return
@@ -71,13 +79,19 @@ export function Modal({
     return () => {
       clearTimeout(timer)
       document.removeEventListener("keydown", trap)
+      opener?.focus?.()
     }
   }, [isOpen])
 
-  // Scroll lock
+  // Scroll lock (reference counted)
   useEffect(() => {
-    document.body.style.overflow = isOpen ? "hidden" : ""
-    return () => { document.body.style.overflow = "" }
+    if (!isOpen) return
+    openModalCount += 1
+    document.body.style.overflow = "hidden"
+    return () => {
+      openModalCount = Math.max(0, openModalCount - 1)
+      if (openModalCount === 0) document.body.style.overflow = ""
+    }
   }, [isOpen])
 
   const showHeader = !!(title || !hideClose)
@@ -147,13 +161,16 @@ export function Modal({
                 {!hideClose && (
                   <button
                     onClick={onClose}
-                    aria-label="Close"
+                    aria-label="إغلاق"
                     style={{
                       background: "none",
                       border:     "none",
                       cursor:     "pointer",
                       color:      "var(--text-muted)",
-                      padding:    4,
+                      width:      36,
+                      height:     36,
+                      justifyContent: "center",
+                      padding:    0,
                       borderRadius: 6,
                       display:    "flex",
                       alignItems: "center",

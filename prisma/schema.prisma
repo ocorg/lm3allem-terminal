@@ -9,10 +9,12 @@ datasource db {
 
 // ─── ENUMS ────────────────────────────────────────────
 
+/// ghost = invisible full-permission maintenance/verification account.
+/// It is never listed, never logged, never counted, and cannot be created from the UI.
 enum Role {
-  superadmin
   admin
   staff
+  ghost
 }
 
 enum Theme {
@@ -53,6 +55,7 @@ enum RentalStatus {
   returned
   cleaning
   available
+  cancelled
 }
 
 enum ItemSegment {
@@ -68,37 +71,58 @@ enum TransactionType {
   remaining_balance
   manual_entry
   credit_payment
+  /// money handed back to the customer when a rental is cancelled
+  rental_refund
+}
+
+enum CreditStatus {
+  open
+  partial
+  settled
+}
+
+enum RequestStatus {
+  pending
+  reviewed
+  ordered
 }
 
 // ─── USERS ────────────────────────────────────────────
 
 model User {
-  id                String    @id @default(cuid())
-  name              String
-  pin               String
-  role              Role      @default(staff)
-  isActive          Boolean   @default(true)
-  portalAccess      Portal[]
-  modulePermissions Json?
-  preferredLanguage Language  @default(ar)
-  preferredTheme    Theme     @default(light)
-  avatarUrl         String?
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
+  id                 String    @id @default(cuid())
+  name               String
+  /// Login identifier (lower-cased). Nullable only for legacy rows created before the email/password switch.
+  email              String?   @unique
+  /// bcrypt(HMAC-SHA256(pepper, password))
+  passwordHash       String?
+  mustChangePassword Boolean   @default(false)
+  failedLogins       Int       @default(0)
+  lockedUntil        DateTime?
+  lastLoginAt        DateTime?
+  role               Role      @default(staff)
+  isActive           Boolean   @default(true)
+  portalAccess       Portal[]
+  /// Shape: { magazin: { pos: true, ... }, costumes: { rentals: true, ... } }
+  modulePermissions  Json?
+  preferredLanguage  Language  @default(ar)
+  preferredTheme     Theme     @default(light)
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 
-  sales             Sale[]
-  costumeSales      CostumeSale[]
-  rentals           Rental[]            @relation("CreatedByUser")
-  caisseSessions    CaisseSession[]
-  manualEntries     CaisseManualEntry[]
-  creditPayments    CreditPayment[]
-  activityLogs      ActivityLog[]
-  productRequests   ProductRequest[]
-  rentalPayments    RentalPayment[]
-  expenses          Expense[]
-
-  accounts          Account[]
-  sessions          Session[]
+  sales                  Sale[]
+  costumeSales           CostumeSale[]
+  rentals                Rental[]            @relation("CreatedByUser")
+  caisseSessions         CaisseSession[]
+  closedSessions         CaisseSession[]     @relation("SessionClosedBy")
+  manualEntries          CaisseManualEntry[]
+  creditPayments         CreditPayment[]
+  activityLogs           ActivityLog[]
+  productRequests        ProductRequest[]
+  rentalPayments         RentalPayment[]
+  expenses               Expense[]
+  authorizedSaleItems    SaleItem[]          @relation("SaleItemAuthorizer")
+  authorizedCostumeItems CostumeSaleItem[]   @relation("CostumeSaleItemAuthorizer")
 }
 
 // ─── LOOKUP SYSTEM ────────────────────────────────────
@@ -124,11 +148,19 @@ model LookupValue {
   isActive   Boolean        @default(true)
   createdAt  DateTime       @default(now())
   updatedAt  DateTime       @updatedAt
-  expenses     Expense[]
-  costumeItems CostumeItem[]
+
+  expenses          Expense[]
+  costumeTypes      CostumeItem[]    @relation("CostumeType")
+  costumeSizes      CostumeItem[]    @relation("CostumeSize")
+  costumePantsSizes CostumeItem[]    @relation("CostumePants")
+  costumeShirtSizes CostumeItem[]    @relation("CostumeShirt")
+  costumeShoeSizes  CostumeItem[]    @relation("CostumeShoe")
+  products          Product[]        @relation("ProductCategory")
+  variantSizes      ProductVariant[] @relation("VariantSize")
+  variantColors     ProductVariant[] @relation("VariantColor")
 }
 
-// ─── SYSTEM SETTINGS ─────────────────────────────────
+// ─── SYSTEM SETTINGS / COUNTERS ──────────────────────
 
 model SystemSettings {
   id                    String   @id @default(cuid())
@@ -137,6 +169,12 @@ model SystemSettings {
   maintenanceMessage_ar String?
   defaultStaffPermissions Json
   updatedAt             DateTime @updatedAt
+}
+
+/// Atomic sequence generator (kit references, item SKUs). Incremented with an upsert.
+model Counter {
+  key   String @id
+  value Int    @default(0)
 }
 
 // ─── CLIENTS ─────────────────────────────────────────
@@ -150,20 +188,8 @@ model Client {
   createdAt    DateTime            @default(now())
   updatedAt    DateTime            @updatedAt
 
-  measurements ClientMeasurement[]
   rentals      Rental[]
   credits      Credit[]
-}
-
-model ClientMeasurement {
-  id           String   @id @default(cuid())
-  clientId     String
-  client       Client   @relation(fields: [clientId], references: [id])
-  categoryId   String
-  value        String
-  unit         String?
-  recordedById String
-  recordedAt   DateTime @default(now())
 }
 
 // ─── MAGAZIN — PRODUCTS ──────────────────────────────
@@ -173,6 +199,7 @@ model Product {
   name_fr         String
   name_ar         String
   categoryId      String
+  category        LookupValue      @relation("ProductCategory", fields: [categoryId], references: [id])
   buyingPrice     Decimal          @db.Decimal(10, 2)
   sellingPrice    Decimal          @db.Decimal(10, 2)
   minSellingPrice Decimal          @db.Decimal(10, 2)
@@ -185,13 +212,15 @@ model Product {
 }
 
 model ProductVariant {
-  id        String    @id @default(cuid())
+  id        String       @id @default(cuid())
   productId String
-  product   Product   @relation(fields: [productId], references: [id])
+  product   Product      @relation(fields: [productId], references: [id])
   sizeId    String?
+  size      LookupValue? @relation("VariantSize", fields: [sizeId], references: [id])
   colorId   String?
-  stock     Int       @default(0)
-  updatedAt DateTime  @updatedAt
+  color     LookupValue? @relation("VariantColor", fields: [colorId], references: [id])
+  stock     Int          @default(0)
+  updatedAt DateTime     @updatedAt
 
   saleItems SaleItem[]
 }
@@ -200,6 +229,8 @@ model ProductVariant {
 
 model Sale {
   id              String        @id @default(cuid())
+  /// Client-generated idempotency key: a retried request returns the original sale.
+  requestId       String?       @unique
   cashierId       String
   cashier         User          @relation(fields: [cashierId], references: [id])
   caisseSessionId String
@@ -212,6 +243,9 @@ model Sale {
 
   items           SaleItem[]
   credit          Credit?
+
+  @@index([createdAt])
+  @@index([caisseSessionId])
 }
 
 model SaleItem {
@@ -224,16 +258,20 @@ model SaleItem {
   unitPrice      Decimal        @db.Decimal(10, 2)
   wasBelowMin    Boolean        @default(false)
   authorizedById String?
+  authorizedBy   User?          @relation("SaleItemAuthorizer", fields: [authorizedById], references: [id])
 }
 
 // ─── CAISSE ───────────────────────────────────────────
 
+/// A partial unique index (see migration 20261005000000) guarantees ONE open session per portal:
+///   CREATE UNIQUE INDEX "CaisseSession_one_open_per_portal" ON "CaisseSession"("portal") WHERE "closedAt" IS NULL;
 model CaisseSession {
   id             String              @id @default(cuid())
   portal         Portal
   openedById     String
   openedBy       User                @relation(fields: [openedById], references: [id])
   closedById     String?
+  closedBy       User?               @relation("SessionClosedBy", fields: [closedById], references: [id])
   openingAmount  Decimal             @db.Decimal(10, 2)
   closingAmount  Decimal?            @db.Decimal(10, 2)
   expectedAmount Decimal?            @db.Decimal(10, 2)
@@ -243,7 +281,11 @@ model CaisseSession {
   sales          Sale[]
   costumeSales   CostumeSale[]
   rentalPayments RentalPayment[]
+  creditPayments CreditPayment[]
   manualEntries  CaisseManualEntry[]
+
+  @@index([portal, closedAt])
+  @@index([openedAt])
 }
 
 model CaisseManualEntry {
@@ -270,50 +312,66 @@ model Credit {
   totalAmount Decimal         @db.Decimal(10, 2)
   amountPaid  Decimal         @db.Decimal(10, 2)
   balance     Decimal         @db.Decimal(10, 2)
-  status      String          @default("open")
+  status      CreditStatus    @default(open)
   notes       String?
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
 
   payments    CreditPayment[]
+
+  @@index([status])
 }
 
 model CreditPayment {
-  id           String        @id @default(cuid())
-  creditId     String
-  credit       Credit        @relation(fields: [creditId], references: [id])
-  amount       Decimal       @db.Decimal(10, 2)
-  method       PaymentMethod
-  recordedById String
-  recordedBy   User          @relation(fields: [recordedById], references: [id])
-  createdAt    DateTime      @default(now())
+  id              String         @id @default(cuid())
+  creditId        String
+  credit          Credit         @relation(fields: [creditId], references: [id])
+  /// The magazin caisse session open when the payment was received (cash flow reconciliation).
+  caisseSessionId String?
+  caisseSession   CaisseSession? @relation(fields: [caisseSessionId], references: [id])
+  amount          Decimal        @db.Decimal(10, 2)
+  method          PaymentMethod
+  recordedById    String
+  recordedBy      User           @relation(fields: [recordedById], references: [id])
+  createdAt       DateTime       @default(now())
+
+  @@index([createdAt])
 }
 
 model ProductRequest {
-  id            String   @id @default(cuid())
+  id            String        @id @default(cuid())
   productName   String
   categoryId    String?
   requestedById String
-  requestedBy   User     @relation(fields: [requestedById], references: [id])
-  requestCount  Int      @default(1)
+  requestedBy   User          @relation(fields: [requestedById], references: [id])
+  requestCount  Int           @default(1)
   notes         String?
-  status        String   @default("pending")
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  status        RequestStatus @default(pending)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
 }
 
 // ─── COSTUMES ────────────────────────────────────────
 
+/// Field meaning for RENTAL items (legacy column names kept to avoid a data migration):
+///   sizeId      = suit size       colorId     = PANTS size (not a colour)
+///   shirtSizeId = shirt size      shoeSizeId  = shoe size
 model CostumeItem {
   id              String            @id @default(cuid())
+  /// Human-readable unique code, e.g. "ART-0042" (generated from the `costume_item` counter).
+  sku             String?           @unique
   name_fr         String
   name_ar         String
   typeId          String
-  costumeType     LookupValue       @relation(fields: [typeId], references: [id])
+  costumeType     LookupValue       @relation("CostumeType", fields: [typeId], references: [id])
   sizeId          String?
+  size            LookupValue?      @relation("CostumeSize", fields: [sizeId], references: [id])
   colorId         String?
+  pantsSize       LookupValue?      @relation("CostumePants", fields: [colorId], references: [id])
   shirtSizeId     String?
+  shirtSize       LookupValue?      @relation("CostumeShirt", fields: [shirtSizeId], references: [id])
   shoeSizeId      String?
+  shoeSize        LookupValue?      @relation("CostumeShoe", fields: [shoeSizeId], references: [id])
   stock           Int               @default(1)
   images          String[]
   buyingPrice     Decimal           @db.Decimal(10, 2)
@@ -333,6 +391,7 @@ model CostumeItem {
 
 model Rental {
   id                  String              @id @default(cuid())
+  requestId           String?             @unique
   clientId            String
   client              Client              @relation(fields: [clientId], references: [id])
   status              RentalStatus        @default(booked)
@@ -343,6 +402,7 @@ model Rental {
   actualPickupDate    DateTime?
   actualReturnDate    DateTime?
   totalAmount         Decimal             @db.Decimal(10, 2)
+  /// Rental money received (advance + balance payments). Deposits are NOT included.
   amountPaid          Decimal             @db.Decimal(10, 2) @default(0)
   balance             Decimal             @db.Decimal(10, 2)
   guaranteeType       GuaranteeType
@@ -351,6 +411,8 @@ model Rental {
   depositApplied      Boolean             @default(false)
   depositReturned     Boolean             @default(false)
   notes               String?
+  cancelledAt         DateTime?
+  cancelReason        String?
   createdById         String
   createdBy           User                @relation("CreatedByUser", fields: [createdById], references: [id])
   createdAt           DateTime            @default(now())
@@ -358,6 +420,9 @@ model Rental {
 
   kit                 RentalKit?
   payments            RentalPayment[]
+
+  @@index([status])
+  @@index([scheduledReturnDate])
 }
 
 model RentalKit {
@@ -393,12 +458,16 @@ model RentalPayment {
   recordedById    String
   recordedBy      User            @relation(fields: [recordedById], references: [id])
   createdAt       DateTime        @default(now())
+
+  @@index([createdAt])
+  @@index([rentalId])
 }
 
 // ─── COSTUME DIRECT SALES ────────────────────────────
 
 model CostumeSale {
   id              String            @id @default(cuid())
+  requestId       String?           @unique
   cashierId       String
   cashier         User              @relation(fields: [cashierId], references: [id])
   caisseSessionId String
@@ -408,6 +477,9 @@ model CostumeSale {
   createdAt       DateTime          @default(now())
 
   items           CostumeSaleItem[]
+
+  @@index([createdAt])
+  @@index([caisseSessionId])
 }
 
 model CostumeSaleItem {
@@ -420,6 +492,7 @@ model CostumeSaleItem {
   unitPrice      Decimal     @db.Decimal(10, 2)
   wasBelowMin    Boolean     @default(false)
   authorizedById String?
+  authorizedBy   User?       @relation("CostumeSaleItemAuthorizer", fields: [authorizedById], references: [id])
 }
 
 // ─── EXPENSES ────────────────────────────────────────
@@ -436,9 +509,11 @@ model Expense {
   recordedBy   User     @relation(fields: [recordedById], references: [id])
   receiptUrl   String?
   createdAt    DateTime @default(now())
+
+  @@index([date])
 }
 
-// ─── ACTIVITY LOGS ───────────────────────────────────
+// ─── NOTIFICATIONS / ACTIVITY LOGS ───────────────────
 
 model Notification {
   id        String   @id @default(cuid())
@@ -463,40 +538,8 @@ model ActivityLog {
   action     String
   diff       Json?
   createdAt  DateTime @default(now())
-}
 
-// ─── AUTH.JS V5 ADAPTER MODELS ───────────────────────
-
-model Account {
-  id                String  @id @default(cuid())
-  userId            String
-  type              String
-  provider          String
-  providerAccountId String
-  refresh_token     String? @db.Text
-  access_token      String? @db.Text
-  expires_at        Int?
-  token_type        String?
-  scope             String?
-  id_token          String? @db.Text
-  session_state     String?
-  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([provider, providerAccountId])
-}
-
-model Session {
-  id           String   @id @default(cuid())
-  sessionToken String   @unique
-  userId       String
-  expires      DateTime
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
-
-model VerificationToken {
-  identifier String
-  token      String   @unique
-  expires    DateTime
-
-  @@unique([identifier, token])
+  @@index([createdAt])
+  @@index([portal, createdAt])
+  @@index([entityType])
 }

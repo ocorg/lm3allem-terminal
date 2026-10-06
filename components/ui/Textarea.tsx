@@ -1,7 +1,7 @@
 "use client"
 
 import React from "react"
-import { useState, type TextareaHTMLAttributes } from "react"
+import { useId, useState, type TextareaHTMLAttributes } from "react"
 
 interface TextareaProps extends TextareaHTMLAttributes<HTMLTextAreaElement> {
   label?: string
@@ -21,6 +21,8 @@ export function Textarea({
   ...props
 }: TextareaProps) {
   const [focused, setFocused] = useState(false)
+  const autoId = useId()
+  const areaId = props.id ?? autoId
 
   const borderColor = focused
     ? "var(--primary)"
@@ -34,6 +36,7 @@ export function Textarea({
     <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
       {label && (
         <label
+          htmlFor={areaId}
           style={{
             fontSize:   12,
             fontWeight: 500,
@@ -65,13 +68,15 @@ export function Textarea({
         onFocus={(e) => { setFocused(true);  onFocus?.(e) }}
         onBlur={(e)  => { setFocused(false); onBlur?.(e)  }}
         {...props}
+        id={areaId}
+        aria-invalid={error ? true : undefined}
       />
 
       {error && (
-        <span style={{ fontSize: 11, color: "var(--danger)" }}>{error}</span>
+        <span style={{ fontSize: 12, color: "var(--danger)" }}>{error}</span>
       )}
       {hint && !error && (
-        <span style={{ fontSize: 11, color: "var(--text-muted)" }}>{hint}</span>
+        <span style={{ fontSize: 12, color: "var(--text-muted)" }}>{hint}</span>
       )}
     </div>
   )

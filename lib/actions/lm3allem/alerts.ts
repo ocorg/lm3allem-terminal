@@ -1,9 +1,13 @@
 "use server"
 
-import { auth } from "@/lib/auth/auth"
-import { prisma }             from "@/lib/db/prisma"
-import { sendMail }            from "@/lib/email/mailer"
-import { lowStockDigestHtml }  from "@/lib/email/templates"
+import { prisma } from "@/lib/db/prisma"
+import { requireAdmin } from "@/lib/auth/guard"
+import { isTelegramConfigured } from "@/lib/notifications/telegram"
+import { sendLowStockReport } from "@/lib/notifications/low-stock-report"
+import { ActionError, run, type ActionResult } from "@/lib/actions/result"
+import { getOverdueRentals } from "@/lib/rentals/overdue"
+import { getLowStock, lowStockLabel } from "@/lib/inventory/low-stock"
+import { actorLabel } from "@/lib/utils/actor"
 
 export interface LowStockAlert {
   id: string
@@ -12,7 +16,17 @@ export interface LowStockAlert {
   stock: number
 }
 
-export interface OpenRentalAlert {
+export interface OverdueRentalAlert {
+  id: string
+  reference: string
+  clientName: string
+  clientPhone: string
+  balance: string
+  scheduledReturnDate: string
+  daysOverdue: number
+}
+
+export interface UnpaidRentalAlert {
   id: string
   reference: string
   clientName: string
@@ -37,27 +51,23 @@ export interface UnpaidCreditAlert {
 
 export interface AlertsData {
   lowStockItems: LowStockAlert[]
-  openRentals: OpenRentalAlert[]
+  /** kit not returned although the return date has passed */
+  overdueRentals: OverdueRentalAlert[]
+  /** rentals that still carry an unpaid balance (not cancelled) */
+  openRentals: UnpaidRentalAlert[]
   openCaisseSessions: OpenCaisseAlert[]
   unpaidCredits: UnpaidCreditAlert[]
 }
 
 export async function getAlerts(): Promise<AlertsData> {
-  const session = await auth()
-  if (!session?.user) throw new Error("Unauthorized")
+  await requireAdmin()
 
-  const [lowVariants, lowCostumes, openRentals, openCaisse, unpaidCredits] =
+  const [lowStock, overdue, unpaidRentals, openCaisse, unpaidCredits] =
     await Promise.all([
-      prisma.productVariant.findMany({
-        where: { stock: { lte: 2 }, product: { isActive: true } },
-        include: { product: { select: { name_ar: true } } },
-      }),
-      prisma.costumeItem.findMany({
-        where: { stock: { lte: 2 }, isActive: true },
-        select: { id: true, name_ar: true, stock: true },
-      }),
+      getLowStock(),
+      getOverdueRentals(),
       prisma.rental.findMany({
-        where: { balance: { gt: 0 } },
+        where: { balance: { gt: 0 }, status: { not: "cancelled" } },
         include: {
           client: { select: { name: true } },
           kit: { select: { reference: true } },
@@ -66,7 +76,7 @@ export async function getAlerts(): Promise<AlertsData> {
       }),
       prisma.caisseSession.findMany({
         where: { closedAt: null },
-        include: { openedBy: { select: { name: true } } },
+        include: { openedBy: { select: { name: true, role: true } } },
         orderBy: { openedAt: "asc" },
       }),
       prisma.credit.findMany({
@@ -77,21 +87,22 @@ export async function getAlerts(): Promise<AlertsData> {
     ])
 
   return {
-    lowStockItems: [
-      ...lowVariants.map((v) => ({
-        id: v.id,
-        name: v.product.name_ar || v.product.name_ar,
-        portal: "magazin" as const,
-        stock: v.stock,
-      })),
-      ...lowCostumes.map((c) => ({
-        id: c.id,
-        name: c.name_ar || c.name_ar,
-        portal: "costumes" as const,
-        stock: c.stock,
-      })),
-    ],
-    openRentals: openRentals.map((r) => ({
+    lowStockItems: lowStock.map((e) => ({
+      id: e.id,
+      name: lowStockLabel(e),
+      portal: e.portal,
+      stock: e.stock,
+    })),
+    overdueRentals: overdue.map((r) => ({
+      id: r.id,
+      reference: r.reference,
+      clientName: r.clientName,
+      clientPhone: r.clientPhone,
+      balance: r.balance,
+      scheduledReturnDate: r.scheduledReturnDate.toISOString(),
+      daysOverdue: r.daysOverdue,
+    })),
+    openRentals: unpaidRentals.map((r) => ({
       id: r.id,
       reference: r.kit?.reference ?? "-",
       clientName: r.client.name,
@@ -102,7 +113,7 @@ export async function getAlerts(): Promise<AlertsData> {
     openCaisseSessions: openCaisse.map((s) => ({
       id: s.id,
       portal: s.portal,
-      openedByName: s.openedBy.name,
+      openedByName: actorLabel(s.openedBy),
       openedAt: s.openedAt.toISOString(),
     })),
     unpaidCredits: unpaidCredits.map((c) => ({
@@ -115,36 +126,20 @@ export async function getAlerts(): Promise<AlertsData> {
 }
 
 // ── sendLowStockDigest ─────────────────────────────────────────
-export async function sendLowStockDigest(): Promise<{ sent: boolean; count: number }> {
-  const session = await auth()
-  if (!session?.user) throw new Error("Unauthorized")
+export async function sendLowStockDigest(): Promise<ActionResult<{ sent: boolean; count: number }>> {
+  return run(async () => {
+    await requireAdmin()
 
-  const adminEmail = process.env.ADMIN_EMAIL
-  if (!adminEmail) throw new Error("ADMIN_EMAIL non configuré dans .env")
+    if (!isTelegramConfigured()) {
+      throw new ActionError("validation", "تيليغرام غير مُعدّ (TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID)")
+    }
 
-  const [lowVariants, lowCostumes] = await Promise.all([
-    prisma.productVariant.findMany({
-      where:   { stock: { lte: 2 }, product: { isActive: true } },
-      include: { product: { select: { name_ar: true } } },
-    }),
-    prisma.costumeItem.findMany({
-      where:  { stock: { lte: 2 }, isActive: true },
-      select: { id: true, name_ar: true, stock: true },
-    }),
-  ])
+    const items = await getLowStock()
+    if (items.length === 0) return { sent: false, count: 0 }
 
-  const items = [
-    ...lowVariants.map(v => ({ name: v.product.name_ar, portal: "magazin", stock: v.stock })),
-    ...lowCostumes.map(c => ({ name: c.name_ar, portal: "costumes", stock: c.stock })),
-  ]
+    const sent = await sendLowStockReport(items)
+    if (!sent) throw new ActionError("server_error", "تعذر الإرسال عبر تيليغرام، تحقق من الإعدادات")
 
-  if (items.length === 0) return { sent: false, count: 0 }
-
-  await sendMail(
-    adminEmail,
-    `مخزون منخفض - ${items.length} ${items.length > 1 ? "منتجات" : "منتج"} تحتاج إلى تموين`,
-    lowStockDigestHtml({ items })
-  )
-
-  return { sent: true, count: items.length }
+    return { sent: true, count: items.length }
+  })
 }

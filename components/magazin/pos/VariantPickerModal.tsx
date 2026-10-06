@@ -5,7 +5,6 @@ import { formatMAD } from "@/lib/utils/currency"
 import type { ProductForPOS } from "@/lib/actions/magazin/pos"
 import React from "react"
 
-type LookupItem    = { id: string; label_fr: string; label_ar: string }
 type LookupMapItem = { label_fr: string; label_ar: string }
 
 interface VariantPickerModalProps {
@@ -38,7 +37,7 @@ export function VariantPickerModal({
     <Modal isOpen={isOpen} onClose={onClose} title={name} size="sm">
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         <p style={{ fontSize: 12, color: "var(--text-muted)", margin: 0 }}>
-          Choisissez une variante :
+          اختر المقاس واللون:
         </p>
 
         {product.variants.map(v => {
@@ -66,8 +65,8 @@ export function VariantPickerModal({
                 <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", margin: 0 }}>
                   {getLabel(v)}
                 </p>
-                <p style={{ fontSize: 11, color: isOut ? "var(--danger)" : "var(--success)", margin: "2px 0 0", fontWeight: 500 }}>
-                  {isOut ? "Épuisé" : `${v.stock} en stock`}
+                <p style={{ fontSize: 12, color: isOut ? "var(--danger)" : "var(--success)", margin: "2px 0 0", fontWeight: 500 }}>
+                  {isOut ? "نفد المخزون" : `${v.stock} في المخزون`}
                 </p>
               </div>
               <span style={{ fontSize: 13, fontWeight: 700, color: "var(--primary)" }}>

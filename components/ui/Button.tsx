@@ -1,5 +1,8 @@
+"use client"
+
 import type { ButtonHTMLAttributes, ReactNode } from "react"
 import { Spinner } from "./Spinner"
+import { useSlowLoadingWarning } from "@/hooks/useSlowWarning"
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?:  "primary" | "secondary" | "ghost" | "danger"
@@ -11,10 +14,10 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const variantStyles: Record<string, React.CSSProperties> = {
-  primary:   { background: "var(--primary)",   color: "#1a1a1a", border: "none" },
+  primary:   { background: "var(--brand)",   color: "var(--on-brand)", border: "none" },
   secondary: { background: "var(--surface-2)", color: "var(--text)",       border: "1px solid var(--border)" },
   ghost:     { background: "transparent",      color: "var(--text-muted)", border: "none" },
-  danger:    { background: "var(--danger)",    color: "#ffffff",            border: "none" },
+  danger:    { background: "var(--brand-red)", color: "#ffffff",           border: "none" },
 }
 
 const sizeStyles: Record<string, React.CSSProperties> = {
@@ -35,6 +38,9 @@ export function Button({
   ...props
 }: ButtonProps) {
   const isDisabled = disabled || loading
+
+  // A spinner that lasts too long explains itself instead of looping forever
+  useSlowLoadingWarning(loading)
 
   const spinnerColor =
     variant === "danger"    ? "white"   :

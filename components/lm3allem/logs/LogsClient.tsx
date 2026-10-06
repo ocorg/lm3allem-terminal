@@ -12,20 +12,23 @@ const PORTAL_VARIANT: Record<string, "primary" | "info" | "success"> = {
   costumes: "info",
   lm3allem: "success",
 }
-import { formatDate } from "@/lib/utils/date"
 import type { LogsResult } from "@/lib/actions/lm3allem/logs"
+import { actionLabel } from "@/lib/utils/action-labels"
 import React from "react"
+import { DateText } from "@/components/ui/DateText"
+import { portalLabel } from "@/lib/utils/labels"
 
 const PORTALS     = ["magazin", "costumes", "lm3allem"]
-const ENTITY_TYPES = ["sale", "rental", "expense", "user", "lookup_value", "lookup_category", "settings", "credit"]
 
 interface Props {
   result: LogsResult
   actors: { id: string; name: string }[]
+  /** entity types that exist in the log (read from the database) */
+  entityTypes: string[]
   currentFilters: Record<string, string | undefined>
 }
 
-export function LogsClient({ result, actors, currentFilters }: Props) {
+export function LogsClient({ result, actors, entityTypes, currentFilters }: Props) {
   const t = useTranslations("lm3allem.logs")
   const router = useRouter()
   const params = useParams()
@@ -47,9 +50,9 @@ export function LogsClient({ result, actors, currentFilters }: Props) {
   const totalPages = Math.ceil(result.total / result.pageSize)
 
   return (
-    <div style={{ padding: 24, display: "flex", flexDirection: "column", gap: 24 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
 
-      <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.02em", margin: 0 }}>
+      <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text)",margin: 0 }}>
         {t("title")}
       </h1>
 
@@ -72,7 +75,7 @@ export function LogsClient({ result, actors, currentFilters }: Props) {
           style={{ minWidth: "150px" }}
           options={[
             { value: "", label: "-" },
-            ...ENTITY_TYPES.map((e) => ({ value: e, label: e })),
+            ...entityTypes.map((e) => ({ value: e, label: e })),
           ]}
         />
         <Select
@@ -99,7 +102,7 @@ export function LogsClient({ result, actors, currentFilters }: Props) {
               <thead>
                 <tr style={{ background: "var(--surface-2)" }}>
                   {[t("at"), t("by"), t("action"), t("entity"), "Portal"].map((h, i) => (
-                    <th key={i} style={{ padding: "10px 16px", textAlign: "start", fontWeight: 600, fontSize: 11, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.04em", borderBottom: "1px solid var(--border)" }}>
+                    <th key={i} style={{ padding: "10px 16px", textAlign: "start", fontWeight: 600, fontSize: 12, color: "var(--text-muted)",borderBottom: "1px solid var(--border)" }}>
                       {h}
                     </th>
                   ))}
@@ -108,13 +111,14 @@ export function LogsClient({ result, actors, currentFilters }: Props) {
               <tbody>
                 {result.logs.map((l, i) => (
                   <tr key={l.id} style={{ borderBottom: i < result.logs.length - 1 ? "1px solid var(--border)" : "none" }}>
-                    <td style={{ padding: "10px 16px", color: "var(--text-muted)", whiteSpace: "nowrap" }}>{formatDate(l.createdAt)}</td>
+                    <td style={{ padding: "10px 16px", color: "var(--text-muted)", whiteSpace: "nowrap" }}><DateText value={l.createdAt} time /></td>
                     <td style={{ padding: "10px 16px", fontWeight: 500 }}>{l.actorName}</td>
                     <td style={{ padding: "10px 16px" }}>
-                      <code style={{ fontSize: 12, background: "var(--surface-2)", padding: "2px 6px", borderRadius: "4px", color: "var(--text)" }}>{l.action}</code>
+                      <div>{actionLabel(l.action)}</div>
+                      <code style={{ fontSize: 12, background: "var(--surface-2)", padding: "1px 5px", borderRadius: "4px", color: "var(--text-muted)" }}>{l.action}</code>
                     </td>
-                    <td style={{ padding: "10px 16px", color: "var(--text-muted)" }}>{l.entityType} <span style={{ color: "var(--text-muted)", fontSize: 11 }}>#{l.entityId.slice(-6)}</span></td>
-                    <td style={{ padding: "10px 16px" }}><Badge variant={PORTAL_VARIANT[l.portal] ?? "default"}>{l.portal}</Badge></td>
+                    <td style={{ padding: "10px 16px", color: "var(--text-muted)" }}>{l.entityType} <span style={{ color: "var(--text-muted)", fontSize: 12 }}>#{l.entityId.slice(-6)}</span></td>
+                    <td style={{ padding: "10px 16px" }}><Badge variant={PORTAL_VARIANT[l.portal] ?? "default"}>{portalLabel(l.portal)}</Badge></td>
                   </tr>
                 ))}
               </tbody>

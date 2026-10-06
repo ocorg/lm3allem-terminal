@@ -1,7 +1,10 @@
 "use server"
 
-import { auth } from "@/lib/auth/auth"
+import type { Prisma } from "@prisma/client"
 import { prisma } from "@/lib/db/prisma"
+import { requireAdmin } from "@/lib/auth/guard"
+import { actorLabel } from "@/lib/utils/actor"
+import { endOfDay, startOfDay } from "@/lib/utils/time"
 
 export interface SessionHistoryFilters {
   portal?: "magazin" | "costumes"
@@ -35,19 +38,19 @@ const PAGE_SIZE = 20
 export async function getAllSessions(
   filters: SessionHistoryFilters = {}
 ): Promise<SessionsResult> {
-  const session = await auth()
-  if (!session?.user) throw new Error("Unauthorized")
+  await requireAdmin()
 
-  const { portal, status, from, to, page = 1 } = filters
+  const { portal, status, from, to } = filters
+  const page = Number.isFinite(filters.page) && (filters.page as number) > 0 ? Math.floor(filters.page as number) : 1
 
-  const where: Record<string, unknown> = {}
-  if (portal) where.portal = portal
+  const where: Prisma.CaisseSessionWhereInput = {}
+  if (portal === "magazin" || portal === "costumes") where.portal = portal
   if (status === "open") where.closedAt = null
   if (status === "closed") where.closedAt = { not: null }
   if (from || to) {
-    const openedAt: Record<string, Date> = {}
-    if (from) openedAt.gte = new Date(from)
-    if (to) openedAt.lte = new Date(to)
+    const openedAt: Prisma.DateTimeFilter = {}
+    if (from) openedAt.gte = startOfDay(from)
+    if (to) openedAt.lte = endOfDay(to)
     where.openedAt = openedAt
   }
 
@@ -58,33 +61,19 @@ export async function getAllSessions(
       skip: (page - 1) * PAGE_SIZE,
       take: PAGE_SIZE,
       include: {
-        openedBy: { select: { name: true } },
+        openedBy: { select: { name: true, role: true } },
+        closedBy: { select: { name: true, role: true } },
       },
     }),
     prisma.caisseSession.count({ where }),
   ])
 
-  // Batch-fetch closedBy names (relation not defined in schema - use field closedById)
-  const closedByIds = sessions
-    .map((s) => s.closedById)
-    .filter((id): id is string => id !== null)
-
-  const closedByUsers =
-    closedByIds.length > 0
-      ? await prisma.user.findMany({
-          where: { id: { in: closedByIds } },
-          select: { id: true, name: true },
-        })
-      : []
-
-  const closedByMap = Object.fromEntries(closedByUsers.map((u) => [u.id, u.name]))
-
   return {
     sessions: sessions.map((s) => ({
       id: s.id,
       portal: s.portal,
-      openedByName: s.openedBy.name,
-      closedByName: s.closedById ? (closedByMap[s.closedById] ?? null) : null,
+      openedByName: actorLabel(s.openedBy),
+      closedByName: s.closedBy ? actorLabel(s.closedBy) : null,
       openingAmount: s.openingAmount.toString(),
       closingAmount: s.closingAmount?.toString() ?? null,
       expectedAmount: s.expectedAmount?.toString() ?? null,

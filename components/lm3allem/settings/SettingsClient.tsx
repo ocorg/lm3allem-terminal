@@ -1,71 +1,87 @@
 "use client"
 
 import { useState, useTransition } from "react"
+import { useRouter } from "next/navigation"
 import { useTranslations } from "next-intl"
 import { Button } from "@/components/ui/Button"
 import { Input } from "@/components/ui/Input"
 import { toast } from "@/hooks/useToast"
 import { updateSystemSettings, type SerializedSettings } from "@/lib/actions/lm3allem/settings"
+import { PORTAL_MODULES, type ModulePermissions } from "@/lib/permissions"
 import React from "react"
 
-const MAG_MODULES = ["pos", "inventory", "caisse", "credits", "requests"]
-const COS_MODULES = ["pos", "inventory", "clients", "rentals", "caisse"]
+const PORTAL_LABELS: Record<string, string> = { magazin: "المتجر", costumes: "البدلات" }
 
-interface Props { settings: SerializedSettings; role: string }
+const MODULE_LABELS: Record<string, Record<string, string>> = {
+  magazin: {
+    pos: "نقطة البيع", inventory: "المخزون", caisse: "الصندوق", credits: "الديون", requests: "طلبات المنتجات",
+  },
+  costumes: {
+    pos: "بيع البدلات", rentals: "الإيجار", rental_inventory: "مخزون الإيجار", clients: "العملاء", caisse: "الصندوق",
+  },
+}
 
-export function SettingsClient({ settings, role }: Props) {
+type EditablePortal = keyof typeof PORTAL_MODULES
+
+interface Props { settings: SerializedSettings }
+
+export function SettingsClient({ settings }: Props) {
   const t = useTranslations("lm3allem.settings")
+  const router = useRouter()
   const [isPending, startTransition] = useTransition()
 
   const [maintenanceMode, setMaintenanceMode] = useState(settings.maintenanceMode)
   const [msgAr, setMsgAr] = useState(settings.maintenanceMessage_ar ?? "")
-  const [perms, setPerms] = useState<Record<string, unknown>>(settings.defaultStaffPermissions)
+  // { portal: { module: boolean } } - the same shape every permission check reads
+  const [perms, setPerms] = useState<ModulePermissions>(settings.defaultStaffPermissions)
 
-  function togglePerm(module: string) {
-    setPerms((p) => ({ ...p, [module]: !p[module] }))
+  function togglePerm(portal: EditablePortal, module: string) {
+    setPerms((p) => ({ ...p, [portal]: { ...(p[portal] ?? {}), [module]: !p[portal]?.[module] } }))
   }
 
   function handleSave() {
     startTransition(async () => {
-      try {
-        await updateSystemSettings({
-          id: settings.id,
-          maintenanceMode,
-          maintenanceMessage_ar: msgAr || null,
-          defaultStaffPermissions: perms,
-        })
-        toast(t("saved"), "success")
-      } catch {
-        toast(t("saveError"), "error")
-      }
+      const res = await updateSystemSettings({
+        id: settings.id,
+        maintenanceMode,
+        maintenanceMessage_ar: msgAr || null,
+        defaultStaffPermissions: perms,
+      })
+      if (!res.ok) { toast(res.message || t("saveError"), "error"); return }
+      toast(t("saved"), "success")
+      router.refresh()
     })
   }
 
   return (
-    <div style={{ padding: 24, display: "flex", flexDirection: "column", gap: 32, maxWidth: "640px" }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 32, maxWidth: "640px" }}>
 
-      <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.02em", margin: 0 }}>
+      <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text)",margin: 0 }}>
         {t("title")}
       </h1>
 
-      {/* Maintenance - superadmin only */}
-      {role === "superadmin" && <section style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "8px", padding: 20, display: "flex", flexDirection: "column", gap: 16 }}>
+      {/* Maintenance */}
+      <section style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "8px", padding: 20, display: "flex", flexDirection: "column", gap: 16 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div>
             <p style={{ margin: 0, fontWeight: 600 }}>{t("maintenanceMode")}</p>
             <p style={{ margin: "2px 0 0", fontSize: 13, color: "var(--text-muted)" }}>{t("maintenanceModeDesc")}</p>
           </div>
           <button
+            type="button"
+            role="switch"
+            aria-checked={maintenanceMode}
+            aria-label={t("maintenanceMode")}
             onClick={() => setMaintenanceMode((v) => !v)}
             style={{
-              width: "48px", height: "26px", borderRadius: "13px", border: "none", cursor: "pointer",
+              width: "58px", height: "32px", borderRadius: "16px", border: "none", cursor: "pointer",
               background: maintenanceMode ? "var(--danger)" : "color-mix(in srgb, var(--text-muted) 40%, transparent)",
               position: "relative", transition: "background 150ms",
             }}
           >
             <span style={{
-              position: "absolute", top: "3px", insetInlineStart: maintenanceMode ? "calc(100% - 23px)" : "3px",
-              width: "20px", height: "20px", borderRadius: "50%", background: "#fff",
+              position: "absolute", top: "3px", insetInlineStart: maintenanceMode ? "calc(100% - 29px)" : "3px",
+              width: "26px", height: "26px", borderRadius: "50%", background: "#fff",
               transition: "inset-inline-start 150ms",
             }} />
           </button>
@@ -76,30 +92,24 @@ export function SettingsClient({ settings, role }: Props) {
           </p>
         )}
         <Input label={t("maintenanceMessageAr")} value={msgAr} onChange={(e) => setMsgAr(e.target.value)} dir="rtl" />
-      </section>}
+      </section>
 
       {/* Default Staff Permissions */}
       <section style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "8px", padding: 20 }}>
-        <p style={{ margin: "0 0 16px", fontWeight: 600 }}>{t("defaultStaffPermissions")}</p>
+        <p style={{ margin: "0 0 4px", fontWeight: 600 }}>{t("defaultStaffPermissions")}</p>
+        <p style={{ margin: "0 0 16px", fontSize: 12, color: "var(--text-muted)" }}>{t("defaultStaffPermissionsDesc")}</p>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
-          <div>
-            <p style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--text-muted)", margin: "0 0 8px" }}>MAGAZIN</p>
-            {MAG_MODULES.map((m) => (
-              <label key={m} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, marginBottom: 8, cursor: "pointer" }}>
-                <input type="checkbox" checked={!!perms[m]} onChange={() => togglePerm(m)} />
-                {m}
-              </label>
-            ))}
-          </div>
-          <div>
-            <p style={{ fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--text-muted)", margin: "0 0 8px" }}>COSTUMES</p>
-            {COS_MODULES.map((m) => (
-              <label key={m} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, marginBottom: 8, cursor: "pointer" }}>
-                <input type="checkbox" checked={!!perms[m]} onChange={() => togglePerm(m)} />
-                {m}
-              </label>
-            ))}
-          </div>
+          {(Object.keys(PORTAL_MODULES) as EditablePortal[]).map((portal) => (
+            <div key={portal}>
+              <p style={{ fontSize: 12, fontWeight: 700,color: "var(--text-muted)", margin: "0 0 8px" }}>{PORTAL_LABELS[portal]}</p>
+              {PORTAL_MODULES[portal].map((m) => (
+                <label key={m} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, marginBottom: 8, cursor: "pointer" }}>
+                  <input type="checkbox" checked={!!perms[portal]?.[m]} onChange={() => togglePerm(portal, m)} />
+                  {MODULE_LABELS[portal][m]}
+                </label>
+              ))}
+            </div>
+          ))}
         </div>
       </section>
 

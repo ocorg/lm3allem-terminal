@@ -14,9 +14,9 @@ interface CaisseClosedViewProps {
   role:   string
 }
 
-export function CaisseClosedView({ portal, locale, role }: CaisseClosedViewProps) {
+export function CaisseClosedView({ portal, role }: CaisseClosedViewProps) {
   const t       = useTranslations("caisse")
-  const canOpen = role === "admin" || role === "superadmin"
+  const canOpen = role === "admin" || role === "ghost"
   const [open, setOpen] = useState(false)
 
   return (

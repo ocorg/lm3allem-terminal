@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, type SelectHTMLAttributes, type ReactNode } from "react"
+import { useId, useState, type SelectHTMLAttributes } from "react"
 import { ChevronDown } from "lucide-react"
 import React from "react"
 
@@ -29,6 +29,8 @@ export function Select({
   ...props
 }: SelectProps) {
   const [focused, setFocused] = useState(false)
+  const autoId = useId()
+  const selectId = props.id ?? autoId
 
   const borderColor = focused
     ? "var(--primary)"
@@ -42,6 +44,7 @@ export function Select({
     <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
       {label && (
         <label
+          htmlFor={selectId}
           style={{
             fontSize:   12,
             fontWeight: 500,
@@ -74,6 +77,9 @@ export function Select({
           onFocus={(e) => { setFocused(true);  onFocus?.(e) }}
           onBlur={(e)  => { setFocused(false); onBlur?.(e)  }}
           {...props}
+          id={selectId}
+          aria-label={label ? undefined : (props["aria-label"] ?? placeholder)}
+          aria-invalid={error ? true : undefined}
         >
           {placeholder && (
             <option value="" disabled>
@@ -99,10 +105,10 @@ export function Select({
       </div>
 
       {error && (
-        <span style={{ fontSize: 11, color: "var(--danger)" }}>{error}</span>
+        <span style={{ fontSize: 12, color: "var(--danger)" }}>{error}</span>
       )}
       {hint && !error && (
-        <span style={{ fontSize: 11, color: "var(--text-muted)" }}>{hint}</span>
+        <span style={{ fontSize: 12, color: "var(--text-muted)" }}>{hint}</span>
       )}
     </div>
   )

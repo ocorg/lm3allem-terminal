@@ -9,7 +9,9 @@ import {
 } from "recharts"
 import { Button }    from "@/components/ui/Button"
 import { StatCard }  from "@/components/ui/StatCard"
-import { formatMAD } from "@/lib/utils/currency"
+import { formatMAD, formatNumber } from "@/lib/utils/currency"
+import { todayKey } from "@/lib/utils/time"
+import { toast } from "@/hooks/useToast"
 import {
   getFinancesData,
   type FinancesData,
@@ -19,10 +21,10 @@ import {
 import React from "react"
 
 // ── Chart colours (CSS vars don't resolve inside SVG) ─────────
-const C_PRIMARY = "#D4941F"
-const C_INFO    = "#4A90D9"
-const C_SUCCESS = "#2EBD6E"
-const C_DANGER  = "#E84040"
+const C_PRIMARY = "#F59A0E"
+const C_INFO    = "#3B82C4"
+const C_SUCCESS = "#2E9E5E"
+const C_DANGER  = "#D02828"
 
 // ── Moroccan month names ───────────────────────────────────────
 const ARABIC_MONTHS = [
@@ -35,12 +37,24 @@ function monthLabel(yyyyMm: string): string {
   return `${ARABIC_MONTHS[parseInt(month, 10) - 1]} ${year}`
 }
 
-// ── Presets (unchanged) ───────────────────────────────────────
+// ── Presets ────────────────────────────────────────────────────
+// Ranges are plain "YYYY-MM-DD" dates in Morocco time; the SERVER turns them into exact instants
+// (start of the first day, end of the last day), so a month never loses its last day.
+const pad = (n: number) => String(n).padStart(2, "0")
+const ymd = (d: Date) => `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}`
+
+function monthRange(monthsBack: number): DateRange {
+  const [y, m] = todayKey().split("-").map(Number)
+  const first = new Date(Date.UTC(y, m - 1 - monthsBack, 1))
+  const last  = new Date(Date.UTC(y, m, 0))            // last day of the current month
+  return { from: ymd(first), to: ymd(last) }
+}
+
 const PRESETS = [
-  { key: "thisMonth",   getRange: () => { const n = new Date(); return { from: new Date(n.getFullYear(), n.getMonth(), 1).toISOString(),     to: new Date(n.getFullYear(), n.getMonth() + 1, 0, 23, 59, 59).toISOString() } } },
-  { key: "last3Months", getRange: () => { const n = new Date(); return { from: new Date(n.getFullYear(), n.getMonth() - 2, 1).toISOString(),  to: new Date(n.getFullYear(), n.getMonth() + 1, 0, 23, 59, 59).toISOString() } } },
-  { key: "last6Months", getRange: () => { const n = new Date(); return { from: new Date(n.getFullYear(), n.getMonth() - 5, 1).toISOString(),  to: new Date(n.getFullYear(), n.getMonth() + 1, 0, 23, 59, 59).toISOString() } } },
-  { key: "thisYear",    getRange: () => { const n = new Date(); return { from: new Date(n.getFullYear(), 0, 1).toISOString(),                 to: new Date(n.getFullYear(), 11, 31, 23, 59, 59).toISOString() } } },
+  { key: "thisMonth",   getRange: () => monthRange(0) },
+  { key: "last3Months", getRange: () => monthRange(2) },
+  { key: "last6Months", getRange: () => monthRange(5) },
+  { key: "thisYear",    getRange: () => { const y = Number(todayKey().slice(0, 4)); return { from: `${y}-01-01`, to: `${y}-12-31` } } },
 ]
 
 // ── Main component ────────────────────────────────────────────
@@ -56,8 +70,11 @@ export function FinancesClient({ initialData }: { initialData: FinancesData }) {
     setActivePreset(key)
     setOpenMonths(new Set()) // collapse everything on range change
     startTransition(async () => {
-      const fresh = await getFinancesData(range)
-      setData(fresh)
+      try {
+        setData(await getFinancesData(range))
+      } catch {
+        toast("تعذر تحميل البيانات المالية", "error")
+      }
     })
   }
 
@@ -100,11 +117,11 @@ export function FinancesClient({ initialData }: { initialData: FinancesData }) {
     formatMAD(Math.abs(Number(value ?? 0)).toString())
 
   return (
-    <div style={{ padding: 24, display: "flex", flexDirection: "column", gap: 32 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 32 }}>
 
       {/* ── Header + preset buttons ── */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
-        <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.02em", margin: 0 }}>
+        <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text)",margin: 0 }}>
           {t("title")}
         </h1>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -123,7 +140,7 @@ export function FinancesClient({ initialData }: { initialData: FinancesData }) {
       </div>
 
       {/* ── Summary stat cards ── */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 16 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))", gap: 12 }}>
         <StatCard label={t("magazinSales")}  value={formatMAD(data.totals.magazinSales)} />
         <StatCard label={t("costumesSales")} value={formatMAD(data.totals.costumesSales)} />
         <StatCard label={t("rentalRevenue")} value={formatMAD(data.totals.rentalRevenue)} />
@@ -136,14 +153,14 @@ export function FinancesClient({ initialData }: { initialData: FinancesData }) {
         ? <p style={{ color: "var(--text-muted)" }}>{t("noData")}</p>
         : (
           <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 8, padding: 20 }}>
-            <p style={{ margin: "0 0 16px", fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--text-muted)" }}>
+            <p style={{ margin: "0 0 16px", fontSize: 12, fontWeight: 600,color: "var(--text-muted)" }}>
               {t("monthlyBreakdown")}
             </p>
-            <ResponsiveContainer width="100%" height={300}>
+            <div dir="ltr"><ResponsiveContainer width="100%" height={300}>
               <BarChart data={chartData} margin={{ top: 0, right: 8, left: 0, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-                <XAxis dataKey="month" tick={{ fontSize: 11, fill: "var(--text-muted)" }} />
-                <YAxis tick={{ fontSize: 11, fill: "var(--text-muted)" }} tickFormatter={(v: number) => `${Math.abs(v / 1000)}k`} />
+                <XAxis dataKey="month" tick={{ fontSize: 12, fill: "var(--text-muted)" }} tickFormatter={monthLabel} />
+                <YAxis width={72} tick={{ fontSize: 12, fill: "var(--text-muted)" }} tickFormatter={(v: number) => formatNumber(v).replace(/,00$/, "")} />
                 <Tooltip
                   formatter={tooltipFormatter}
                   contentStyle={{ background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: 6, fontSize: 13 }}
@@ -154,7 +171,7 @@ export function FinancesClient({ initialData }: { initialData: FinancesData }) {
                 <Bar dataKey={t("rentalRevenue")} fill={C_SUCCESS} radius={[3,3,0,0]} />
                 <Bar dataKey={t("expenses")}      fill={C_DANGER}  radius={[3,3,0,0]} />
               </BarChart>
-            </ResponsiveContainer>
+            </ResponsiveContainer></div>
           </div>
         )
       }
@@ -165,15 +182,15 @@ export function FinancesClient({ initialData }: { initialData: FinancesData }) {
 
           {/* Section label + expand-all toggle */}
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-            <p style={{ margin: 0, fontSize: 12, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--text-muted)" }}>
+            <p style={{ margin: 0, fontSize: 12, fontWeight: 600,color: "var(--text-muted)" }}>
               {t("monthlyBreakdown")}
             </p>
             <button
               onClick={toggleAll}
               style={{
                 background: "none", border: "none", cursor: "pointer",
-                fontSize: 12, color: "var(--text-muted)",
-                padding: "4px 8px", borderRadius: 4,
+                fontSize: 13, color: "var(--text-muted)",
+                padding: "8px 12px", minHeight: 36, borderRadius: 8,
               }}
             >
               {openMonths.size === data.monthly.length ? "طي الكل" : "فتح الكل"}
@@ -185,12 +202,11 @@ export function FinancesClient({ initialData }: { initialData: FinancesData }) {
             {years.map(year => (
               <div key={year}>
 
-                {/* Year header — only when range spans multiple years */}
+                {/* Year header - only when range spans multiple years */}
                 {multiYear && (
                   <div style={{
                     padding: "5px 16px",
-                    fontSize: 11, fontWeight: 700,
-                    letterSpacing: "0.1em", textTransform: "uppercase",
+                    fontSize: 12, fontWeight: 700,
                     color: "var(--text-muted)",
                     background: "var(--surface-2)",
                     border: "1px solid var(--border)",
@@ -278,7 +294,7 @@ export function FinancesClient({ initialData }: { initialData: FinancesData }) {
                             <BreakdownRow label={t("costumesSales")} value={m.costumesSales} dot={C_INFO}    />
                             <BreakdownRow label={t("rentalRevenue")} value={m.rentalRevenue} dot={C_SUCCESS} />
                             <BreakdownRow label={t("expenses")}      value={m.expenses}      dot={C_DANGER}  negative />
-                            {/* Net — full width */}
+                            {/* Net - full width */}
                             <div style={{ gridColumn: "1 / -1", borderTop: "1px solid var(--border)", paddingTop: 10, marginTop: 2 }}>
                               <BreakdownRow
                                 label={t("net")}
@@ -324,7 +340,7 @@ function BreakdownRow({
         {label}
       </span>
       <span style={{ fontSize: 13, fontWeight: bold ? 700 : 500, color: dot }}>
-        {negative && Number(value) > 0 ? "−" : ""}{formatMAD(value)}
+        {formatMAD(negative && Number(value) > 0 ? -Number(value) : value)}
       </span>
     </div>
   )

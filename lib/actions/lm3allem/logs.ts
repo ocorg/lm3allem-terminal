@@ -1,7 +1,9 @@
 "use server"
 
-import { auth } from "@/lib/auth/auth"
+import type { Prisma } from "@prisma/client"
 import { prisma } from "@/lib/db/prisma"
+import { requireAdmin } from "@/lib/auth/guard"
+import { endOfDay, startOfDay } from "@/lib/utils/time"
 
 export interface LogFilters {
   portal?: string
@@ -33,20 +35,23 @@ export interface LogsResult {
 
 const PAGE_SIZE = 30
 
+/** The ghost account never writes log rows, and any that exist are filtered out as well. */
+const NOT_GHOST: Prisma.ActivityLogWhereInput = { actor: { role: { not: "ghost" } } }
+
 export async function getLogs(filters: LogFilters = {}): Promise<LogsResult> {
-  const session = await auth()
-  if (!session?.user) throw new Error("Unauthorized")
+  await requireAdmin()
 
-  const { portal, entityType, actorId, from, to, page = 1 } = filters
+  const { portal, entityType, actorId, from, to } = filters
+  const page = Number.isFinite(filters.page) && (filters.page as number) > 0 ? Math.floor(filters.page as number) : 1
 
-  const where: Record<string, unknown> = {}
-  if (portal) where.portal = portal
+  const where: Prisma.ActivityLogWhereInput = { ...NOT_GHOST }
+  if (portal === "magazin" || portal === "costumes" || portal === "lm3allem") where.portal = portal
   if (entityType) where.entityType = entityType
   if (actorId) where.actorId = actorId
   if (from || to) {
-    const createdAt: Record<string, Date> = {}
-    if (from) createdAt.gte = new Date(from)
-    if (to) createdAt.lte = new Date(to)
+    const createdAt: Prisma.DateTimeFilter = {}
+    if (from) createdAt.gte = startOfDay(from)
+    if (to) createdAt.lte = endOfDay(to)
     where.createdAt = createdAt
   }
 
@@ -79,12 +84,21 @@ export async function getLogs(filters: LogFilters = {}): Promise<LogsResult> {
   }
 }
 
+/** People who can appear in the "by" filter: everyone except the invisible ghost account. */
 export async function getActors(): Promise<{ id: string; name: string }[]> {
-  const session = await auth()
-  if (!session?.user) throw new Error("Unauthorized")
+  await requireAdmin()
 
   return prisma.user.findMany({
-    select: { id: true, name: true },
+    where:   { role: { not: "ghost" } },
+    select:  { id: true, name: true },
     orderBy: { name: "asc" },
   })
+}
+
+/** Entity types that actually exist in the log (the filter no longer relies on a hardcoded list). */
+export async function getLogEntityTypes(): Promise<string[]> {
+  await requireAdmin()
+
+  const rows = await prisma.activityLog.groupBy({ by: ["entityType"], orderBy: { entityType: "asc" } })
+  return rows.map((r) => r.entityType)
 }

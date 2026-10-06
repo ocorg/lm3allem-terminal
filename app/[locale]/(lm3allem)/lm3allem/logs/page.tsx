@@ -1,4 +1,4 @@
-import { getLogs, getActors } from "@/lib/actions/lm3allem/logs"
+import { getLogs, getActors, getLogEntityTypes } from "@/lib/actions/lm3allem/logs"
 import { LogsClient } from "@/components/lm3allem/logs/LogsClient"
 import React from "react"
 
@@ -17,7 +17,7 @@ export default async function LogsPage({
   searchParams: SearchParams
 }) {
   const sp = await searchParams
-  const [result, actors] = await Promise.all([
+  const [result, actors, entityTypes] = await Promise.all([
     getLogs({
       portal: sp.portal,
       entityType: sp.entityType,
@@ -27,6 +27,7 @@ export default async function LogsPage({
       page: sp.page ? parseInt(sp.page, 10) : 1,
     }),
     getActors(),
+    getLogEntityTypes(),
   ])
-  return <LogsClient result={result} actors={actors} currentFilters={sp} />
+  return <LogsClient result={result} actors={actors} entityTypes={entityTypes} currentFilters={sp} />
 }

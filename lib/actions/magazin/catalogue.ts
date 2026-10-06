@@ -1,8 +1,11 @@
 "use server"
 
-import { prisma }   from "@/lib/db/prisma"
+import { getActiveLookups } from "@/lib/queries/lookups"
+import { prisma } from "@/lib/db/prisma"
+import { requirePortal } from "@/lib/auth/guard"
 import type { LookupItem, LookupById, ProductForPOS as ProductForCatalogue } from "./pos"
 
+/** The catalogue is open to every user who may enter the magazin portal. */
 export async function getCatalogueProducts(): Promise<{
   products:   ProductForCatalogue[]
   categories: LookupItem[]
@@ -10,6 +13,8 @@ export async function getCatalogueProducts(): Promise<{
   colors:     LookupItem[]
   lookupById: LookupById
 }> {
+  await requirePortal("magazin")
+
   const [rawProducts, rawLookup] = await Promise.all([
     prisma.product.findMany({
       where:   { isActive: true },
@@ -19,7 +24,6 @@ export async function getCatalogueProducts(): Promise<{
         name_ar:         true,
         categoryId:      true,
         sellingPrice:    true,
-        minSellingPrice: true,
         images:          true,
         variants: {
           select: { id: true, sizeId: true, colorId: true, stock: true },
@@ -27,11 +31,7 @@ export async function getCatalogueProducts(): Promise<{
       },
       orderBy: { name_fr: "asc" },
     }),
-    prisma.lookupValue.findMany({
-      where:   { isActive: true },
-      include: { category: { select: { slug: true } } },
-      orderBy: { order: "asc" },
-    }),
+    getActiveLookups(),
   ])
 
   const categories = rawLookup
@@ -43,18 +43,23 @@ export async function getCatalogueProducts(): Promise<{
     lookupById[lv.id] = { label_fr: lv.label_fr, label_ar: lv.label_ar }
   }
 
-  const products = rawProducts.map((p) => ({
+  // The catalogue is read-only: the minimum selling price (a negotiation floor) is NOT sent to the browser.
+  const products: ProductForCatalogue[] = rawProducts.map((p) => ({
     ...p,
     sellingPrice:    p.sellingPrice.toString(),
-    minSellingPrice: p.minSellingPrice.toString(),
+    minSellingPrice: p.sellingPrice.toString(),
   }))
 
+  // Only offer filters that match at least one product variant
+  const usedSizes  = new Set(rawProducts.flatMap((p) => p.variants.map((v) => v.sizeId)))
+  const usedColors = new Set(rawProducts.flatMap((p) => p.variants.map((v) => v.colorId)))
+
   const sizes = rawLookup
-    .filter((lv) => lv.category.slug.endsWith("_sizes"))
+    .filter((lv) => lv.category.slug === "product_sizes" && usedSizes.has(lv.id))
     .map(({ id, label_fr, label_ar }) => ({ id, label_fr, label_ar }))
 
   const colors = rawLookup
-    .filter((lv) => lv.category.slug.endsWith("_colors"))
+    .filter((lv) => lv.category.slug === "product_colors" && usedColors.has(lv.id))
     .map(({ id, label_fr, label_ar }) => ({ id, label_fr, label_ar }))
 
   return { products, categories, sizes, colors, lookupById }

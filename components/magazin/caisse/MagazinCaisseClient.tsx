@@ -22,7 +22,7 @@ export function MagazinCaisseClient({ initialStats, role }: MagazinCaisseClientP
   const { session }    = useCaisse()
   const router         = useRouter()
   const t              = useTranslations("caisse")
-  const isAdmin        = role === "admin" || role === "superadmin"
+  const isAdmin        = role === "admin" || role === "ghost"
   const [showManual, setShowManual] = useState(false)
   const [showClose,  setShowClose]  = useState(false)
 
@@ -31,7 +31,7 @@ export function MagazinCaisseClient({ initialStats, role }: MagazinCaisseClientP
 
       {/* Header */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.02em", margin: 0 }}>
+        <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text)",margin: 0 }}>
           {t("title")}
         </h1>
         <div style={{ display: "flex", gap: 8 }}>

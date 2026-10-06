@@ -1,12 +1,14 @@
 "use client"
 
-import { useState, useEffect }  from "react"
-import { useTranslations }      from "next-intl"
-import { Modal }                from "@/components/ui/Modal"
-import { Button }               from "@/components/ui/Button"
-import PinPad                   from "@/components/ui/PinPad"
-import { verifyAdminPin }       from "@/lib/actions/auth"
+import { useState, useTransition, type FormEvent } from "react"
+import { useTranslations } from "next-intl"
+import { Modal } from "@/components/ui/Modal"
+import { Button } from "@/components/ui/Button"
+import { Input } from "@/components/ui/Input"
+import { PasswordInput } from "@/components/ui/PasswordInput"
+import { requestManagerOverride } from "@/lib/actions/auth"
 import React from "react"
+import { formatMAD } from "@/lib/utils/currency"
 
 export interface BelowMinItem {
   name:           string
@@ -17,7 +19,8 @@ export interface BelowMinItem {
 interface BelowMinModalProps {
   isOpen:       boolean
   items:        BelowMinItem[]
-  onAuthorized: (adminId: string) => void
+  /** Receives the short-lived signed override token; the SERVER verifies it when the sale is saved. */
+  onAuthorized: (overrideToken: string) => void
   onCancel:     () => void
 }
 
@@ -27,63 +30,42 @@ export function BelowMinModal({
   onAuthorized,
   onCancel,
 }: BelowMinModalProps) {
-  const t     = useTranslations("belowMin")
+  const t = useTranslations("belowMin")
   const tAuth = useTranslations("auth")
-  const tUi   = useTranslations("ui")
+  const [isPending, startTransition] = useTransition()
 
-  const [pin,         setPin]         = useState("")
-  const [error,       setError]       = useState("")
-  const [loading,     setLoading]     = useState(false)
-  const [lockedUntil, setLockedUntil] = useState<number | null>(null)
-  const [secondsLeft, setSecondsLeft] = useState(0)
+  const [email, setEmail]       = useState("")
+  const [password, setPassword] = useState("")
+  const [error, setError]       = useState("")
 
-  useEffect(() => {
-    if (!lockedUntil) return
-    const tick = () => {
-      const remaining = Math.max(0, Math.ceil((lockedUntil - Date.now()) / 1000))
-      setSecondsLeft(remaining)
-      if (remaining === 0) setLockedUntil(null)
-    }
-    tick()
-    const id = setInterval(tick, 500)
-    return () => clearInterval(id)
-  }, [lockedUntil])
+  const reset = () => { setEmail(""); setPassword(""); setError("") }
 
-  const isLocked = lockedUntil !== null
-
-  const handleSubmit = async (submittedPin: string) => {
-    if (isLocked) return
-    setLoading(true)
+  function handleSubmit(e: FormEvent) {
+    e.preventDefault()
+    if (!email.trim() || !password) return
     setError("")
-    try {
-      const result = await verifyAdminPin(submittedPin)
-      if ("adminId" in result) {
-        setPin("")
-        onAuthorized(result.adminId)
-      } else if (result.lockedUntil) {
-        setLockedUntil(result.lockedUntil)
-        setPin("")
-      } else {
-        setError(t("unauthorized"))
-        setPin("")
+
+    startTransition(async () => {
+      const res = await requestManagerOverride(email, password)
+      if (!res.ok) {
+        setError(res.message)
+        setPassword("")
+        return
       }
-    } catch {
-      setError(tUi("error"))
-      setPin("")
-    } finally {
-      setLoading(false)
-    }
+      reset()
+      onAuthorized(res.data.token)
+    })
   }
 
   return (
     <Modal
       isOpen={isOpen}
-      onClose={onCancel}
+      onClose={() => { reset(); onCancel() }}
       title={t("title")}
       hideClose
       size="sm"
     >
-      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
         <p style={{ fontSize: 13, color: "var(--text-muted)", textAlign: "center", margin: 0, lineHeight: 1.5 }}>
           {t("subtitle")}
         </p>
@@ -98,11 +80,9 @@ export function BelowMinModal({
                     key={h}
                     style={{
                       padding:       "8px 12px",
-                      fontSize:      10,
+                      fontSize:      12,
                       fontWeight:    600,
                       color:         "var(--text-muted)",
-                      textTransform: "uppercase",
-                      letterSpacing: "0.05em",
                       textAlign:     "start",
                     }}
                   >
@@ -118,10 +98,10 @@ export function BelowMinModal({
                     {item.name}
                   </td>
                   <td style={{ padding: "8px 12px", fontSize: 12, fontWeight: 600, color: "var(--danger)" }}>
-                    {item.requestedPrice.toFixed(2)} MAD
+                    {formatMAD(item.requestedPrice)}
                   </td>
                   <td style={{ padding: "8px 12px", fontSize: 12, color: "var(--text-muted)" }}>
-                    {item.minPrice.toFixed(2)} MAD
+                    {formatMAD(item.minPrice)}
                   </td>
                 </tr>
               ))}
@@ -130,50 +110,45 @@ export function BelowMinModal({
         </div>
 
         <p style={{ fontSize: 12, color: "var(--text-muted)", textAlign: "center", margin: 0 }}>
-          {t("enterAdminPin")}
+          {t("enterAdminCredentials")}
         </p>
 
-        {/* Lockout banner */}
-        {isLocked && (
-          <div
-            style={{
-              background:   "color-mix(in srgb, var(--danger) 10%, transparent)",
-              border:       "1px solid color-mix(in srgb, var(--danger) 30%, transparent)",
-              borderRadius: 8,
-              padding:      "10px 14px",
-              fontSize:     12,
-              color:        "var(--danger)",
-              textAlign:    "center",
-            }}
-          >
-            {tAuth("lockedOut", { seconds: secondsLeft })}
-          </div>
-        )}
-
-        <PinPad
-          pin={pin}
-          setPin={setPin}
-          onSubmit={handleSubmit}
-          disabled={isLocked || loading}
-          loading={loading}
+        <Input
+          label={tAuth("email")}
+          type="email"
+          dir="ltr"
+          autoComplete="off"
+          value={email}
+          onChange={(e) => { setEmail(e.target.value); setError("") }}
+          disabled={isPending}
+          autoFocus
+        />
+        <PasswordInput
+          label={tAuth("password")}
+          value={password}
+          onChange={(e) => { setPassword(e.target.value); setError("") }}
+          disabled={isPending}
         />
 
-        {error && !isLocked && (
+        {error && (
           <p style={{ fontSize: 12, color: "var(--danger)", textAlign: "center", margin: 0 }}>
             {error}
           </p>
         )}
 
+        <Button type="submit" fullWidth loading={isPending} disabled={!email.trim() || !password}>
+          {t("authorize")}
+        </Button>
         <Button
+          type="button"
           variant="ghost"
           fullWidth
-          onClick={onCancel}
-          disabled={loading}
-          style={{ marginTop: 4 }}
+          onClick={() => { reset(); onCancel() }}
+          disabled={isPending}
         >
           {t("cancel")}
         </Button>
-      </div>
+      </form>
     </Modal>
   )
 }

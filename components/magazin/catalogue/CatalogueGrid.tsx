@@ -41,7 +41,7 @@ export function CatalogueGrid({ products, categories, sizes, colors, lookupById 
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-      <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.02em", margin: 0 }}>
+      <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text)",margin: 0 }}>
         {t("title")}
       </h1>
 
@@ -102,19 +102,19 @@ export function CatalogueGrid({ products, categories, sizes, colors, lookupById 
                 <div style={{ padding: "12px 14px", display: "flex", flexDirection: "column", gap: 6 }}>
                   <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", margin: 0, lineHeight: 1.3 }}>{name}</p>
                   <p style={{ fontSize: 14, fontWeight: 700, color: "var(--primary)", margin: 0 }}>{formatMAD(p.sellingPrice)}</p>
-                  <p style={{ fontSize: 11, color: isOut ? "var(--danger)" : "var(--success)", fontWeight: 500, margin: 0 }}>
+                  <p style={{ fontSize: 12, color: isOut ? "var(--danger)" : "var(--success)", fontWeight: 500, margin: 0 }}>
                     {isOut ? t("outOfStock") : `${totalStock} ${t("inStock")}`}
                   </p>
 
                   {availSizes.length > 0 && (
                     <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
                       {availSizes.slice(0, 5).map(s => (
-                        <span key={s} style={{ fontSize: 10, padding: "2px 6px", borderRadius: 4, background: "var(--surface-2)", color: "var(--text-muted)", border: "1px solid var(--border)" }}>
+                        <span key={s} style={{ fontSize: 12, padding: "2px 6px", borderRadius: 4, background: "var(--surface-2)", color: "var(--text-muted)", border: "1px solid var(--border)" }}>
                           {s}
                         </span>
                       ))}
                       {availSizes.length > 5 && (
-                        <span style={{ fontSize: 10, color: "var(--text-muted)" }}>+{availSizes.length - 5}</span>
+                        <span style={{ fontSize: 12, color: "var(--text-muted)" }}>+{availSizes.length - 5}</span>
                       )}
                     </div>
                   )}
@@ -166,7 +166,7 @@ export function CatalogueGrid({ products, categories, sizes, colors, lookupById 
                 boxShadow: "0 24px 64px rgba(0,0,0,0.4)",
               }}
             >
-              <button
+              <button aria-label="إغلاق"
                 onClick={() => setSelectedProduct(null)}
                 style={{
                   position: "absolute", top: 12, insetInlineEnd: 12,
@@ -186,11 +186,11 @@ export function CatalogueGrid({ products, categories, sizes, colors, lookupById 
                     <Image src={imgs[imgIdx]} alt={spName} fill style={{ objectFit: "cover" }} />
                     {imgs.length > 1 && (
                       <>
-                        <button
+                        <button aria-label="الصورة السابقة"
                           onClick={e => { e.stopPropagation(); setSelectedImgIdx(i => Math.max(0, i - 1)) }}
                           style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", width: 32, height: 32, background: "rgba(0,0,0,0.45)", border: "none", borderRadius: "50%", color: "#fff", fontSize: 18, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", opacity: imgIdx === 0 ? 0.3 : 1 }}
                         >‹</button>
-                        <button
+                        <button aria-label="الصورة التالية"
                           onClick={e => { e.stopPropagation(); setSelectedImgIdx(i => Math.min(imgs.length - 1, i + 1)) }}
                           style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", width: 32, height: 32, background: "rgba(0,0,0,0.45)", border: "none", borderRadius: "50%", color: "#fff", fontSize: 18, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", opacity: imgIdx === imgs.length - 1 ? 0.3 : 1 }}
                         >›</button>
@@ -211,7 +211,7 @@ export function CatalogueGrid({ products, categories, sizes, colors, lookupById 
                 <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10 }}>
                   <h2 style={{ fontSize: 19, fontWeight: 700, color: "var(--text)", margin: 0, lineHeight: 1.3, flex: 1 }}>{spName}</h2>
                   <span style={{
-                    flexShrink: 0, fontSize: 11, fontWeight: 600, padding: "4px 10px", borderRadius: 999,
+                    flexShrink: 0, fontSize: 12, fontWeight: 600, padding: "4px 10px", borderRadius: 999,
                     color:      spIsOut ? "var(--danger)" : "var(--success)",
                     background: spIsOut ? "color-mix(in srgb,var(--danger) 12%,transparent)" : "color-mix(in srgb,var(--success) 12%,transparent)",
                   }}>
@@ -219,13 +219,13 @@ export function CatalogueGrid({ products, categories, sizes, colors, lookupById 
                   </span>
                 </div>
 
-                <p style={{ fontSize: 26, fontWeight: 700, color: "var(--primary)", margin: 0, letterSpacing: "-0.02em" }}>
+                <p style={{ fontSize: 26, fontWeight: 700, color: "var(--primary)", margin: 0 }}>
                   {formatMAD(sp.sellingPrice)}
                 </p>
 
                 {spSizes.length > 0 && (
                   <div>
-                    <p style={{ fontSize: 11, fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", margin: "0 0 8px" }}>{t("availableSizes")}</p>
+                    <p style={{ fontSize: 12, fontWeight: 600, color: "var(--text-muted)",margin: "0 0 8px" }}>{t("availableSizes")}</p>
                     <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                       {spSizes.map(s => (
                         <span key={s} style={{ fontSize: 12, padding: "5px 13px", borderRadius: 6, background: "var(--surface-2)", color: "var(--text)", border: "1px solid var(--border)", fontWeight: 500 }}>{s}</span>
@@ -236,7 +236,7 @@ export function CatalogueGrid({ products, categories, sizes, colors, lookupById 
 
                 {spColors.length > 0 && (
                   <div>
-                    <p style={{ fontSize: 11, fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", margin: "0 0 8px" }}>{t("availableColors")}</p>
+                    <p style={{ fontSize: 12, fontWeight: 600, color: "var(--text-muted)",margin: "0 0 8px" }}>{t("availableColors")}</p>
                     <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
                       {spColors.map(c => (
                         <span key={c} style={{ fontSize: 12, padding: "5px 13px", borderRadius: 6, background: "var(--surface-2)", color: "var(--text)", border: "1px solid var(--border)", fontWeight: 500 }}>{c}</span>
@@ -247,7 +247,7 @@ export function CatalogueGrid({ products, categories, sizes, colors, lookupById 
 
                 {sp.variants.length > 0 && (
                   <div>
-                    <p style={{ fontSize: 11, fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", margin: "0 0 8px" }}>
+                    <p style={{ fontSize: 12, fontWeight: 600, color: "var(--text-muted)",margin: "0 0 8px" }}>
                       {t("stockByVariant")}
                     </p>
                     <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>

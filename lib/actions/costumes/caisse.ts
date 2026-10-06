@@ -1,8 +1,11 @@
 "use server"
 
-import { prisma }      from "@/lib/db/prisma"
-import { auth }        from "@/lib/auth/auth"
-import { logActivity } from "@/lib/activity/logger"
+import { prisma } from "@/lib/db/prisma"
+import { requireModule } from "@/lib/auth/guard"
+import { computeCaisseTotals } from "@/lib/finance/caisse"
+import { ActionError } from "@/lib/actions/result"
+import { actorLabel } from "@/lib/utils/actor"
+import { asId } from "@/lib/validation"
 
 // ── Shapes ─────────────────────────────────────────────────────
 export interface TransactionEntry {
@@ -18,116 +21,116 @@ export interface TransactionEntry {
 export interface CostumesSessionStats {
   sessionId:     string
   openingAmount: string
+  /** cash from direct sales */
   totalSales:    number
+  /** cash from rental payments and deposits, net of cash paid back */
   totalRentals:  number
   totalManual:   number
+  /** card + bank transfers: NOT in the drawer */
+  nonCash:       number
+  /** expected CASH in the drawer */
   runningTotal:  number
   salesCount:    number
   rentalsCount:  number
   transactions:  TransactionEntry[]
 }
 
+const RENTAL_LABELS: Record<string, string> = {
+  rental_payment:    "دفعة إيجار",
+  remaining_balance: "تسوية الرصيد",
+  deposit_collected: "ضمان مستلم",
+  deposit_returned:  "ضمان مُرجَع",
+  rental_refund:     "استرجاع إيجار ملغى",
+}
+
+const OUTFLOW_TYPES = new Set(["deposit_returned", "rental_refund"])
+
 // ── getCostumesSessionStats ────────────────────────────────────
 export async function getCostumesSessionStats(
   sessionId: string
 ): Promise<CostumesSessionStats> {
-  const session = await prisma.caisseSession.findUniqueOrThrow({
-    where:   { id: sessionId },
-    include: {
-      costumeSales: {
-        select: {
-          id:            true,
-          totalAmount:   true,
-          paymentMethod: true,
-          createdAt:     true,
-          cashier:       { select: { name: true } },
-        },
-        orderBy: { createdAt: "desc" },
-      },
-      rentalPayments: {
-        select: {
-          id:          true,
-          amount:      true,
-          method:      true,
-          type:        true,
-          createdAt:   true,
-          recordedBy:  { select: { name: true } },
-        },
-        orderBy: { createdAt: "desc" },
-      },
-      manualEntries: {
-        select: {
-          id:         true,
-          amount:     true,
-          reason:     true,
-          createdAt:  true,
-          recordedBy: { select: { name: true } },
-        },
-        orderBy: { createdAt: "desc" },
-      },
-    },
+  sessionId = asId(sessionId)
+  await requireModule("costumes", "caisse")
+
+  const session = await prisma.caisseSession.findUnique({
+    where:  { id: sessionId },
+    select: { id: true, portal: true },
   })
+  if (!session || session.portal !== "costumes") throw new ActionError("not_found")
 
-  const totalSales = session.costumeSales.reduce(
-    (s, x) => s + Number(x.totalAmount), 0
-  )
-
-  const totalRentals = session.rentalPayments.reduce((s, rp) => {
-    const amt = Number(rp.amount)
-    return rp.type === "deposit_returned" ? s - amt : s + amt
-  }, 0)
-
-  const totalManual  = session.manualEntries.reduce(
-    (s, x) => s + Number(x.amount), 0
-  )
-
-  const runningTotal =
-    Number(session.openingAmount) + totalSales + totalRentals + totalManual
+  const [totals, sales, rentalPayments, manualEntries] = await Promise.all([
+    computeCaisseTotals(sessionId, "costumes"),
+    prisma.costumeSale.findMany({
+      where:   { caisseSessionId: sessionId },
+      select:  {
+        id: true, totalAmount: true, paymentMethod: true, createdAt: true,
+        cashier: { select: { name: true, role: true } },
+      },
+      orderBy: { createdAt: "desc" },
+      take:    40,
+    }),
+    prisma.rentalPayment.findMany({
+      where:   { caisseSessionId: sessionId },
+      select:  {
+        id: true, amount: true, method: true, type: true, createdAt: true,
+        recordedBy: { select: { name: true, role: true } },
+      },
+      orderBy: { createdAt: "desc" },
+      take:    40,
+    }),
+    prisma.caisseManualEntry.findMany({
+      where:   { sessionId },
+      select:  {
+        id: true, amount: true, reason: true, createdAt: true,
+        recordedBy: { select: { name: true, role: true } },
+      },
+      orderBy: { createdAt: "desc" },
+      take:    40,
+    }),
+  ])
 
   const transactions: TransactionEntry[] = [
-    ...session.costumeSales.map((x) => ({
+    ...sales.map((x) => ({
       type:      "costume_sale" as const,
       id:        x.id,
       amount:    x.totalAmount.toString(),
-      label:     "Vente costume",
+      label:     "بيع بدلة",
       method:    x.paymentMethod,
-      actorName: x.cashier.name,
+      actorName: actorLabel(x.cashier),
       createdAt: x.createdAt.toISOString(),
     })),
-    ...session.rentalPayments.map((x) => ({
+    ...rentalPayments.map((x) => ({
       type:      "rental_payment" as const,
       id:        x.id,
-      // Negative string for deposit_returned so the UI can render it as outflow
-      amount:    x.type === "deposit_returned"
-        ? `-${x.amount}`
-        : x.amount.toString(),
-      label:     `Location - ${x.type}`,
+      // Negative string for money paid back so the UI can render it as an outflow
+      amount:    OUTFLOW_TYPES.has(x.type) ? `-${x.amount}` : x.amount.toString(),
+      label:     RENTAL_LABELS[x.type] ?? x.type,
       method:    x.method,
-      actorName: x.recordedBy.name,
+      actorName: actorLabel(x.recordedBy),
       createdAt: x.createdAt.toISOString(),
     })),
-    ...session.manualEntries.map((x) => ({
+    ...manualEntries.map((x) => ({
       type:      "manual" as const,
       id:        x.id,
       amount:    x.amount.toString(),
       label:     x.reason,
-      actorName: x.recordedBy.name,
+      actorName: actorLabel(x.recordedBy),
       createdAt: x.createdAt.toISOString(),
     })),
-  ].sort(
-    (a, b) =>
-      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-  )
+  ]
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .slice(0, 60)
 
   return {
-    sessionId:     session.id,
-    openingAmount: session.openingAmount.toString(),
-    totalSales,
-    totalRentals,
-    totalManual,
-    runningTotal,
-    salesCount:    session.costumeSales.length,
-    rentalsCount:  session.rentalPayments.length,
+    sessionId,
+    openingAmount: totals.openingAmount.toString(),
+    totalSales:    totals.lines.sales,
+    totalRentals:  Math.round((totals.lines.rentalPayments + totals.lines.deposits - totals.cashOut) * 100) / 100,
+    totalManual:   totals.manual,
+    nonCash:       totals.nonCash,
+    runningTotal:  totals.expectedCash,
+    salesCount:    totals.salesCount,
+    rentalsCount:  rentalPayments.length,
     transactions,
   }
 }

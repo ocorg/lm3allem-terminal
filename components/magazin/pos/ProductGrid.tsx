@@ -37,7 +37,7 @@ export function ProductGrid({ products, categories, onProductClick }: ProductGri
       <div
         style={{
           display:       "flex",
-          gap:           4,
+          gap:           10,
           padding:       "12px 16px",
           overflowX:     "auto",
           flexShrink:    0,
@@ -92,6 +92,7 @@ export function ProductGrid({ products, categories, onProductClick }: ProductGri
                 >
                   <div style={{ width: "100%", aspectRatio: "4/3", background: "var(--surface-2)", overflow: "hidden" }}>
                     {product.images[0] ? (
+                      // eslint-disable-next-line @next/next/no-img-element
                       <img src={product.images[0]} alt={name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                     ) : (
                       <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 32 }}>
@@ -107,7 +108,7 @@ export function ProductGrid({ products, categories, onProductClick }: ProductGri
                     <p style={{ fontSize: 13, fontWeight: 700, color: "var(--primary)", margin: 0 }}>
                       {formatMAD(product.sellingPrice)}
                     </p>
-                    <p style={{ fontSize: 11, color: isOut ? "var(--danger)" : "var(--success)", margin: "4px 0 0", fontWeight: 500 }}>
+                    <p style={{ fontSize: 12, color: isOut ? "var(--danger)" : "var(--success)", margin: "4px 0 0", fontWeight: 500 }}>
                       {isOut ? t("outOfStock") : t("inStock", { count: totalStock })}
                     </p>
                   </div>
@@ -126,7 +127,8 @@ function CategoryTab({ label, active, onClick }: { label: string; active: boolea
     <button
       onClick={onClick}
       style={{
-        padding:     "6px 14px",
+        padding:     "8px 16px",
+        minHeight:   36,
         borderRadius: 999,
         fontSize:    12,
         fontWeight:  600,
@@ -134,8 +136,8 @@ function CategoryTab({ label, active, onClick }: { label: string; active: boolea
         whiteSpace:  "nowrap",
         flexShrink:  0,
         border:      "none",
-        background:  active ? "var(--primary)" : "var(--surface-2)",
-        color:       active ? "#1a1a1a"        : "var(--text-muted)",
+        background:  active ? "var(--brand)" : "var(--surface-2)",
+        color:       active ? "var(--on-brand)"        : "var(--text-muted)",
         transition:  "background 150ms",
       }}
     >

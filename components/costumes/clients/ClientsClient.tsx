@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import { useState }          from "react"
 import { useRouter }                    from "next/navigation"
@@ -12,6 +12,8 @@ import { Textarea }                     from "@/components/ui/Textarea"
 import { toast }                        from "@/hooks/useToast"
 import { createClient, updateClient }   from "@/lib/actions/costumes/clients"
 import type { ClientForList, ClientInput } from "@/lib/actions/costumes/clients"
+import { DateText } from "@/components/ui/DateText"
+import { IconButton } from "@/components/ui/IconButton"
 
 interface Props {
   clients: ClientForList[]
@@ -19,10 +21,9 @@ interface Props {
   locale:  string
 }
 
-export function ClientsClient({ clients, role }: Props) {
+export function ClientsClient({ clients }: Props) {
   const router  = useRouter()
   const tC      = useTranslations("costumes.clients")
-  const tCom    = useTranslations("common")
   const tUi     = useTranslations("ui")
 
   const [editing,  setEditing]  = useState<ClientForList | null>(null)
@@ -34,7 +35,7 @@ export function ClientsClient({ clients, role }: Props) {
       render: (_, row) => (
         <div>
           <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", margin: 0 }}>{row.name}</p>
-          <p style={{ fontSize: 11, color: "var(--text-muted)", margin: "2px 0 0" }}>{row.phone}</p>
+          <p style={{ fontSize: 12, color: "var(--text-muted)", margin: "2px 0 0" }}>{row.phone}</p>
         </div>
       ),
     },
@@ -54,19 +55,16 @@ export function ClientsClient({ clients, role }: Props) {
       key: "createdAt", label: tC("createdAtLabel"), sortable: true,
       render: (_, row) => (
         <span style={{ fontSize: 12, color: "var(--text-muted)" }}>
-          {new Date(row.createdAt).toLocaleDateString("fr-MA")}
+          <DateText value={row.createdAt} />
         </span>
       ),
     },
     {
-      key: "id", label: "", width: 40,
+      key: "id", label: "", width: 64,
       render: (_, row) => (
-        <button
-          onClick={() => setEditing(row)}
-          style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)", padding: 4 }}
-        >
-          <PencilLine size={15} />
-        </button>
+        <IconButton label="تعديل العميل" onClick={() => setEditing(row)}>
+          <PencilLine size={18} />
+        </IconButton>
       ),
     },
   ]
@@ -74,7 +72,7 @@ export function ClientsClient({ clients, role }: Props) {
   return (
     <div>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
-        <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.02em", margin: 0 }}>
+        <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text)",margin: 0 }}>
           {tC("title")}
         </h1>
         <Button size="sm" icon={<Plus size={14} />} onClick={() => setCreating(true)}>
@@ -141,17 +139,15 @@ function ClientFormModal({ isOpen, mode, client, onClose, onSuccess }: FormModal
     const input: ClientInput = { name, phone, address: address || undefined, notes: notes || undefined }
 
     try {
-      if (isEdit && client) await updateClient(client.id, input)
-      else                   await createClient(input)
+      const res = isEdit && client ? await updateClient(client.id, input) : await createClient(input)
+      if (!res.ok) {
+        // the server answers with a code: no fragile matching on error text
+        if (res.code === "phone_taken") setErrors({ phone: tC("phoneTaken") })
+        else toast(res.message || tCom("error"), "error")
+        return
+      }
       toast(isEdit ? tC("updateSuccess") : tC("createSuccess"), "success")
       onSuccess()
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : ""
-      if (msg.includes("Unique") || msg.includes("phone")) {
-        setErrors({ phone: tC("phoneTaken") })
-      } else {
-        toast(msg || tCom("error"), "error")
-      }
     } finally {
       setLoading(false)
     }
@@ -166,7 +162,7 @@ function ClientFormModal({ isOpen, mode, client, onClose, onSuccess }: FormModal
     >
       <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
         <Input label={tC("name")}            value={name}    onChange={e => setName(e.target.value)}    error={errors.name} />
-        <Input label={tC("phone")} type="tel" value={phone}   onChange={e => setPhone(e.target.value)}   error={errors.phone} />
+        <Input label={tC("phone")} type="tel" dir="ltr" value={phone}   onChange={e => setPhone(e.target.value)}   error={errors.phone} />
         <Input label={tC("addressOptional")} value={address} onChange={e => setAddress(e.target.value)} />
         <Textarea label={tC("notesOptional")} value={notes}  onChange={e => setNotes(e.target.value)}   rows={3} />
         <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>

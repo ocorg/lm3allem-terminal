@@ -1,7 +1,8 @@
-import Link                  from "next/link"
+import { LogoutButton }      from "@/components/auth/LogoutButton"
 import { Wrench }            from "lucide-react"
 import { getTranslations }   from "next-intl/server"
 import React from "react"
+import { BrandLogo } from "@/components/ui/BrandLogo"
 
 interface Props {
   locale:  string
@@ -27,32 +28,7 @@ export default async function MaintenanceScreen({ locale, message }: Props) {
       }}
     >
       {/* Logo */}
-      <div>
-        <p
-          style={{
-            fontSize:      26,
-            fontWeight:    800,
-            fontFamily:    "var(--font-display)",
-            color:         "var(--primary)",
-            letterSpacing: "-0.025em",
-            lineHeight:    1,
-          }}
-        >
-          Lm3allem
-        </p>
-        <p
-          style={{
-            fontSize:      11,
-            fontFamily:    "var(--font-mono)",
-            color:         "var(--text-muted)",
-            letterSpacing: "0.2em",
-            textTransform: "uppercase",
-            marginTop:     5,
-          }}
-        >
-          Terminal
-        </p>
-      </div>
+      <BrandLogo size={104} />
 
       {/* Icon */}
       <div style={{ color: "var(--text-muted)", opacity: 0.4 }}>
@@ -68,7 +44,6 @@ export default async function MaintenanceScreen({ locale, message }: Props) {
             fontFamily:    "var(--font-display)",
             color:         "var(--text)",
             marginBottom:  10,
-            letterSpacing: "-0.01em",
           }}
         >
           {t("title")}
@@ -78,10 +53,8 @@ export default async function MaintenanceScreen({ locale, message }: Props) {
         </p>
       </div>
 
-      {/* Login button - always accessible for superadmin */}
-      <Link href={`/${locale}`} className="maintenance-login-btn">
-        {tCommon("login")}
-      </Link>
+      {/* Staff are blocked during maintenance: let them sign out (admins are never shown this screen) */}
+      <LogoutButton locale={locale} className="maintenance-login-btn">{tCommon("logout")}</LogoutButton>
     </div>
   )
 }

@@ -1,8 +1,9 @@
 "use client"
-import React, { useState, useEffect, type ReactNode } from "react"
+import React, { useMemo, useState, type ReactNode } from "react"
 import Sidebar  from "@/components/layout/Sidebar"
 import Topbar   from "@/components/layout/Topbar"
 import { useBreakpoint } from "@/hooks/useBreakpoint"
+import OfflineWarmup from "@/components/system/OfflineWarmup"
 import type { NavItem } from "@/lib/utils/nav"
 import type { Portal, Role } from "@prisma/client"
 
@@ -25,12 +26,13 @@ export default function LayoutShell({
   navItems,
   children,
 }: Props) {
-  const [mobileOpen, setMobileOpen] = useState(false)
+  const [mobileOpenRaw, setMobileOpen] = useState(false)
   const { isMobile } = useBreakpoint()
+  // The drawer can only be open on a mobile viewport (derived: no effect needed to close it on resize)
+  const mobileOpen = isMobile && mobileOpenRaw
 
-  useEffect(() => {
-    if (!isMobile) setMobileOpen(false)
-  }, [isMobile])
+  // The till page of this portal is opened quietly in the background: offline copy + warm server
+  const warmUrls = useMemo(() => navItems.filter((i) => i.visible && i.key === "pos").map((i) => i.href), [navItems])
 
   return (
     <div
@@ -41,6 +43,8 @@ export default function LayoutShell({
         background: "var(--bg)",
       }}
     >
+      <OfflineWarmup urls={warmUrls} />
+
       {/* Mobile backdrop */}
       {isMobile && mobileOpen && (
         <div
@@ -87,6 +91,8 @@ export default function LayoutShell({
           style={{
             flex:      1,
             overflowY: "auto",
+            overflowX: "hidden",
+            minWidth:  0,
             padding:   isMobile ? 12 : 24,
           }}
         >

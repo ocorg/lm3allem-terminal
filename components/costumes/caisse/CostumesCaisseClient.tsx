@@ -2,15 +2,16 @@
 
 import { useState }              from "react"
 import { useRouter }             from "next/navigation"
-import { Plus, Lock, DollarSign, ShoppingBag, TrendingUp, Hash } from "lucide-react"
+import { Plus, Lock, DollarSign, ShoppingBag, TrendingUp, Hash, Landmark } from "lucide-react"
 import { useCaisse }             from "@/components/caisse/CaisseProvider"
 import { Button }                from "@/components/ui/Button"
 import { StatCard }              from "@/components/ui/StatCard"
 import { ManualEntryModal }      from "@/components/magazin/caisse/ManualEntryModal"
 import { CloseSessionModal }     from "@/components/magazin/caisse/CloseSessionModal"
-import { formatMAD }             from "@/lib/utils/currency"
+import { formatMAD, formatSignedMAD }             from "@/lib/utils/currency"
 import type { CostumesSessionStats, TransactionEntry } from "@/lib/actions/costumes/caisse"
 import React from "react"
+import { paymentMethodLabel } from "@/lib/utils/labels"
 
 interface Props {
   initialStats: CostumesSessionStats
@@ -20,7 +21,7 @@ interface Props {
 export function CostumesCaisseClient({ initialStats, role }: Props) {
   const { session }    = useCaisse()
   const router         = useRouter()
-  const isAdmin        = role === "admin" || role === "superadmin"
+  const isAdmin        = role === "admin" || role === "ghost"
   const [showManual, setShowManual] = useState(false)
   const [showClose,  setShowClose]  = useState(false)
 
@@ -29,7 +30,7 @@ export function CostumesCaisseClient({ initialStats, role }: Props) {
 
       {/* Header */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.02em", margin: 0 }}>الصندوق</h1>
+        <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text)",margin: 0 }}>الصندوق</h1>
         <div style={{ display: "flex", gap: 8 }}>
           <Button variant="secondary" size="sm" icon={<Plus size={14} />} onClick={() => setShowManual(true)}>
             إدخال يدوي
@@ -43,12 +44,13 @@ export function CostumesCaisseClient({ initialStats, role }: Props) {
       </div>
 
       {/* Stats */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(190px, 1fr))", gap: 12 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))", gap: 12 }}>
         <StatCard label="رصيد الافتتاح"   value={formatMAD(initialStats.openingAmount)} icon={DollarSign}  />
         <StatCard label="مبيعات البدلات"    value={formatMAD(initialStats.totalSales)}    icon={ShoppingBag} />
-        <StatCard label="مدفوعات الإيجار" value={formatMAD(initialStats.totalRentals)}  icon={TrendingUp}  />
+        <StatCard label="مدفوعات الإيجار (نقدا)" value={formatMAD(initialStats.totalRentals)}  icon={TrendingUp}  />
         <StatCard label="إدخالات يدوية"  value={formatMAD(initialStats.totalManual)}   icon={TrendingUp}  />
-        <StatCard label="إجمالي الصندوق"       value={formatMAD(initialStats.runningTotal)}  icon={Hash}        />
+        <StatCard label="بطاقة / تحويل (خارج الصندوق)" value={formatMAD(initialStats.nonCash)} icon={Landmark} />
+        <StatCard label="النقد المتوقع في الصندوق"       value={formatMAD(initialStats.runningTotal)}  icon={Hash}        />
       </div>
 
       {/* Transaction list */}
@@ -91,7 +93,7 @@ function CostumesTransactionList({ transactions }: { transactions: TransactionEn
   return (
     <div style={{ border: "1px solid var(--border)", borderRadius: 10, overflow: "hidden" }}>
       <div style={{ padding: "10px 16px", background: "var(--surface-2)", borderBottom: "1px solid var(--border)" }}>
-        <span style={{ fontSize: 11, fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+        <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-muted)" }}>
           المعاملات الأخيرة
         </span>
       </div>
@@ -107,12 +109,12 @@ function CostumesTransactionList({ transactions }: { transactions: TransactionEn
           }}>
             <div style={{ flex: 1, minWidth: 0 }}>
               <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", margin: 0 }}>{tx.label}</p>
-              <p style={{ fontSize: 11, color: "var(--text-muted)", margin: "3px 0 0" }}>
-                {TYPE_LABEL[tx.type] ?? tx.type} · {tx.actorName} · {tx.method ?? "-"}
+              <p style={{ fontSize: 12, color: "var(--text-muted)", margin: "3px 0 0" }}>
+                {TYPE_LABEL[tx.type] ?? tx.type} · {tx.actorName} · {paymentMethodLabel(tx.method)}{tx.method === "tpe" || tx.method === "banque" ? " (خارج الصندوق)" : ""}
               </p>
             </div>
             <span style={{ fontSize: 14, fontWeight: 700, color: isNeg ? "var(--danger)" : accent, whiteSpace: "nowrap" }}>
-              {isNeg ? "" : "+"}{formatMAD(Math.abs(amount))}
+              {formatSignedMAD(amount)}
             </span>
           </div>
         )

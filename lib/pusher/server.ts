@@ -15,19 +15,3 @@ export function getPusherServer(): Pusher {
 
   return pusher
 }
-
-// Typed channel/event constants - prevents typos across the app
-export const PUSHER_CHANNELS = {
-  RENTALS:    "private-rentals",
-  ALERTS:     "private-alerts",
-  CAISSE:     "private-caisse",
-} as const
-
-export const PUSHER_EVENTS = {
-  RENTAL_CREATED:       "rental:created",
-  RENTAL_STATUS_CHANGED:"rental:status-changed",
-  OVERDUE_ALERT:        "alert:overdue",
-  LOW_STOCK_ALERT:      "alert:low-stock",
-  CAISSE_OPENED:        "caisse:opened",
-  CAISSE_CLOSED:        "caisse:closed",
-} as const

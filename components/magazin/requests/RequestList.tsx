@@ -12,9 +12,9 @@ import { Input }     from "@/components/ui/Input"
 import { CreatableSelect } from "@/components/ui/CreatableSelect"
 import { toast }     from "@/hooks/useToast"
 import { createRequest, updateRequestStatus } from "@/lib/actions/magazin/requests"
-import { formatDate } from "@/lib/utils/date"
 import type { ProductRequestForList } from "@/lib/actions/magazin/requests"
 import React from "react"
+import { DateText } from "@/components/ui/DateText"
 
 type LookupItem = { id: string; label_fr: string; label_ar: string }
 
@@ -35,7 +35,7 @@ export function RequestList({ requests, categories: initialCategories, role }: R
   const t      = useTranslations("magazin.requests")
   const tCom   = useTranslations("common")
   const router  = useRouter()
-  const isAdmin = role === "admin" || role === "superadmin"
+  const isAdmin = role === "admin" || role === "ghost"
 
   const [categories, setCategories] = useState<{ value: string; label: string }[]>(
     initialCategories.map(c => ({ value: c.id, label: c.label_ar }))
@@ -56,25 +56,21 @@ export function RequestList({ requests, categories: initialCategories, role }: R
     if (!prodName.trim()) { setNameError(tCom("required")); return }
     setLoading(true)
     try {
-      await createRequest(prodName.trim(), catId || null, notes || undefined)
+      const res = await createRequest(prodName.trim(), catId || null, notes || undefined)
+      if (!res.ok) { toast(res.message || tCom("error"), "error"); return }
       toast(t("requestSaved"), "success")
       setShowForm(false); setProdName(""); setCatId(""); setNotes("")
       router.refresh()
-    } catch {
-      toast(tCom("error"), "error")
     } finally {
       setLoading(false)
     }
   }
 
   const handleStatus = async (id: string, status: "pending" | "reviewed" | "ordered") => {
-    try {
-      await updateRequestStatus(id, status)
-      toast(t("statusUpdated"), "success")
-      router.refresh()
-    } catch {
-      toast(tCom("error"), "error")
-    }
+    const res = await updateRequestStatus(id, status)
+    if (!res.ok) { toast(res.message || tCom("error"), "error"); return }
+    toast(t("statusUpdated"), "success")
+    router.refresh()
   }
 
   const columns: Column<ProductRequestForList>[] = [
@@ -106,26 +102,16 @@ export function RequestList({ requests, categories: initialCategories, role }: R
       },
     },
     { key: "requestedByName", label: t("requestedBy"), render: (v) => <span style={{ fontSize: 12, color: "var(--text-muted)" }}>{v as string}</span> },
-    { key: "createdAt",       label: tCom("date"),      render: (v) => <span style={{ fontSize: 12, color: "var(--text-muted)" }}>{formatDate(v as string)}</span> },
+    { key: "createdAt",       label: tCom("date"),      render: (v) => <span style={{ fontSize: 12, color: "var(--text-muted)" }}><DateText value={v as string} /></span> },
     ...(isAdmin ? [{
       key: "id" as keyof ProductRequestForList, label: t("action"),
       render: (_: unknown, row: ProductRequestForList) => (
-        <div style={{ display: "flex", gap: 4 }}>
+        <div style={{ display: "flex", gap: 10, flexWrap: "nowrap" }}>
           {row.status === "pending" && (
-            <button
-              onClick={() => handleStatus(row.id, "reviewed")}
-              style={{ fontSize: 11, padding: "3px 8px", borderRadius: 6, border: "1px solid var(--border)", background: "none", cursor: "pointer", color: "var(--text-muted)" }}
-            >
-              {t("reviewed")}
-            </button>
+            <Button variant="secondary" size="sm" onClick={() => handleStatus(row.id, "reviewed")}>{t("reviewed")}</Button>
           )}
           {row.status !== "ordered" && (
-            <button
-              onClick={() => handleStatus(row.id, "ordered")}
-              style={{ fontSize: 11, padding: "3px 8px", borderRadius: 6, border: "none", background: "var(--success)", cursor: "pointer", color: "#fff" }}
-            >
-              {t("ordered")}
-            </button>
+            <Button variant="primary" size="sm" onClick={() => handleStatus(row.id, "ordered")}>{t("ordered")}</Button>
           )}
         </div>
       ),
@@ -136,7 +122,7 @@ export function RequestList({ requests, categories: initialCategories, role }: R
     <>
       <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.02em", margin: 0 }}>
+          <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text)",margin: 0 }}>
             {t("title")}
           </h1>
           <Button icon={<Plus size={14} />} size="sm" onClick={() => setShowForm(true)}>
@@ -144,13 +130,13 @@ export function RequestList({ requests, categories: initialCategories, role }: R
           </Button>
         </div>
 
-        <div style={{ display: "flex", gap: 4 }}>
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
           {[{ v: "all", l: tCom("all") }, { v: "pending", l: t("pending") }, { v: "reviewed", l: t("reviewed") }, { v: "ordered", l: t("ordered") }].map(f => (
             <button key={f.v} onClick={() => setStatusFilter(f.v)} style={{
-              padding: "6px 14px", borderRadius: 999, fontSize: 12, fontWeight: 600,
+              padding: "8px 16px", minHeight: 36, borderRadius: 999, fontSize: 12, fontWeight: 600,
               cursor: "pointer", border: "none",
-              background: statusFilter === f.v ? "var(--primary)" : "var(--surface-2)",
-              color:      statusFilter === f.v ? "#1a1a1a"        : "var(--text-muted)",
+              background: statusFilter === f.v ? "var(--brand)" : "var(--surface-2)",
+              color:      statusFilter === f.v ? "var(--on-brand)"        : "var(--text-muted)",
             }}>
               {f.l}
             </button>
@@ -182,6 +168,7 @@ export function RequestList({ requests, categories: initialCategories, role }: R
             onChange={setCatId}
             onCreated={opt => setCategories(prev => [...prev, opt])}
             onDeleted={id => setCategories(prev => prev.filter(c => c.value !== id))}
+            canDelete={isAdmin}
             slug="product_categories"
             placeholder={t("choosePlaceholder")}
             options={categories}

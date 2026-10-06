@@ -1,9 +1,5 @@
 import type { ReactNode } from "react"
-import { redirect } from "next/navigation"
-import { auth } from "@/lib/auth/auth"
-import { checkMaintenanceMode } from "@/lib/utils/maintenance"
-import PortalShell from "@/components/layout/PortalShell"
-import MaintenanceScreen from "@/components/ui/MaintenanceScreen"
+import PortalLayout from "@/components/layout/PortalLayout"
 import React from "react"
 
 export default async function MagazinLayout({
@@ -14,38 +10,9 @@ export default async function MagazinLayout({
   params: Promise<{ locale: string }>
 }) {
   const { locale } = await params
-  const session = await auth()
-
-  if (!session?.user) {
-    redirect(`/${locale}`)
-  }
-
-  const { role, portalAccess, name, modulePermissions } = session.user
-
-  // Portal access guard
-  if (role === "staff" && !portalAccess.includes("magazin")) {
-    redirect(`/${locale}/select-portal`)
-  }
-
-  // Maintenance gate - superadmin always bypasses
-  if (role !== "superadmin") {
-    const maintenance = await checkMaintenanceMode()
-    if (maintenance.isActive) {
-      const message = maintenance.message_ar ?? ""
-      return <MaintenanceScreen locale={locale} message={message} />
-    }
-  }
-
   return (
-    <PortalShell
-      portal="magazin"
-      locale={locale}
-      role={role}
-      userName={name}
-      portalAccess={portalAccess}
-      modulePermissions={modulePermissions}
-    >
+    <PortalLayout portal="magazin" locale={locale}>
       {children}
-    </PortalShell>
+    </PortalLayout>
   )
 }

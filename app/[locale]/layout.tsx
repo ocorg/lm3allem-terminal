@@ -1,21 +1,21 @@
-import type { Metadata } from "next"
+import type { Metadata, Viewport } from "next"
 import type { ReactNode } from "react"
 import { notFound } from "next/navigation"
 import { NextIntlClientProvider } from "next-intl"
 import { getMessages } from "next-intl/server"
 import { routing } from "@/lib/i18n/routing"
-import { auth } from "@/lib/auth/auth"
 import "@/app/globals.css"
 import { Toaster } from "@/components/ui/Toaster"
-import LocaleHtmlAttributes from "@/components/LocaleHtmlAttributes"
+import NetworkStatus from "@/components/system/NetworkStatus"
+import { BrokenImageGuard } from "@/components/system/BrokenImageGuard"
+import ServiceWorkerRegister from "@/components/system/ServiceWorkerRegister"
 import React from "react"
 
-export const viewport = {
-  themeColor: "#C9A84C",
+// Pinch-zoom stays enabled (WCAG 1.4.4): no maximumScale / userScalable restriction.
+export const viewport: Viewport = {
+  themeColor: "#353535",
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
 }
 
 export const metadata: Metadata = {
@@ -47,23 +47,19 @@ export default async function LocaleLayout({
 }) {
   const { locale } = await params
 
-  if (!routing.locales.includes(locale as "ar")) {
+  if (!(routing.locales as readonly string[]).includes(locale)) {
     notFound()
   }
 
   const messages = await getMessages()
-  const session = await auth()
-
-  const theme = session?.user?.preferredTheme ?? "light"
-  const dir = locale === "ar" ? "rtl" : "ltr"
 
   return (
-    <>
-      <LocaleHtmlAttributes locale={locale} dir={dir} theme={theme} />
-      <NextIntlClientProvider messages={messages}>
-        <Toaster />
-        {children}
-      </NextIntlClientProvider>
-    </>
+    <NextIntlClientProvider messages={messages}>
+      <Toaster />
+      <NetworkStatus />
+      <BrokenImageGuard />
+      <ServiceWorkerRegister />
+      {children}
+    </NextIntlClientProvider>
   )
 }

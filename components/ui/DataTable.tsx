@@ -89,11 +89,9 @@ export function DataTable<T extends { id: string }>({
 
   const thStyle: React.CSSProperties = {
     padding:         "10px 16px",
-    fontSize:        11,
+    fontSize:        12,
     fontWeight:      600,
     color:           "var(--text-muted)",
-    textTransform:   "uppercase",
-    letterSpacing:   "0.05em",
     whiteSpace:      "nowrap",
     userSelect:      "none",
     background:      "var(--surface-2)",
@@ -146,13 +144,13 @@ export function DataTable<T extends { id: string }>({
                     style={{
                       ...thStyle,
                       width:     col.width,
-                      textAlign: col.align ?? "left",
+                      textAlign: col.align ?? "start",
                       cursor:    col.sortable ? "pointer" : "default",
                     }}
                     onClick={col.sortable ? () => handleSort(key) : undefined}
                   >
                     <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-                      {col.label}
+                      {col.label || "إجراءات"}
                       {col.sortable && (
                         isSorted
                           ? (sortDir === "asc"
@@ -209,7 +207,7 @@ export function DataTable<T extends { id: string }>({
                       return (
                         <td
                           key={key}
-                          style={{ ...tdStyle, textAlign: col.align ?? "left" }}
+                          style={{ ...tdStyle, textAlign: col.align ?? "start" }}
                         >
                           {col.render ? col.render(value, row) : String(value ?? "")}
                         </td>

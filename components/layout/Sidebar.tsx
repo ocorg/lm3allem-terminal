@@ -15,6 +15,7 @@ import type { NavItem } from "@/lib/utils/nav"
 import type { Portal } from "@prisma/client"
 import { useBreakpoint } from "@/hooks/useBreakpoint"
 import React from "react"
+import { BrandLogo } from "@/components/ui/BrandLogo"
 
 const ICON_MAP: Record<string, LucideIcon> = {
   pos:              ShoppingCart,
@@ -36,16 +37,10 @@ const ICON_MAP: Record<string, LucideIcon> = {
   alerts:    Bell,
 }
 
-const PORTAL_INITIALS: Record<Portal, string> = {
-  magazin:  "M",
-  costumes: "C",
-  lm3allem: "L",
-}
-
 const PORTAL_LABELS: Record<Portal, string> = {
-  magazin:  "Magazin",
-  costumes: "Costumes",
-  lm3allem: "Lm3allem",
+  magazin:  "المتجر",
+  costumes: "البدلات",
+  lm3allem: "الإدارة",
 }
 
 interface Props {
@@ -119,6 +114,8 @@ export default function Sidebar({
 
   return (
     <aside
+      className="app-sidebar"
+      data-open={mobileOpen ? "true" : "false"}
       style={{
         width:           isMobile ? 240 : (isCollapsed ? 64 : 240),
         flexShrink:      0,
@@ -160,28 +157,9 @@ export default function Sidebar({
           overflow:       "hidden",
         }}
       >
-        {/* Collapsed: show initial */}
-        {isCollapsed && (
-          <div style={{
-            flexShrink:      0,
-            width:           32,
-            height:          32,
-            borderRadius:    8,
-            background:      "rgba(212,148,31,0.12)",
-            color:           "var(--primary)",
-            display:         "flex",
-            alignItems:      "center",
-            justifyContent:  "center",
-            fontFamily:      "var(--font-display)",
-            fontSize:        13,
-            fontWeight:      800,
-            letterSpacing:   "0.02em",
-          }}>
-            {PORTAL_INITIALS[portal]}
-          </div>
-        )}
+        <BrandLogo size={isCollapsed ? 34 : 40} />
 
-        {/* Expanded: full text */}
+        {/* Expanded: portal name */}
         <div
           style={{
             opacity:    isCollapsed ? 0 : 1,
@@ -191,27 +169,11 @@ export default function Sidebar({
             transition: "opacity 180ms ease, max-width 220ms ease",
           }}
         >
-          <p style={{
-            fontSize:      13,
-            fontWeight:    800,
-            fontFamily:    "var(--font-display)",
-            color:         "var(--primary)",
-            letterSpacing: "0.06em",
-            textTransform: "uppercase",
-            margin:        0,
-            lineHeight:    1.2,
-          }}>
+          <p style={{ fontSize: 15, fontWeight: 700, color: "var(--text)", margin: 0, lineHeight: 1.3 }}>
             {PORTAL_LABELS[portal]}
           </p>
-          <p style={{
-            fontSize:      9,
-            fontFamily:    "var(--font-mono)",
-            color:         "var(--text-muted)",
-            letterSpacing: "0.18em",
-            textTransform: "uppercase",
-            margin:        "3px 0 0",
-          }}>
-            Terminal
+          <p style={{ fontSize: 12, color: "var(--text-muted)", margin: 0, lineHeight: 1.3 }}>
+            Lm3allem Clothing
           </p>
         </div>
       </div>
@@ -267,7 +229,7 @@ export default function Sidebar({
             alignItems:      "center",
             justifyContent:  "center",
             fontFamily:      "var(--font-display)",
-            fontSize:        11,
+            fontSize:        12,
             fontWeight:      800,
           }}>
             {userInitials}
@@ -300,7 +262,7 @@ export default function Sidebar({
             justifyContent: collapsed ? "center" : (isRTL ? "flex-start" : "flex-end"),
           }}
         >
-          <button
+          <button aria-label="طي أو توسيع القائمة"
             onClick={toggle}
             title={collapsed ? "Expand" : "Collapse"}
             style={{
@@ -367,7 +329,6 @@ function NavLink({ href, label, icon: Icon, isActive, collapsed, onClick }: NavL
         transition:        "all 150ms ease",
         whiteSpace:        "nowrap",
         overflow:          "hidden",
-        letterSpacing:     isActive ? "0.01em" : "0",
       }}
       onMouseEnter={e => {
         if (!isActive) {

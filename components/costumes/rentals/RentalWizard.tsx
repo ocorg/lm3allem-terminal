@@ -1,10 +1,11 @@
 "use client"
 
+import { formatDate } from "@/lib/utils/date"
 import { useState, useEffect, useMemo } from "react"
 import { useTranslations }              from "next-intl"
 import { useRouter }                    from "next/navigation"
-import { Check, ChevronRight, Search, X } from "lucide-react"
-import { useCaisse }                    from "@/components/caisse/CaisseProvider"
+import { Check, ChevronRight, Search, X, Trash2, Minus, Plus } from "lucide-react"
+import { useOptionalCaisse }            from "@/components/caisse/CaisseProvider"
 import { Modal }                        from "@/components/ui/Modal"
 import { Button }                       from "@/components/ui/Button"
 import { Input }                        from "@/components/ui/Input"
@@ -12,24 +13,29 @@ import { Select }                       from "@/components/ui/Select"
 import { toast }                        from "@/hooks/useToast"
 import { useConfirm }                   from "@/hooks/useConfirm"
 import { formatMAD }                    from "@/lib/utils/currency"
+import { parseAmount }                  from "@/lib/utils/money"
+import { newRequestId }                 from "@/lib/utils/request-id"
+import { todayKey }                     from "@/lib/utils/time"
 import { ImageUploader }                from "@/components/magazin/inventory/ImageUploader"
-import { createClient }                 from "@/lib/actions/costumes/clients"
 import { createRental }                 from "@/lib/actions/costumes/rentals"
 import type { CostumeItemForRental }    from "@/lib/actions/costumes/rentals"
-import type { LookupById, LookupItem }  from "@/lib/actions/costumes/pos"
+import type { LookupById }              from "@/lib/actions/costumes/pos"
 import type { ClientForList }           from "@/lib/actions/costumes/clients"
-import type { GuaranteeType, PaymentMethod } from "@prisma/client"
+import type { GuaranteeType }           from "@prisma/client"
 import React from "react"
+import { IconButton } from "@/components/ui/IconButton"
 
 // ── Local types ────────────────────────────────────────────────
 
 interface KitLine {
   costumeItemId: string
   quantity:      number
-  name_ar:       string
+  label:         string
   stock:         number
   refGuidePrice: number | null
 }
+
+type SettlementMethod = "cash" | "tpe" | "banque"
 
 interface WizardData {
   clientId:            string | null
@@ -46,7 +52,7 @@ interface WizardData {
   guaranteePhotoUrl:   string
   totalAmount:         string
   amountPaid:          string
-  paymentMethod:       PaymentMethod
+  paymentMethod:       SettlementMethod
 }
 
 const INITIAL: WizardData = {
@@ -60,9 +66,9 @@ const INITIAL: WizardData = {
 // 6 steps (measurements removed)
 const STEP_KEYS  = ["client", "kit", "dates", "guarantee", "payment", "confirmation"] as const
 const GUARANTEE_KEYS: GuaranteeType[] = ["cash_deposit", "id_card", "passport", "drivers_license"]
-const PAYMENT_KEYS:   PaymentMethod[] = ["cash", "tpe", "banque"]
+const PAYMENT_KEYS:   SettlementMethod[] = ["cash", "tpe", "banque"]
 
-// Hardcoded Arabic — these are fixed DB enum values, not user-configurable strings
+// Hardcoded Arabic - these are fixed DB enum values, not user-configurable strings
 const GUARANTEE_LABELS: Record<GuaranteeType, string> = {
   cash_deposit:    "وديعة نقدية",
   id_card:         "بطاقة التعريف الوطنية",
@@ -73,19 +79,31 @@ const GUARANTEE_LABELS: Record<GuaranteeType, string> = {
 // ── Props ──────────────────────────────────────────────────────
 
 interface Props {
-  isOpen:                 boolean
-  onClose:                () => void
-  costumeItems:           CostumeItemForRental[]
-  clients:                ClientForList[]
-  measurementCategories?: LookupItem[]  // kept for call-site compat, no longer used
-  lookupById:             LookupById
-  locale?:                string        // kept for call-site compat, no longer used
+  isOpen:       boolean
+  onClose:      () => void
+  costumeItems: CostumeItemForRental[]
+  clients:      ClientForList[]
+  lookupById:   LookupById
+}
+
+/** Human description of a rental item: SKU + type + the sizes that are set. */
+function describeItem(item: CostumeItemForRental, lookupById: LookupById): string {
+  const parts: string[] = []
+  if (item.sku) parts.push(item.sku)
+  parts.push(item.typeLabelAr)
+  const sizes: [string, string | null][] = [
+    ["بدلة", item.sizeId], ["سروال", item.colorId], ["قميص", item.shirtSizeId], ["حذاء", item.shoeSizeId],
+  ]
+  for (const [label, sizeId] of sizes) {
+    if (sizeId && lookupById[sizeId]) parts.push(`${label} ${lookupById[sizeId].label_ar}`)
+  }
+  return parts.join(" · ")
 }
 
 // ── Wizard ─────────────────────────────────────────────────────
 
 export function RentalWizard({ isOpen, onClose, costumeItems, clients, lookupById }: Props) {
-  const { session } = useCaisse()
+  const { session } = useOptionalCaisse()
   const router      = useRouter()
   const { confirm, modal: confirmModal } = useConfirm()
 
@@ -98,6 +116,8 @@ export function RentalWizard({ isOpen, onClose, costumeItems, clients, lookupByI
   const [data,    setData]    = useState<WizardData>(INITIAL)
   const [loading, setLoading] = useState(false)
   const [errors,  setErrors]  = useState<Record<string, string>>({})
+  // One idempotency key per rental attempt: a retry after a network error cannot book twice
+  const [requestId, setRequestId] = useState(() => newRequestId())
 
   const upd = (patch: Partial<WizardData>) => setData(p => ({ ...p, ...patch }))
 
@@ -117,12 +137,28 @@ export function RentalWizard({ isOpen, onClose, costumeItems, clients, lookupByI
     }
     if (step === 1 && !data.kitItems.length) e.kit = tRental("validation.addKitItem")
     if (step === 2) {
+      // today <= pickup <= event <= return
       if (!data.scheduledPickupDate) e.pickupDate = tCommon("required")
+      else if (data.scheduledPickupDate < todayKey()) e.pickupDate = tRental("validation.pickupInPast")
       if (!data.scheduledReturnDate) e.returnDate = tCommon("required")
+      else if (data.scheduledPickupDate && data.scheduledReturnDate < data.scheduledPickupDate) {
+        e.returnDate = tRental("validation.returnBeforePickup")
+      }
+      if (data.eventDate) {
+        if (data.scheduledPickupDate && data.eventDate < data.scheduledPickupDate) e.eventDate = tRental("validation.eventBeforePickup")
+        else if (data.scheduledReturnDate && data.eventDate > data.scheduledReturnDate) e.eventDate = tRental("validation.eventAfterReturn")
+      }
+    }
+    if (step === 3 && data.guaranteeType === "cash_deposit") {
+      const g = parseAmount(data.guaranteeAmount)
+      if (isNaN(g) || g <= 0) e.guaranteeAmount = tRental("validation.depositRequired")
     }
     if (step === 4) {
-      if (!data.totalAmount || isNaN(+data.totalAmount)) e.totalAmount = tCommon("required")
-      if (isNaN(+data.amountPaid))                       e.amountPaid  = tRental("validation.invalidAmount")
+      const total = parseAmount(data.totalAmount)
+      const paid  = parseAmount(data.amountPaid)
+      if (isNaN(total) || total <= 0) e.totalAmount = tRental("validation.invalidAmount")
+      if (isNaN(paid) || paid < 0)    e.amountPaid  = tRental("validation.invalidAmount")
+      else if (!isNaN(total) && paid > total) e.amountPaid = tRental("validation.paidAboveTotal")
     }
     setErrors(e)
     return Object.keys(e).length === 0
@@ -132,31 +168,32 @@ export function RentalWizard({ isOpen, onClose, costumeItems, clients, lookupByI
   const prev = () => setStep(s => Math.max(s - 1, 0))
 
   const handleSubmit = async () => {
+    if (!session) { toast(tRental("caisseRequired"), "error"); return }
     setLoading(true)
     try {
-      let clientId = data.clientId!
-      if (data.isNewClient) {
-        const res = await createClient({ name: data.newClientName, phone: data.newClientPhone, address: data.newClientAddress || undefined })
-        clientId = res.id
-      }
-      await createRental({
-        clientId,
+      const res = await createRental({
+        requestId,
         caisseSessionId:     session.id,
-        eventDate:           data.eventDate    || undefined,
+        // A new client is created by the SERVER in the same transaction as the rental
+        ...(data.isNewClient
+          ? { newClient: { name: data.newClientName.trim(), phone: data.newClientPhone.trim(), address: data.newClientAddress.trim() || undefined } }
+          : { clientId: data.clientId! }),
+        eventDate:           data.eventDate || undefined,
         scheduledPickupDate: data.scheduledPickupDate,
         scheduledReturnDate: data.scheduledReturnDate,
-        totalAmount:         parseFloat(data.totalAmount),
-        amountPaid:          parseFloat(data.amountPaid),
+        totalAmount:         parseAmount(data.totalAmount),
+        amountPaid:          parseAmount(data.amountPaid),
         paymentMethod:       data.paymentMethod,
         guaranteeType:       data.guaranteeType,
-        guaranteeAmount:     data.guaranteeType === "cash_deposit" && data.guaranteeAmount ? parseFloat(data.guaranteeAmount) : undefined,
+        guaranteeAmount:     data.guaranteeType === "cash_deposit" ? parseAmount(data.guaranteeAmount) : undefined,
         guaranteePhotoUrl:   data.guaranteePhotoUrl || undefined,
         kitItems:            data.kitItems.map(ki => ({ costumeItemId: ki.costumeItemId, quantity: ki.quantity })),
       })
-      toast(tRental("createSuccess"), "success")
+      if (!res.ok) { toast(res.message || tCommon("error"), "error"); return }
+
+      toast(`${tRental("createSuccess")} · ${res.data.kitReference}`, "success")
+      setRequestId(newRequestId())
       onClose(); router.refresh()
-    } catch (err: unknown) {
-      toast(err instanceof Error ? err.message : tCommon("error"), "error")
     } finally {
       setLoading(false)
     }
@@ -184,26 +221,30 @@ export function RentalWizard({ isOpen, onClose, costumeItems, clients, lookupByI
             <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
               <div style={{
                 width: 28, height: 28, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700,
-                background: i <= step ? "var(--primary)" : "var(--surface-2)",
-                color:      i <= step ? "#1a1a1a"        : "var(--text-muted)",
+                background: i <= step ? "var(--brand)" : "var(--surface-2)",
+                color:      i <= step ? "var(--on-brand)"        : "var(--text-muted)",
                 border:     `2px solid ${i <= step ? "var(--primary)" : "var(--border)"}`,
                 flexShrink: 0,
               }}>
                 {i < step ? <Check size={14} /> : i + 1}
               </div>
-              <span style={{ fontSize: 10, fontWeight: i === step ? 600 : 400, color: i === step ? "var(--text)" : "var(--text-muted)", whiteSpace: "nowrap" }}>{s}</span>
+              <span style={{ fontSize: 12, fontWeight: i === step ? 600 : 400, color: i === step ? "var(--text)" : "var(--text-muted)", whiteSpace: "nowrap" }}>{s}</span>
             </div>
-            {i < STEPS.length - 1 && <div style={{ width: 32, height: 2, background: i < step ? "var(--primary)" : "var(--border)", flexShrink: 0, marginBottom: 16 }} />}
+            {i < STEPS.length - 1 && <div style={{ width: 32, height: 2, background: i < step ? "var(--brand)" : "var(--border)", flexShrink: 0, marginBottom: 16 }} />}
           </div>
         ))}
       </div>
+
+      {!session && (
+        <p style={{ color: "var(--warning)", fontSize: 13, margin: "0 0 12px" }}>{tRental("caisseRequired")}</p>
+      )}
 
       {/* Step content */}
       <div style={{ minHeight: 280 }}>
         {step === 0 && <StepClient    data={data} upd={upd} clients={clients} errors={errors} />}
         {step === 1 && <StepKit       data={data} upd={upd} costumeItems={costumeItems} lookupById={lookupById} errors={errors} />}
         {step === 2 && <StepDates     data={data} upd={upd} errors={errors} />}
-        {step === 3 && <StepGuarantee data={data} upd={upd} />}
+        {step === 3 && <StepGuarantee data={data} upd={upd} errors={errors} />}
         {step === 4 && <StepPayment   data={data} upd={upd} errors={errors} />}
         {step === 5 && <StepConfirm   data={data} clients={clients} />}
       </div>
@@ -215,14 +256,14 @@ export function RentalWizard({ isOpen, onClose, costumeItems, clients, lookupByI
         </Button>
         {step < 5
           ? <Button onClick={next} icon={<ChevronRight size={14} />}>{tCommon("next")}</Button>
-          : <Button onClick={handleSubmit} loading={loading}>{tRental("confirmRental")}</Button>
+          : <Button onClick={handleSubmit} loading={loading} disabled={!session}>{tRental("confirmRental")}</Button>
         }
       </div>
     </Modal>
   )
 }
 
-// ── Step 1 — Client ────────────────────────────────────────────
+// ── Step 1 - Client ────────────────────────────────────────────
 
 function StepClient({ data, upd, clients, errors }: { data: WizardData; upd: (p: Partial<WizardData>) => void; clients: ClientForList[]; errors: Record<string, string> }) {
   const tRental  = useTranslations("rental")
@@ -255,7 +296,7 @@ function StepClient({ data, upd, clients, errors }: { data: WizardData; upd: (p:
       {data.isNewClient ? (
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           <Input label={tClients("name")}  value={data.newClientName}  onChange={e => upd({ newClientName: e.target.value })}  error={errors.newClientName} />
-          <Input label={tClients("phone")} value={data.newClientPhone} onChange={e => upd({ newClientPhone: e.target.value })} error={errors.newClientPhone} />
+          <Input label={tClients("phone")} type="tel" dir="ltr" value={data.newClientPhone} onChange={e => upd({ newClientPhone: e.target.value })} error={errors.newClientPhone} />
           <Input label={tRental("addressOptional")} value={data.newClientAddress} onChange={e => upd({ newClientAddress: e.target.value })} />
         </div>
       ) : (
@@ -266,6 +307,7 @@ function StepClient({ data, upd, clients, errors }: { data: WizardData; upd: (p:
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder={tRental("searchClientPlaceholder")}
+              aria-label={tRental("searchClientPlaceholder")}
               style={{ width: "100%", paddingInlineStart: 32, paddingInlineEnd: 12, height: 36, border: "1px solid var(--border)", borderRadius: 8, background: "var(--surface)", color: "var(--text)", fontSize: 13, outline: "none", boxSizing: "border-box" }}
             />
           </div>
@@ -273,14 +315,14 @@ function StepClient({ data, upd, clients, errors }: { data: WizardData; upd: (p:
           <div style={{ maxHeight: 200, overflowY: "auto", border: "1px solid var(--border)", borderRadius: 8 }}>
             {filtered.slice(0, 20).map(c => (
               <button key={c.id} onClick={() => upd({ clientId: c.id })} style={{
-                width: "100%", textAlign: "left", padding: "10px 14px", border: "none",
+                width: "100%", textAlign: "start", padding: "10px 14px", border: "none",
                 borderBottom: "1px solid var(--border)", cursor: "pointer",
                 background: data.clientId === c.id ? "color-mix(in srgb,var(--primary) 10%,transparent)" : "var(--surface)",
                 display: "flex", justifyContent: "space-between", alignItems: "center",
               }}>
                 <div>
                   <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", margin: 0 }}>{c.name}</p>
-                  <p style={{ fontSize: 11, color: "var(--text-muted)", margin: "2px 0 0" }}>
+                  <p style={{ fontSize: 12, color: "var(--text-muted)", margin: "2px 0 0" }}>
                     {c.phone} · {tRental("locationsCount", { count: c.rentalCount })}
                   </p>
                 </div>
@@ -299,36 +341,35 @@ function StepClient({ data, upd, clients, errors }: { data: WizardData; upd: (p:
   )
 }
 
-// ── Step 2 — Kit ───────────────────────────────────────────────
+// ── Step 2 - Kit ───────────────────────────────────────────────
 
 function StepKit({ data, upd, costumeItems, lookupById, errors }: { data: WizardData; upd: (p: Partial<WizardData>) => void; costumeItems: CostumeItemForRental[]; lookupById: LookupById; errors: Record<string, string> }) {
   const tRental = useTranslations("rental")
   const tUi     = useTranslations("ui")
   const [search, setSearch] = useState("")
 
+  const described = useMemo(
+    () => costumeItems.map(item => ({ item, label: describeItem(item, lookupById) })),
+    [costumeItems, lookupById]
+  )
+
+  // The search covers the code (SKU), the type and every size label
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
-    return q ? costumeItems.filter(i => i.name_ar.includes(q)) : costumeItems
-  }, [costumeItems, search])
+    return q ? described.filter(d => d.label.toLowerCase().includes(q)) : described
+  }, [described, search])
 
-  const addItem = (item: CostumeItemForRental) => {
+  const addItem = (item: CostumeItemForRental, label: string) => {
     if (data.kitItems.some(k => k.costumeItemId === item.id)) return
-    upd({ kitItems: [...data.kitItems, { costumeItemId: item.id, quantity: 1, name_ar: item.name_ar, stock: item.stock, refGuidePrice: item.refGuidePrice ? parseFloat(item.refGuidePrice) : null }] })
+    upd({ kitItems: [...data.kitItems, { costumeItemId: item.id, quantity: 1, label, stock: item.stock, refGuidePrice: item.refGuidePrice ? parseFloat(item.refGuidePrice) : null }] })
   }
   const removeItem = (id: string) => upd({ kitItems: data.kitItems.filter(k => k.costumeItemId !== id) })
   const setQty     = (id: string, q: number) => upd({ kitItems: data.kitItems.map(k => k.costumeItemId === id ? { ...k, quantity: Math.max(1, Math.min(q, k.stock)) } : k) })
 
-  const itemLabel = (item: CostumeItemForRental) => {
-    const parts: string[] = []
-    if (item.sizeId  && lookupById[item.sizeId])  parts.push(lookupById[item.sizeId].label_ar)
-    if (item.colorId && lookupById[item.colorId]) parts.push(lookupById[item.colorId].label_ar)
-    return parts.join(" - ") || item.typeLabelAr
-  }
-
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, height: 300 }}>
-      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        <p style={{ fontSize: 12, fontWeight: 600, color: "var(--text-muted)", margin: 0, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, height: 320 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8, minHeight: 0 }}>
+        <p style={{ fontSize: 12, fontWeight: 600, color: "var(--text-muted)", margin: 0 }}>
           {tRental("availableItems")}
         </p>
         <div style={{ position: "relative" }}>
@@ -336,38 +377,45 @@ function StepKit({ data, upd, costumeItems, lookupById, errors }: { data: Wizard
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder={tUi("search")}
+            placeholder={tRental("searchItemPlaceholder")}
+            aria-label={tUi("search")}
             style={{ width: "100%", paddingInlineStart: 32, height: 34, border: "1px solid var(--border)", borderRadius: 8, background: "var(--surface)", color: "var(--text)", fontSize: 13, outline: "none", boxSizing: "border-box" }}
           />
         </div>
         <div style={{ flex: 1, overflowY: "auto", border: "1px solid var(--border)", borderRadius: 8 }}>
-          {filtered.map(item => {
+          {filtered.map(({ item, label }) => {
             const inKit = data.kitItems.some(k => k.costumeItemId === item.id)
             const isOut = item.stock === 0
             return (
-              <button key={item.id} onClick={() => !isOut && !inKit && addItem(item)} disabled={isOut || inKit} style={{
-                width: "100%", textAlign: "left", padding: "8px 12px", border: "none",
+              <button key={item.id} onClick={() => !isOut && !inKit && addItem(item, label)} disabled={isOut || inKit} style={{
+                width: "100%", textAlign: "start", padding: "8px 12px", border: "none",
                 borderBottom: "1px solid var(--border)", cursor: isOut || inKit ? "default" : "pointer",
                 background: inKit ? "color-mix(in srgb,var(--primary) 8%,transparent)" : "var(--surface)",
                 opacity: isOut ? 0.4 : 1,
               }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <div style={{ minWidth: 0 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+                    {item.images[0]
+                      // eslint-disable-next-line @next/next/no-img-element
+                      ? <img src={item.images[0]} alt="" width={36} height={36} style={{ width: 36, height: 36, borderRadius: 6, objectFit: "cover", flexShrink: 0 }} />
+                      : <div style={{ width: 36, height: 36, borderRadius: 6, background: "var(--surface-2)", flexShrink: 0 }} />}
                     <p style={{ fontSize: 12, fontWeight: 600, color: "var(--text)", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      {item.name_ar}
+                      {label} {item.stock > 1 ? `· ×${item.stock}` : ""}
                     </p>
-                    <p style={{ fontSize: 11, color: "var(--text-muted)", margin: "1px 0 0" }}>{itemLabel(item)} · ×{item.stock}</p>
                   </div>
                   {inKit && <Check size={13} style={{ color: "var(--primary)", flexShrink: 0 }} />}
                 </div>
               </button>
             )
           })}
+          {filtered.length === 0 && (
+            <p style={{ padding: 16, color: "var(--text-muted)", fontSize: 13, margin: 0, textAlign: "center" }}>{tUi("noResults")}</p>
+          )}
         </div>
       </div>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        <p style={{ fontSize: 12, fontWeight: 600, color: "var(--text-muted)", margin: 0, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8, minHeight: 0 }}>
+        <p style={{ fontSize: 12, fontWeight: 600, color: "var(--text-muted)", margin: 0 }}>
           {tRental("kitSelected")}
         </p>
         {errors.kit && <p style={{ color: "var(--danger)", fontSize: 12, margin: 0 }}>{errors.kit}</p>}
@@ -377,14 +425,16 @@ function StepKit({ data, upd, costumeItems, lookupById, errors }: { data: Wizard
             : data.kitItems.map(ki => (
               <div key={ki.costumeItemId} style={{ padding: "8px 12px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 8 }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{ fontSize: 12, fontWeight: 600, color: "var(--text)", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{ki.name_ar}</p>
+                  <p style={{ fontSize: 12, fontWeight: 600, color: "var(--text)", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{ki.label}</p>
                 </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 4, background: "var(--surface-2)", borderRadius: 6, padding: "2px 4px" }}>
-                  <button onClick={() => setQty(ki.costumeItemId, ki.quantity - 1)} style={{ width: 20, height: 20, border: "none", background: "none", cursor: "pointer", color: "var(--text)", fontSize: 14 }}>-</button>
-                  <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text)", minWidth: 18, textAlign: "center" }}>{ki.quantity}</span>
-                  <button onClick={() => setQty(ki.costumeItemId, ki.quantity + 1)} style={{ width: 20, height: 20, border: "none", background: "none", cursor: "pointer", color: "var(--text)", fontSize: 14 }}>+</button>
-                </div>
-                <button onClick={() => removeItem(ki.costumeItemId)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)", padding: 2 }}><X size={13} /></button>
+                {ki.stock > 1 && (
+                  <div style={{ display: "flex", alignItems: "center", border: "1px solid var(--border)", borderRadius: 8, overflow: "hidden", flexShrink: 0 }}>
+                    <IconButton label="إنقاص الكمية" size="sm" onClick={() => setQty(ki.costumeItemId, ki.quantity - 1)} style={{ border: "none", borderRadius: 0, background: "var(--surface-2)" }}><Minus size={16} /></IconButton>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text)", minWidth: 30, textAlign: "center" }}>{ki.quantity}</span>
+                    <IconButton label="زيادة الكمية" size="sm" onClick={() => setQty(ki.costumeItemId, ki.quantity + 1)} style={{ border: "none", borderRadius: 0, background: "var(--surface-2)" }}><Plus size={16} /></IconButton>
+                  </div>
+                )}
+                <IconButton label="حذف من الطقم" tone="danger" size="sm" onClick={() => removeItem(ki.costumeItemId)} style={{ marginInlineStart: 8 }}><Trash2 size={16} /></IconButton>
               </div>
             ))
           }
@@ -402,24 +452,53 @@ function StepKit({ data, upd, costumeItems, lookupById, errors }: { data: Wizard
   )
 }
 
-// ── Step 3 — Dates ─────────────────────────────────────────────
+// ── Step 3 - Dates ─────────────────────────────────────────────
 
 function StepDates({ data, upd, errors }: { data: WizardData; upd: (p: Partial<WizardData>) => void; errors: Record<string, string> }) {
   const tRental = useTranslations("rental")
+  const today = todayKey()
+
+  // The three dates always stay in order:  today <= pickup <= event <= return.
+  // The pickers themselves refuse dates outside the allowed window.
+  const pickup = data.scheduledPickupDate
+  const ret    = data.scheduledReturnDate
+
+  const changePickup = (value: string) => {
+    const patch: Partial<WizardData> = { scheduledPickupDate: value }
+    // moving the pickup after the return / event pushes them forward instead of leaving them behind it
+    if (ret && value && ret < value) patch.scheduledReturnDate = value
+    if (data.eventDate && value && data.eventDate < value) patch.eventDate = value
+    upd(patch)
+  }
+  const changeReturn = (value: string) => {
+    const patch: Partial<WizardData> = { scheduledReturnDate: value }
+    if (data.eventDate && value && data.eventDate > value) patch.eventDate = value
+    upd(patch)
+  }
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      <Input label={tRental("eventDateOptional")} type="date" value={data.eventDate} onChange={e => upd({ eventDate: e.target.value })} />
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-        <Input label={tRental("pickupRequired") + " *"} type="date" value={data.scheduledPickupDate} onChange={e => upd({ scheduledPickupDate: e.target.value })} error={errors.pickupDate} />
-        <Input label={tRental("returnRequired") + " *"}  type="date" value={data.scheduledReturnDate} onChange={e => upd({ scheduledReturnDate: e.target.value })} error={errors.returnDate} />
+        <Input label={tRental("pickupRequired") + " *"} type="date" min={today} value={pickup} onChange={e => changePickup(e.target.value)} error={errors.pickupDate} />
+        <Input label={tRental("returnRequired") + " *"} type="date" min={pickup || today} value={ret} onChange={e => changeReturn(e.target.value)} error={errors.returnDate} />
       </div>
+      <Input
+        label={tRental("eventDateOptional")}
+        type="date"
+        min={pickup || today}
+        max={ret || undefined}
+        value={data.eventDate}
+        onChange={e => upd({ eventDate: e.target.value })}
+        error={errors.eventDate}
+        hint={tRental("eventDateHint")}
+      />
     </div>
   )
 }
 
-// ── Step 4 — Guarantee ─────────────────────────────────────────
+// ── Step 4 - Guarantee ─────────────────────────────────────────
 
-function StepGuarantee({ data, upd }: { data: WizardData; upd: (p: Partial<WizardData>) => void }) {
+function StepGuarantee({ data, upd, errors }: { data: WizardData; upd: (p: Partial<WizardData>) => void; errors: Record<string, string> }) {
   const tRental = useTranslations("rental")
 
   const GUARANTEE_OPTIONS = GUARANTEE_KEYS.map(k => ({ value: k, label: GUARANTEE_LABELS[k] }))
@@ -433,19 +512,21 @@ function StepGuarantee({ data, upd }: { data: WizardData; upd: (p: Partial<Wizar
         options={GUARANTEE_OPTIONS}
       />
       {data.guaranteeType === "cash_deposit" && (
-        <Input label={tRental("depositAmountLabel")} type="number" value={data.guaranteeAmount} onChange={e => upd({ guaranteeAmount: e.target.value })} />
+        <Input label={tRental("depositAmountLabel") + " *"} type="number" value={data.guaranteeAmount} onChange={e => upd({ guaranteeAmount: e.target.value })} error={errors.guaranteeAmount} />
       )}
-      <div>
-        <p style={{ fontSize: 12, fontWeight: 600, color: "var(--text-muted)", marginBottom: 8 }}>
-          {tRental("guaranteePhotoLabel")}
-        </p>
-        <ImageUploader images={data.guaranteePhotoUrl ? [data.guaranteePhotoUrl] : []} onChange={urls => upd({ guaranteePhotoUrl: urls[0] ?? "" })} />
-      </div>
+      {/* Guarantee documents are uploaded to the PRIVATE store and served through an authenticated route */}
+      <ImageUploader
+        uploadType="guarantee"
+        single
+        label={tRental("guaranteePhotoLabel")}
+        images={data.guaranteePhotoUrl ? [data.guaranteePhotoUrl] : []}
+        onChange={urls => upd({ guaranteePhotoUrl: urls[urls.length - 1] ?? "" })}
+      />
     </div>
   )
 }
 
-// ── Step 5 — Payment ───────────────────────────────────────────
+// ── Step 5 - Payment ───────────────────────────────────────────
 
 function StepPayment({ data, upd, errors }: { data: WizardData; upd: (p: Partial<WizardData>) => void; errors: Record<string, string> }) {
   const tP      = useTranslations("payment")
@@ -463,8 +544,10 @@ function StepPayment({ data, upd, errors }: { data: WizardData; upd: (p: Partial
     if (!data.totalAmount && suggested) upd({ totalAmount: suggested.toFixed(2) })
   }, [suggested]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const total   = parseFloat(data.totalAmount) || 0
-  const paid    = parseFloat(data.amountPaid)  || 0
+  const totalParsed = parseAmount(data.totalAmount)
+  const paidParsed  = parseAmount(data.amountPaid)
+  const total   = Number.isNaN(totalParsed) ? 0 : totalParsed
+  const paid    = Number.isNaN(paidParsed)  ? 0 : paidParsed
   const balance = Math.max(0, total - paid)
 
   return (
@@ -489,12 +572,12 @@ function StepPayment({ data, upd, errors }: { data: WizardData; upd: (p: Partial
         <span style={{ fontSize: 14, fontWeight: 700, color: balance > 0 ? "var(--warning)" : "var(--success)" }}>{formatMAD(balance)}</span>
       </div>
       <div>
-        <p style={{ fontSize: 12, fontWeight: 600, color: "var(--text-muted)", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+        <p style={{ fontSize: 12, fontWeight: 600, color: "var(--text-muted)", marginBottom: 8 }}>
           {tRental("paymentModeLabel")}
         </p>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
           {PAYMENT_OPTIONS.map(m => (
-            <button key={m.value} onClick={() => upd({ paymentMethod: m.value as PaymentMethod })} style={{
+            <button key={m.value} onClick={() => upd({ paymentMethod: m.value })} style={{
               padding: "10px 8px", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: "pointer",
               border: `2px solid ${data.paymentMethod === m.value ? "var(--primary)" : "var(--border)"}`,
               background: data.paymentMethod === m.value ? "color-mix(in srgb,var(--primary) 10%,transparent)" : "var(--surface)",
@@ -507,7 +590,7 @@ function StepPayment({ data, upd, errors }: { data: WizardData; upd: (p: Partial
   )
 }
 
-// ── Step 6 — Confirm ───────────────────────────────────────────
+// ── Step 6 - Confirm ───────────────────────────────────────────
 
 function ConfirmRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
@@ -528,17 +611,19 @@ function StepConfirm({ data, clients }: { data: WizardData; clients: ClientForLi
   const client     = clients.find(c => c.id === data.clientId)
   const clientName = data.isNewClient ? data.newClientName : (client?.name ?? "-")
   const kitPieces  = data.kitItems.reduce((s, k) => s + k.quantity, 0)
+  const total      = parseAmount(data.totalAmount)
+  const paid       = parseAmount(data.amountPaid)
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
       <ConfirmRow label={tRental("confirmClientRow")}    value={clientName} />
-      <ConfirmRow label={tRental("confirmPickup")}       value={data.scheduledPickupDate ? new Date(data.scheduledPickupDate).toLocaleDateString("ar-MA") : "-"} />
-      <ConfirmRow label={tRental("confirmReturn")}       value={data.scheduledReturnDate ? new Date(data.scheduledReturnDate).toLocaleDateString("ar-MA") : "-"} />
+      <ConfirmRow label={tRental("confirmPickup")}       value={data.scheduledPickupDate ? formatDate(data.scheduledPickupDate + "T12:00:00") : "-"} />
+      <ConfirmRow label={tRental("confirmReturn")}       value={data.scheduledReturnDate ? formatDate(data.scheduledReturnDate + "T12:00:00") : "-"} />
       <ConfirmRow label={tRental("confirmKitItems")}     value={tRental("kitSummary", { items: data.kitItems.length, pieces: kitPieces })} />
       <ConfirmRow label={tRental("confirmGuarantee")}    value={GUARANTEE_LABELS[data.guaranteeType] ?? data.guaranteeType} />
-      <ConfirmRow label={tCommon("total")}               value={formatMAD(data.totalAmount)} />
-      <ConfirmRow label={tRental("acompteLabel")}        value={formatMAD(data.amountPaid)} />
-      <ConfirmRow label={tRental("balance")}             value={formatMAD(Math.max(0, parseFloat(data.totalAmount || "0") - parseFloat(data.amountPaid || "0")))} />
+      <ConfirmRow label={tCommon("total")}               value={formatMAD(Number.isNaN(total) ? 0 : total)} />
+      <ConfirmRow label={tRental("acompteLabel")}        value={formatMAD(Number.isNaN(paid) ? 0 : paid)} />
+      <ConfirmRow label={tRental("balance")}             value={formatMAD(Math.max(0, (Number.isNaN(total) ? 0 : total) - (Number.isNaN(paid) ? 0 : paid)))} />
       <ConfirmRow label={tRental("paymentMethodColumn")} value={PAYMENT_OPTIONS.find(p => p.value === data.paymentMethod)?.label ?? data.paymentMethod} />
       <div style={{ marginTop: 12, padding: "10px 0" }}>
         <p style={{ fontSize: 12, color: "var(--success)", fontWeight: 600, margin: 0 }}>

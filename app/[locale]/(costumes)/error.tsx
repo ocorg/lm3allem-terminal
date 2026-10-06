@@ -24,16 +24,16 @@ export default function CostumesError({
       <AlertTriangle size={36} style={{ color: "var(--warning)" }} />
       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
         <p style={{ fontSize: 16, fontWeight: 600, color: "var(--text)", margin: 0 }}>
-          {isDbError ? "Base de données inaccessible" : "Une erreur est survenue"}
+          {isDbError ? "قاعدة البيانات غير متاحة" : "حدث خطأ"}
         </p>
         <p style={{ fontSize: 13, color: "var(--text-muted)", maxWidth: 340, lineHeight: 1.6, margin: 0 }}>
           {isDbError
-            ? "La connexion à la base de données a échoué. Réessayez dans quelques secondes."
-            : "Une erreur inattendue s'est produite. Réessayez ou contactez le support."}
+            ? "فشل الاتصال بقاعدة البيانات. أعد المحاولة بعد لحظات."
+            : "حدث خطأ غير متوقع. أعد المحاولة أو تواصل مع الدعم."}
         </p>
       </div>
-      <button onClick={reset} style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 20px", background: "var(--primary)", color: "#1a1a1a", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: "pointer", marginTop: 4 }}>
-        <RefreshCw size={13} /> Réessayer
+      <button onClick={reset} style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 20px", background: "var(--brand)", color: "var(--on-brand)", border: "none", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: "pointer", marginTop: 4 }}>
+        <RefreshCw size={13} /> إعادة المحاولة
       </button>
     </div>
   )

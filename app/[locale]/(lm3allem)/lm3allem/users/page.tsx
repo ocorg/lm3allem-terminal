@@ -1,9 +1,9 @@
 import { getUsers } from "@/lib/actions/lm3allem/users"
+import { getSystemSettings } from "@/lib/actions/lm3allem/settings"
 import { UsersClient } from "@/components/lm3allem/users/UsersClient"
 import React from "react"
 
 export default async function UsersPage() {
-  let users: Awaited<ReturnType<typeof getUsers>>
-  try { users = await getUsers() } catch { users = [] }
-  return <UsersClient initialUsers={users} />
+  const [users, settings] = await Promise.all([getUsers(), getSystemSettings()])
+  return <UsersClient initialUsers={users} defaultPermissions={settings.defaultStaffPermissions} />
 }

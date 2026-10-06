@@ -1,9 +1,10 @@
 import type { Portal, Role } from "@prisma/client"
+import { canAccessModule, type AccessSubject, type ModulePermissions } from "@/lib/permissions"
 
 export interface NavConfigItem {
   key: string        // Used for icon lookup and translation key
   path: string       // URL segment e.g. "pos" → /${locale}/${portal}/pos
-  module: string | null  // modulePermissions key; null = always visible
+  module: string | null  // modulePermissions key; null = always visible to portal members
 }
 
 export interface NavItem extends NavConfigItem {
@@ -18,7 +19,7 @@ const NAV_CONFIG: Record<Portal, NavConfigItem[]> = {
     { key: "inventory", path: "inventory", module: "inventory" },
     { key: "caisse",    path: "caisse",    module: "caisse" },
     { key: "credits",   path: "credits",   module: "credits" },
-    { key: "requests",  path: "requests",  module: "produits_demandes" },
+    { key: "requests",  path: "requests",  module: "requests" },
     { key: "catalogue", path: "catalogue", module: null },
   ],
   costumes: [
@@ -41,21 +42,35 @@ const NAV_CONFIG: Record<Portal, NavConfigItem[]> = {
   ],
 }
 
+/**
+ * Path segment of the first screen this user may open in a portal (e.g. "pos", or "catalogue"
+ * for someone who has no other permission). Used wherever we send a user "into" a portal, so
+ * nobody is ever sent to a screen that would bounce them back (an endless loading loop).
+ */
+export function firstAccessiblePath(
+  subject: AccessSubject,
+  portal: Portal
+): string {
+  const item = NAV_CONFIG[portal].find((i) => canAccessModule(subject, portal, i.module ?? "catalogue"))
+  return (item ?? NAV_CONFIG[portal][NAV_CONFIG[portal].length - 1]).path
+}
+
 export function buildNavItems(params: {
   portal: Portal
   role: Role
-  modulePermissions: Record<string, Record<string, boolean>> | null
+  portalAccess: Portal[]
+  modulePermissions: ModulePermissions | null
   getLabel: (key: string) => string
   locale: string
 }): NavItem[] {
-  const { portal, role, modulePermissions, getLabel, locale } = params
-  const isStaff = role === "staff"
-  const perms = modulePermissions?.[portal] ?? {}
+  const { portal, role, portalAccess, modulePermissions, getLabel, locale } = params
+  const subject = { role, portalAccess, modulePermissions }
 
   return NAV_CONFIG[portal].map(item => ({
     ...item,
     label: getLabel(item.key),
     href: `/${locale}/${portal}/${item.path}`,
-    visible: !isStaff || item.module === null || (perms[item.module] ?? false),
+    // Same rule the pages and the server actions enforce (lib/permissions.ts)
+    visible: canAccessModule(subject, portal, item.module ?? "catalogue"),
   }))
 }

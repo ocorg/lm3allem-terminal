@@ -23,7 +23,7 @@ interface Props {
 
 export function CostumesCatalogueGrid({ items, sizes, colors, costumeTypes, lookupById, locale }: Props) {
   const t = useTranslations("costumes")
-  const TYPE_OPTIONS = costumeTypes.map(t => ({ value: t.id, label: t.label_fr }))
+  const TYPE_OPTIONS = costumeTypes.map(t => ({ value: t.id, label: t.label_ar }))
   const [search,       setSearch]       = useState("")
   const [selectedItem, setSelectedItem] = useState<CostumeItemForCatalogue | null>(null)
   const [selectedImgIdx, setSelectedImgIdx] = useState(0)
@@ -45,14 +45,14 @@ export function CostumesCatalogueGrid({ items, sizes, colors, costumeTypes, look
     <div style={{ padding: 8 }}>
       {/* Header */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-        <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.02em", margin: 0 }}>{t("catalogue.title")}</h1>
+        <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text)",margin: 0 }}>{t("catalogue.title")}</h1>
         <span style={{ fontSize: 13, color: "var(--text-muted)" }}>{filtered.length} article(s)</span>
       </div>
 
       {/* Filters */}
       <div style={{ display: "flex", gap: 10, alignItems: "flex-end", marginBottom: 20, flexWrap: "wrap" }}>
         <div style={{ flex: "2 1 200px" }}>
-          <SearchBar value={search} onChange={setSearch} placeholder="Rechercher un article..." />
+          <SearchBar value={search} onChange={setSearch} placeholder={t("catalogue.searchPlaceholder")} />
         </div>
         <div style={{ flex: "1 1 140px" }}>
           <Select value={typeFilter} onChange={e => setTypeFilter(e.target.value)}
@@ -62,12 +62,12 @@ export function CostumesCatalogueGrid({ items, sizes, colors, costumeTypes, look
         <div style={{ flex: "1 1 140px" }}>
           <Select value={sizeFilter} onChange={e => setSizeFilter(e.target.value)}
             placeholder={t("catalogue.allSizes")}
-            options={sizes.map(s => ({ value: s.id, label: s.label_fr }))} />
+            options={sizes.map(s => ({ value: s.id, label: s.label_ar }))} />
         </div>
         <div style={{ flex: "1 1 140px" }}>
           <Select value={colorFilter} onChange={e => setColorFilter(e.target.value)}
             placeholder={t("catalogue.allColors")}
-            options={colors.map(c => ({ value: c.id, label: c.label_fr }))} />
+            options={colors.map(c => ({ value: c.id, label: c.label_ar }))} />
         </div>
         {hasFilters && (
           <Button variant="ghost" size="sm" onClick={() => { setSearch(""); setTypeFilter(""); setSizeFilter(""); setColorFilter("") }}>
@@ -87,8 +87,8 @@ export function CostumesCatalogueGrid({ items, sizes, colors, costumeTypes, look
             const isOut = item.stock === 0
             const name  = locale === "ar" ? item.name_ar : item.name_fr
             const lbl   = [
-              item.sizeId  && lookupById[item.sizeId]  ? lookupById[item.sizeId].label_fr  : null,
-              item.colorId && lookupById[item.colorId] ? lookupById[item.colorId].label_fr : null,
+              item.sizeId  && lookupById[item.sizeId]  ? lookupById[item.sizeId].label_ar  : null,
+              item.colorId && lookupById[item.colorId] ? lookupById[item.colorId].label_ar : null,
             ].filter(Boolean).join(" · ")
             return (
               <div
@@ -117,10 +117,10 @@ export function CostumesCatalogueGrid({ items, sizes, colors, costumeTypes, look
                 </div>
                 <div style={{ padding: "10px 12px 12px" }}>
                   <p style={{ fontSize: 13, fontWeight: 700, color: "var(--text)", margin: "0 0 2px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{name}</p>
-                  {lbl && <p style={{ fontSize: 11, color: "var(--text-muted)", margin: "0 0 8px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{lbl}</p>}
+                  {lbl && <p style={{ fontSize: 12, color: "var(--text-muted)", margin: "0 0 8px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{lbl}</p>}
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                     <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text)" }}>{formatMAD(item.sellingPrice)}</span>
-                    <Badge variant="default">{item.typeLabelFr}</Badge>
+                    <Badge variant="default">{item.typeLabelAr}</Badge>
                   </div>
                 </div>
               </div>
@@ -134,10 +134,10 @@ export function CostumesCatalogueGrid({ items, sizes, colors, costumeTypes, look
         const si     = selectedItem
         const siName = locale === "ar" ? si.name_ar : si.name_fr
         const siLbl  = [
-          si.sizeId  && lookupById[si.sizeId]  ? lookupById[si.sizeId].label_fr  : null,
-          si.colorId && lookupById[si.colorId] ? lookupById[si.colorId].label_fr : null,
+          si.sizeId  && lookupById[si.sizeId]  ? lookupById[si.sizeId].label_ar  : null,
+          si.colorId && lookupById[si.colorId] ? lookupById[si.colorId].label_ar : null,
         ].filter(Boolean).join(" · ")
-        const siType = si.typeLabelFr
+        const siType = si.typeLabelAr
         const isOut  = si.stock === 0
         const imgs   = si.images.length > 0 ? si.images : []
         const imgIdx = Math.min(selectedImgIdx, Math.max(0, imgs.length - 1))
@@ -164,7 +164,7 @@ export function CostumesCatalogueGrid({ items, sizes, colors, costumeTypes, look
               }}
             >
               {/* Close button */}
-              <button
+              <button aria-label="إغلاق"
                 onClick={() => setSelectedItem(null)}
                 style={{
                   position: "absolute", top: 12, insetInlineEnd: 12,
@@ -185,11 +185,11 @@ export function CostumesCatalogueGrid({ items, sizes, colors, costumeTypes, look
                     <Image src={imgs[imgIdx]} alt={siName} fill style={{ objectFit: "cover" }} />
                     {imgs.length > 1 && (
                       <>
-                        <button
+                        <button aria-label="الصورة السابقة"
                           onClick={e => { e.stopPropagation(); setSelectedImgIdx(i => Math.max(0, i - 1)) }}
                           style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", width: 32, height: 32, background: "rgba(0,0,0,0.45)", border: "none", borderRadius: "50%", color: "#fff", fontSize: 18, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", opacity: imgIdx === 0 ? 0.3 : 1 }}
                         >‹</button>
-                        <button
+                        <button aria-label="الصورة التالية"
                           onClick={e => { e.stopPropagation(); setSelectedImgIdx(i => Math.min(imgs.length - 1, i + 1)) }}
                           style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", width: 32, height: 32, background: "rgba(0,0,0,0.45)", border: "none", borderRadius: "50%", color: "#fff", fontSize: 18, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", opacity: imgIdx === imgs.length - 1 ? 0.3 : 1 }}
                         >›</button>
@@ -225,7 +225,7 @@ export function CostumesCatalogueGrid({ items, sizes, colors, costumeTypes, look
                   <p style={{ fontSize: 13, color: "var(--text-muted)", margin: 0 }}>{siLbl}</p>
                 )}
 
-                <p style={{ fontSize: 26, fontWeight: 700, color: "var(--text)", margin: 0, letterSpacing: "-0.02em" }}>
+                <p style={{ fontSize: 26, fontWeight: 700, color: "var(--text)", margin: 0 }}>
                   {formatMAD(si.sellingPrice)}
                 </p>
 
@@ -239,7 +239,7 @@ export function CostumesCatalogueGrid({ items, sizes, colors, costumeTypes, look
                   background:     "var(--surface-2)",
                   border:         "1px solid var(--border)",
                 }}>
-                  <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-muted)" }}>
                     Stock disponible
                   </span>
                   <span style={{

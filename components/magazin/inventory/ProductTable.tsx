@@ -15,6 +15,7 @@ import { useTranslations } from "next-intl"
 import Image from "next/image"
 import type { ProductForInventory } from "@/lib/actions/magazin/inventory"
 import React from "react"
+import { IconButton, IconButtonGroup } from "@/components/ui/IconButton"
 
 type LookupItem    = { id: string; label_fr: string; label_ar: string }
 type LookupMapItem = { label_fr: string; label_ar: string }
@@ -37,7 +38,7 @@ export function ProductTable({ products, categories, sizes, colors, lookupById, 
   const t       = useTranslations("magazin.inventory")
   const tPos    = useTranslations("magazin.pos")
   const tCom    = useTranslations("common")
-  const isAdmin = role === "admin" || role === "superadmin"
+  const isAdmin = role === "admin" || role === "ghost"
   const lookupMap = lookupById
 
   const openEdit = (p: ProductForInventory) => { setEditProduct(p); setFormMode("edit") }
@@ -52,13 +53,10 @@ export function ProductTable({ products, categories, sizes, colors, lookupById, 
       variant:      product.isActive ? "danger" : "primary",
     })
     if (!ok) return
-    try {
-      await toggleProductActive(product.id)
-      toast(t("toggleSuccess"), "success")
-      router.refresh()
-    } catch {
-      toast(tCom("error"), "error")
-    }
+    const res = await toggleProductActive(product.id)
+    if (!res.ok) { toast(res.message || tCom("error"), "error"); return }
+    toast(t("toggleSuccess"), "success")
+    router.refresh()
   }
 
   const columns: Column<ProductForInventory & { id: string }>[] = [
@@ -114,18 +112,16 @@ export function ProductTable({ products, categories, sizes, colors, lookupById, 
       render: (val) => <Badge variant={val ? "success" : "default"}>{val ? tCom("active") : tCom("inactive")}</Badge>,
     },
     {
-      key: "id", label: "", width: 72,
+      key: "id", label: "", width: 112,
       render: (_, row) => (
-        <div style={{ display: "flex", gap: 2 }}>
-          <button onClick={e => { e.stopPropagation(); openEdit(row) }} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-muted)", padding: 4 }}>
-            <PencilLine size={14} />
-          </button>
-          <button onClick={e => { e.stopPropagation(); handleToggle(row) }} style={{ background: "none", border: "none", cursor: "pointer", padding: 4 }}>
-            {row.isActive
-              ? <ToggleRight size={16} style={{ color: "var(--success)" }} />
-              : <ToggleLeft  size={16} style={{ color: "var(--text-muted)" }} />}
-          </button>
-        </div>
+        <IconButtonGroup>
+          <IconButton label="تعديل المنتج" onClick={() => openEdit(row)}>
+            <PencilLine size={18} />
+          </IconButton>
+          <IconButton label={row.isActive ? "تعطيل المنتج" : "تفعيل المنتج"} tone={row.isActive ? "success" : "neutral"} onClick={() => handleToggle(row)}>
+            {row.isActive ? <ToggleRight size={22} /> : <ToggleLeft size={22} />}
+          </IconButton>
+        </IconButtonGroup>
       ),
     },
   ]
@@ -134,7 +130,7 @@ export function ProductTable({ products, categories, sizes, colors, lookupById, 
     <>
       <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.02em", margin: 0 }}>
+          <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text)",margin: 0 }}>
             {t("title")}
           </h1>
           {isAdmin && (

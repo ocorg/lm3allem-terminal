@@ -1,8 +1,9 @@
 import { useTranslations } from "next-intl"
-import { formatMAD }      from "@/lib/utils/currency"
+import { formatMAD, formatSignedMAD }      from "@/lib/utils/currency"
 import { formatRelative } from "@/lib/utils/date"
 import type { TransactionEntry } from "@/lib/actions/magazin/caisse"
 import React from "react"
+import { paymentMethodLabel } from "@/lib/utils/labels"
 
 export function TransactionList({ transactions }: { transactions: TransactionEntry[] }) {
   const t = useTranslations("caisse")
@@ -17,7 +18,7 @@ export function TransactionList({ transactions }: { transactions: TransactionEnt
   return (
     <div style={{ border: "1px solid var(--border)", borderRadius: 10, overflow: "hidden" }}>
       <div style={{ padding: "10px 16px", background: "var(--surface-2)", borderBottom: "1px solid var(--border)" }}>
-        <span style={{ fontSize: 11, fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+        <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-muted)" }}>
           {t("recentTransactions")}
         </span>
       </div>
@@ -26,6 +27,7 @@ export function TransactionList({ transactions }: { transactions: TransactionEnt
         const amount = parseFloat(tx.amount)
         const isNeg  = amount < 0
         const accent = tx.type === "sale" ? "var(--primary)" : isNeg ? "var(--danger)" : "var(--success)"
+        const nonCash = tx.method === "tpe" || tx.method === "banque"
 
         return (
           <div
@@ -41,14 +43,14 @@ export function TransactionList({ transactions }: { transactions: TransactionEnt
           >
             <div style={{ flex: 1, minWidth: 0 }}>
               <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", margin: 0 }}>{tx.label}</p>
-              <p style={{ fontSize: 11, color: "var(--text-muted)", margin: "2px 0 0" }}>
+              <p style={{ fontSize: 12, color: "var(--text-muted)", margin: "2px 0 0" }}>
                 {tx.actorName}
-                {tx.method ? ` · ${tx.method}` : ""}
+                {tx.method ? ` · ${paymentMethodLabel(tx.method)}` : ""}{nonCash ? " (خارج الصندوق)" : ""}
                 {" · "}{formatRelative(tx.createdAt)}
               </p>
             </div>
             <span style={{ fontSize: 14, fontWeight: 700, color: isNeg ? "var(--danger)" : "var(--text)", flexShrink: 0 }}>
-              {isNeg ? "" : "+"}{formatMAD(amount)}
+              {formatSignedMAD(amount)}
             </span>
           </div>
         )

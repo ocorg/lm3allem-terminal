@@ -1,7 +1,7 @@
 "use client"
 
 import React from "react"
-import { useState, type InputHTMLAttributes, type ReactNode } from "react"
+import { useId, useState, type InputHTMLAttributes, type ReactNode } from "react"
 
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   label?:     string
@@ -23,6 +23,8 @@ export function Input({
   ...props
 }: InputProps) {
   const [focused, setFocused] = useState(false)
+  const autoId = useId()
+  const inputId = props.id ?? autoId
 
   const borderColor = focused
     ? "var(--primary)"
@@ -33,9 +35,10 @@ export function Input({
   const borderWidth = focused ? 2 : 1
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+    <div dir={props.dir} style={{ display: "flex", flexDirection: "column", gap: 4 }}>
       {label && (
         <label
+          htmlFor={inputId}
           style={{
             fontSize:    12,
             fontWeight:  500,
@@ -80,6 +83,9 @@ export function Input({
           onFocus={(e) => { setFocused(true);  onFocus?.(e) }}
           onBlur={(e)  => { setFocused(false); onBlur?.(e)  }}
           {...props}
+          id={inputId}
+          aria-label={label ? undefined : (props["aria-label"] ?? props.placeholder)}
+          aria-invalid={error ? true : undefined}
           type={props.type === "number" ? "text" : props.type}
           inputMode={props.type === "number" ? "decimal" : props.inputMode}
         />
@@ -100,10 +106,10 @@ export function Input({
       </div>
 
       {error && (
-        <span style={{ fontSize: 11, color: "var(--danger)" }}>{error}</span>
+        <span role="alert" style={{ fontSize: 12, color: "var(--danger)" }}>{error}</span>
       )}
       {hint && !error && (
-        <span style={{ fontSize: 11, color: "var(--text-muted)" }}>{hint}</span>
+        <span style={{ fontSize: 12, color: "var(--text-muted)" }}>{hint}</span>
       )}
     </div>
   )

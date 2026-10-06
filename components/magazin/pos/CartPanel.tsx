@@ -34,8 +34,8 @@ export function CartPanel({ items, loading, onUpdateItem, onRemoveItem, onChecko
           <span style={{ fontSize: 14, fontWeight: 600, color: "var(--text)" }}>{t("cartTitle")}</span>
           {totalQty > 0 && (
             <span style={{
-              background: "var(--primary)", color: "#1a1a1a",
-              borderRadius: 999, fontSize: 10, fontWeight: 700,
+              background: "var(--brand)", color: "var(--on-brand)",
+              borderRadius: 999, fontSize: 12, fontWeight: 700,
               padding: "1px 7px", marginInlineStart: "auto",
             }}>
               {totalQty}
@@ -77,7 +77,7 @@ export function CartPanel({ items, loading, onUpdateItem, onRemoveItem, onChecko
             padding:      "8px 12px",
             marginBottom: 12,
           }}>
-            <p style={{ fontSize: 11, color: "var(--warning)", margin: 0, fontWeight: 500 }}>
+            <p style={{ fontSize: 12, color: "var(--warning)", margin: 0, fontWeight: 500 }}>
               ⚠ {t("belowMinWarning")}
             </p>
           </div>

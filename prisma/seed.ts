@@ -2,8 +2,9 @@ import "dotenv/config"
 import { PrismaClient }   from "@prisma/client"
 import { PrismaNeon }     from "@prisma/adapter-neon"
 import { neonConfig }     from "@neondatabase/serverless"
-import bcrypt from "bcryptjs"
 import ws from "ws"
+import { DEFAULT_STAFF_PERMISSIONS } from "../lib/permissions"
+import { hashPassword, isValidEmail, normalizeEmail, validatePassword } from "../lib/auth/password"
 
 neonConfig.webSocketConstructor = ws
 
@@ -11,13 +12,6 @@ const connectionString = process.env.DATABASE_URL_UNPOOLED ?? process.env.DATABA
 if (!connectionString) throw new Error("[seed] DATABASE_URL is not set - check your .env file.")
 const adapter = new PrismaNeon({ connectionString })
 const prisma  = new PrismaClient({ adapter })
-
-const PEPPER    = process.env.PIN_HASH_PEPPER ?? ""
-const SALT_ROUNDS = 12
-
-async function hashPin(pin: string) {
-  return bcrypt.hash(pin + PEPPER, SALT_ROUNDS)
-}
 
 // ── Lookup data ──────────────────────────────────────────
 
@@ -31,7 +25,7 @@ const LOOKUP_DATA = [
     ],
   },
   {
-    slug: "vest_sizes", name_fr: "Tailles de gilet", name_ar: "مقاسات الصديري",
+    slug: "vest_sizes", name_fr: "Tailles de gilet", name_ar: "مقاسات الصدرية",
     values: [
       { fr: "XS", ar: "XS" }, { fr: "S", ar: "S" }, { fr: "M", ar: "M" },
       { fr: "L", ar: "L" },   { fr: "XL", ar: "XL" }, { fr: "XXL", ar: "XXL" },
@@ -58,13 +52,13 @@ const LOOKUP_DATA = [
     values: [
       { fr: "Vêtements",   ar: "ملابس"       }, { fr: "Chaussures", ar: "أحذية"     },
       { fr: "Accessoires", ar: "إكسسوارات"   }, { fr: "Hoodies",   ar: "هودي"      },
-      { fr: "Vestes",      ar: "جاكيطات"     },
+      { fr: "Vestes",      ar: "سترات"     },
     ],
   },
   {
     slug: "accessory_types", name_fr: "Types d'accessoires", name_ar: "أنواع الإكسسوارات",
     values: [
-      { fr: "Cravate",      ar: "ربطة عنق"    }, { fr: "Nœud papillon", ar: "فراشة"      },
+      { fr: "Cravate",      ar: "ربطة عنق"    }, { fr: "Nœud papillon", ar: "ربطة فراشة"      },
       { fr: "Ceinture",     ar: "حزام"         }, { fr: "Pochette",      ar: "منديل جيب"  },
       { fr: "Boutonnière",  ar: "زهرة العروة"  },
     ],
@@ -89,7 +83,7 @@ const LOOKUP_DATA = [
     slug: "costume_item_types", name_fr: "Types d'articles costumes", name_ar: "أنواع عناصر البدلات",
     values: [
       { fr: "Costume",    ar: "بدلة"    },
-      { fr: "Gilet",      ar: "صديري"   },
+      { fr: "Gilet",      ar: "صدرية"   },
       { fr: "Chaussures", ar: "أحذية"   },
       { fr: "Accessoire", ar: "إكسسوار" },
     ],
@@ -130,7 +124,7 @@ const LOOKUP_DATA = [
     ],
   },
   {
-    slug: "shirt_sizes", name_fr: "Tailles de chemise", name_ar: "مقاسات القميجة",
+    slug: "shirt_sizes", name_fr: "Tailles de chemise", name_ar: "مقاسات القميص",
     values: [
       { fr: "37", ar: "37" }, { fr: "38", ar: "38" }, { fr: "39", ar: "39" },
       { fr: "40", ar: "40" }, { fr: "41", ar: "41" }, { fr: "42", ar: "42" },
@@ -151,10 +145,7 @@ async function main() {
     create: {
       id: "system",
       maintenanceMode: false,
-      defaultStaffPermissions: {
-        magazin:  { pos: true, inventory: false, caisse: false, credits: true, produits_demandes: true },
-        costumes: { pos: true, inventory: false, caisse: false, clients: true, rentals: true, rental_inventory: false },
-      },
+      defaultStaffPermissions: DEFAULT_STAFF_PERMISSIONS,
     },
   })
 
@@ -183,23 +174,43 @@ async function main() {
     }
   }
 
-  // Superadmin user
-  const pinHash = await hashPin("880826")
-  await prisma.user.upsert({
-    where:  { id: "seed_superadmin" },
-    update: {},
-    create: {
-      id:           "seed_superadmin",
-      name:         "Amine",
-      pin:          pinHash,
-      role:         "superadmin",
-      isActive:     true,
-      portalAccess: ["magazin", "costumes", "lm3allem"],
-    },
-  })
+  // First accounts: created ONLY when credentials are provided through the environment.
+  // Nothing is hardcoded: there is no default login.
+  //   SEED_ADMIN_EMAIL / SEED_ADMIN_PASSWORD / SEED_ADMIN_NAME   -> the first admin
+  //   SEED_GHOST_EMAIL / SEED_GHOST_PASSWORD                     -> the invisible maintenance account
+  await seedAccount("admin", process.env.SEED_ADMIN_NAME ?? "Admin", process.env.SEED_ADMIN_EMAIL, process.env.SEED_ADMIN_PASSWORD)
+  await seedAccount("ghost", "Ghost", process.env.SEED_GHOST_EMAIL, process.env.SEED_GHOST_PASSWORD)
 
   console.log("\n✅  Seed complete.")
-  console.log("👤  Superadmin: Amine  |  PIN: 880826  ← CHANGE THIS BEFORE PRODUCTION")
+}
+
+async function seedAccount(role: "admin" | "ghost", name: string, emailRaw?: string, password?: string) {
+  if (!emailRaw || !password) {
+    console.log(`  -  ${role}: SEED_${role.toUpperCase()}_EMAIL / _PASSWORD not set, skipped`)
+    return
+  }
+  const email = normalizeEmail(emailRaw)
+  if (!isValidEmail(email)) throw new Error(`[seed] invalid ${role} email`)
+  if (validatePassword(password)) throw new Error(`[seed] ${role} password is too weak (min 8 characters)`)
+
+  const existing = await prisma.user.findUnique({ where: { email }, select: { id: true } })
+  if (existing) {
+    console.log(`  -  ${role} ${email} already exists, skipped`)
+    return
+  }
+  await prisma.user.create({
+    data: {
+      name,
+      email,
+      passwordHash: await hashPassword(password),
+      role,
+      isActive: true,
+      portalAccess: ["magazin", "costumes", "lm3allem"],
+      modulePermissions: {},
+      mustChangePassword: role === "admin", // the ghost keeps its password; the admin picks a personal one at first login
+    },
+  })
+  console.log(`  ✓  ${role} account created: ${email}`)
 }
 
 main()

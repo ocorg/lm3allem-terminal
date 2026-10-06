@@ -1,49 +1,56 @@
 import { NextRequest, NextResponse } from "next/server"
-import { auth }                      from "@/lib/auth/auth"
-import { uploadToR2, buildR2Key }    from "@/lib/r2/upload"
+import { getCurrentUser } from "@/lib/auth/guard"
+import { canAccessModule, isAdminRole } from "@/lib/permissions"
+import { assertUploadSize, uploadImage, type UploadKind } from "@/lib/r2/upload"
+import { checkMaintenanceMode } from "@/lib/utils/maintenance"
 
-const ALLOWED_UPLOAD_TYPES = ["product-image", "guarantee"] as const
-type UploadType = (typeof ALLOWED_UPLOAD_TYPES)[number]
+const ALLOWED_UPLOAD_TYPES: UploadKind[] = ["product-image", "guarantee"]
 
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ type: string }> }
 ) {
-  // Auth check
-  const session = await auth()
-  if (!session?.user) {
+  const user = await getCurrentUser()
+  if (!user || user.mustChangePassword) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
   const { type } = await params
-  if (!ALLOWED_UPLOAD_TYPES.includes(type as UploadType)) {
-    return NextResponse.json(
-      { error: `Type d'upload invalide. Valeurs acceptées : ${ALLOWED_UPLOAD_TYPES.join(", ")}` },
-      { status: 400 }
-    )
+  if (!ALLOWED_UPLOAD_TYPES.includes(type as UploadKind)) {
+    return NextResponse.json({ error: "نوع الرفع غير صالح" }, { status: 400 })
+  }
+  const kind = type as UploadKind
+
+  // Product photos: whoever may manage an inventory (the same people who can save the product).
+  // Guarantee documents: anyone who can create rentals.
+  const allowed = kind === "product-image"
+    ? isAdminRole(user.role) || canAccessModule(user, "magazin", "inventory") || canAccessModule(user, "costumes", "rental_inventory")
+    : canAccessModule(user, "costumes", "rentals")
+  if (!allowed) return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+
+  if (user.role === "staff" && (await checkMaintenanceMode()).isActive) {
+    return NextResponse.json({ error: "النظام في وضع الصيانة" }, { status: 503 })
   }
 
-  // Parse multipart form
   let formData: FormData
   try {
     formData = await request.formData()
   } catch {
-    return NextResponse.json({ error: "Corps de requête invalide" }, { status: 400 })
+    return NextResponse.json({ error: "طلب غير صالح" }, { status: 400 })
   }
 
-  const file = formData.get("file") as File | null
-  if (!file || file.size === 0) {
-    return NextResponse.json({ error: "Aucun fichier fourni" }, { status: 400 })
+  const file = formData.get("file")
+  if (!(file instanceof File) || file.size === 0) {
+    return NextResponse.json({ error: "لم يتم اختيار ملف" }, { status: 400 })
   }
-
-  const buffer = Buffer.from(await file.arrayBuffer())
-  const key    = buildR2Key(type, file.name)
 
   try {
-    const result = await uploadToR2(buffer, key, file.type, file.size)
+    assertUploadSize(file.size)
+    const buffer = Buffer.from(await file.arrayBuffer())
+    const result = await uploadImage(buffer, kind)
     return NextResponse.json({ url: result.url, key: result.key })
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Erreur d'upload"
+    const message = err instanceof Error ? err.message : "فشل الرفع"
     return NextResponse.json({ error: message }, { status: 400 })
   }
 }

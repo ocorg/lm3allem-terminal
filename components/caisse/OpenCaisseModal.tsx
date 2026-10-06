@@ -8,6 +8,7 @@ import { Input }  from "@/components/ui/Input"
 import { Button } from "@/components/ui/Button"
 import { openCaisseSession } from "@/lib/actions/caisse"
 import { toast } from "@/hooks/useToast"
+import { parseAmount } from "@/lib/utils/money"
 import type { Portal } from "@prisma/client"
 import React from "react"
 
@@ -33,20 +34,19 @@ export function OpenCaisseModal({ portal, isOpen, onClose }: OpenCaisseModalProp
   }
 
   const handleSubmit = async () => {
-    const num = parseFloat(amount)
+    const num = parseAmount(amount)
     if (isNaN(num) || num < 0) {
-      setError("Montant invalide. Entrez un nombre ≥ 0.")
+      setError(tUi("invalidAmount"))
       return
     }
     setLoading(true)
     setError("")
     try {
-      await openCaisseSession(portal, num)
+      const res = await openCaisseSession(portal, num)
+      if (!res.ok) { setError(res.message); return }
       toast(t("sessionOpen"), "success")
       handleClose()
       router.refresh()
-    } catch {
-      setError(tUi("error"))
     } finally {
       setLoading(false)
     }

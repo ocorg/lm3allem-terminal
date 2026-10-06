@@ -1,9 +1,14 @@
 "use server"
 
-import { prisma }       from "@/lib/db/prisma"
-import { auth }         from "@/lib/auth/auth"
-import { logActivity }  from "@/lib/activity/logger"
-import type { PaymentMethod } from "@prisma/client"
+import { prisma } from "@/lib/db/prisma"
+import { requireModule } from "@/lib/auth/guard"
+import { logActivity } from "@/lib/activity/logger"
+import { assertOpenSession } from "@/lib/finance/session"
+import { ActionError, run, type ActionResult } from "@/lib/actions/result"
+import { D } from "@/lib/utils/money"
+import { actorLabel } from "@/lib/utils/actor"
+import { id, moneyPositive, parseInput, settlementMethod } from "@/lib/validation"
+import { z } from "zod"
 
 // ── Shapes ─────────────────────────────────────────
 export interface CreditPaymentRecord {
@@ -28,14 +33,17 @@ export interface CreditForList {
 
 // ── getCredits ─────────────────────────────────────
 export async function getCredits(): Promise<CreditForList[]> {
+  await requireModule("magazin", "credits")
+
   const credits = await prisma.credit.findMany({
     include: {
       payments: {
-        include: { recordedBy: { select: { name: true } } },
+        include: { recordedBy: { select: { name: true, role: true } } },
         orderBy: { createdAt: "desc" },
       },
     },
     orderBy: { createdAt: "desc" },
+    take:    1000,
   })
 
   return credits.map((c) => ({
@@ -51,55 +59,76 @@ export async function getCredits(): Promise<CreditForList[]> {
       id:             p.id,
       amount:         p.amount.toString(),
       method:         p.method,
-      recordedByName: p.recordedBy.name,
+      recordedByName: actorLabel(p.recordedBy),
       createdAt:      p.createdAt.toISOString(),
     })),
   }))
 }
 
+const paymentSchema = z.object({
+  creditId: id,
+  amount:   moneyPositive,
+  method:   settlementMethod,
+})
+
 // ── addCreditPayment ───────────────────────────────
+// The payment is tied to the open magazin caisse session so cash repayments reach the drawer
+// reconciliation. The balance update is a guarded atomic statement (no read-then-write race).
 export async function addCreditPayment(
   creditId: string,
   amount:   number,
-  method:   PaymentMethod
-): Promise<void> {
-  const authSession = await auth()
-  if (!authSession?.user) throw new Error("Unauthorized")
+  method:   "cash" | "tpe" | "banque"
+): Promise<ActionResult> {
+  return run(async () => {
+    const user  = await requireModule("magazin", "credits")
+    const input = parseInput(paymentSchema, { creditId, amount, method })
 
-  const credit = await prisma.credit.findUniqueOrThrow({
-    where:  { id: creditId },
-    select: { balance: true, amountPaid: true },
-  })
-
-  const newBalance    = Math.round((Math.max(0, Number(credit.balance) - amount)) * 100) / 100
-  const newAmountPaid = Math.round((Number(credit.amountPaid) + amount) * 100) / 100
-  const newStatus     = newBalance <= 0
-    ? "settled"
-    : newAmountPaid > 0
-    ? "partial"
-    : "open"
-
-  await prisma.$transaction(async (tx) => {
-    await tx.creditPayment.create({
-      data: {
-        creditId,
-        amount,
-        method,
-        recordedById: authSession.user.id,
-      },
+    const session = await prisma.caisseSession.findFirst({
+      where:  { portal: "magazin", closedAt: null },
+      select: { id: true },
     })
-    await tx.credit.update({
-      where: { id: creditId },
-      data:  { amountPaid: newAmountPaid, balance: newBalance, status: newStatus },
-    })
-  })
+    if (!session) throw new ActionError("caisse_closed")
 
-  await logActivity({
-    portal:     "magazin",
-    entityType: "credit",
-    entityId:   creditId,
-    actorId:    authSession.user.id,
-    action:     "credit.payment_added",
-    diff:       { amount, method, newBalance, status: newStatus },
+    const newStatus = await prisma.$transaction(async (tx) => {
+      await assertOpenSession(tx, session.id, "magazin")
+
+      const credit = await tx.credit.findUnique({
+        where:  { id: input.creditId },
+        select: { balance: true, amountPaid: true },
+      })
+      if (!credit) throw new ActionError("not_found")
+      if (D(credit.balance).lessThanOrEqualTo(0)) throw new ActionError("nothing_to_pay")
+      if (D(input.amount).greaterThan(credit.balance)) throw new ActionError("amount_exceeds_balance")
+
+      // Guarded update: only applies while the balance still covers the payment
+      const updated = await tx.credit.updateMany({
+        where: { id: input.creditId, balance: { gte: input.amount } },
+        data:  { balance: { decrement: input.amount }, amountPaid: { increment: input.amount } },
+      })
+      if (updated.count !== 1) throw new ActionError("amount_exceeds_balance")
+
+      const fresh = await tx.credit.findUniqueOrThrow({
+        where: { id: input.creditId }, select: { balance: true },
+      })
+      const status = D(fresh.balance).lessThanOrEqualTo(0) ? "settled" : "partial"
+      await tx.credit.update({ where: { id: input.creditId }, data: { status } })
+
+      await tx.creditPayment.create({
+        data: {
+          creditId:        input.creditId,
+          caisseSessionId: session.id,
+          amount:          input.amount,
+          method:          input.method,
+          recordedById:    user.id,
+        },
+      })
+      return status
+    })
+
+    await logActivity({
+      portal: "magazin", entityType: "credit", entityId: input.creditId, actor: user,
+      action: "credit.payment_added",
+      diff:   { amount: input.amount, method: input.method, status: newStatus },
+    })
   })
 }

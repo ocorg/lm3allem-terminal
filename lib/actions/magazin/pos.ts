@@ -1,10 +1,19 @@
 "use server"
 
-import { prisma }       from "@/lib/db/prisma"
-import { auth }         from "@/lib/auth/auth"
-import { logActivity }         from "@/lib/activity/logger"
-import { createNotification }   from "@/lib/notifications/create"
-import type { PaymentMethod } from "@prisma/client"
+import { Prisma } from "@prisma/client"
+import { z } from "zod"
+import { getActiveLookups } from "@/lib/queries/lookups"
+import { prisma } from "@/lib/db/prisma"
+import { requireModule } from "@/lib/auth/guard"
+import { verifyOverrideToken } from "@/lib/auth/override"
+import { logActivity } from "@/lib/activity/logger"
+import { createNotification } from "@/lib/notifications/create"
+import { assertOpenSession } from "@/lib/finance/session"
+import { stockText, variantDetail } from "@/lib/inventory/low-stock"
+import { ActionError, run, type ActionResult } from "@/lib/actions/result"
+import { D } from "@/lib/utils/money"
+import { id, money, optionalText, paymentMethod, parseInput, requestId } from "@/lib/validation"
+import { defer } from "@/lib/utils/defer"
 
 // ── Shared lookup shape ────────────────────────────
 export interface LookupItem {
@@ -35,24 +44,43 @@ export interface ProductForPOS {
 }
 
 // ── Sale input ─────────────────────────────────────
+// The browser only says WHAT was sold and at WHICH price. "Below minimum" is decided on the server
+// from the product record, and authorisation comes from a signed manager-override token.
 export interface SaleItemInput {
-  variantId:      string
-  quantity:       number
-  unitPrice:      number
-  wasBelowMin:    boolean
-  authorizedById?: string
+  variantId: string
+  quantity:  number
+  unitPrice: number
 }
 
 export interface CreateSaleInput {
+  /** idempotency key: a retried request returns the first sale instead of creating a duplicate */
+  requestId:       string
   caisseSessionId: string
   items:           SaleItemInput[]
-  paymentMethod:   PaymentMethod
+  paymentMethod:   "cash" | "tpe" | "banque" | "credit"
   totalAmount:     number
+  /** amount handed over by the customer (for non-credit sales: >= total; for credit: the advance) */
   amountPaid:      number
-  isCredit:        boolean
   clientName?:     string
   clientPhone?:    string
+  overrideToken?:  string
 }
+
+const saleSchema = z.object({
+  requestId,
+  caisseSessionId: id,
+  items: z.array(z.object({
+    variantId: id,
+    quantity:  z.number().int().min(1).max(10_000),
+    unitPrice: money,
+  })).min(1).max(200),
+  paymentMethod,
+  totalAmount:   money,
+  amountPaid:    money,
+  clientName:    optionalText(120),
+  clientPhone:   optionalText(30),
+  overrideToken: z.string().max(600).optional(),
+})
 
 // ── getProductsForPOS ──────────────────────────────
 export interface LookupEntry {
@@ -67,6 +95,8 @@ export async function getProductsForPOS(): Promise<{
   categories: LookupItem[]
   lookupById: LookupById
 }> {
+  await requireModule("magazin", "pos")
+
   const [rawProducts, rawLookup] = await Promise.all([
     prisma.product.findMany({
       where:   { isActive: true },
@@ -84,11 +114,7 @@ export async function getProductsForPOS(): Promise<{
       },
       orderBy: { name_fr: "asc" },
     }),
-    prisma.lookupValue.findMany({
-      where:   { isActive: true },
-      include: { category: { select: { slug: true } } },
-      orderBy: { order: "asc" },
-    }),
+    getActiveLookups(),
   ])
 
   const categories: LookupItem[] = rawLookup
@@ -111,105 +137,159 @@ export async function getProductsForPOS(): Promise<{
 
 // ── createSale ─────────────────────────────────────
 export async function createSale(
-  input: CreateSaleInput
-): Promise<{ saleId: string }> {
-  const authSession = await auth()
-  if (!authSession?.user) throw new Error("Unauthorized")
+  rawInput: CreateSaleInput
+): Promise<ActionResult<{ saleId: string }>> {
+  return run(async () => {
+    const user  = await requireModule("magazin", "pos")
+    const input = parseInput(saleSchema, rawInput)
+    const isCredit = input.paymentMethod === "credit"
 
-  const cashierId = authSession.user.id
-
-  const result = await prisma.$transaction(async (tx) => {
-    // Stock check inside transaction (avoids race conditions)
-    for (const item of input.items) {
-      const variant = await tx.productVariant.findUnique({
-        where:  { id: item.variantId },
-        select: { stock: true },
-      })
-      if (!variant) throw new Error(`Variante introuvable: ${item.variantId}`)
-      if (variant.stock < item.quantity) {
-        throw new Error("Stock insuffisant pour un ou plusieurs articles")
-      }
+    // Idempotency: same request id from the same cashier returns the original sale.
+    const existing = await prisma.sale.findUnique({
+      where: { requestId: input.requestId }, select: { id: true, cashierId: true },
+    })
+    if (existing) {
+      if (existing.cashierId !== user.id) throw new ActionError("validation")
+      return { saleId: existing.id }
     }
 
-    // Create Sale
-    const sale = await tx.sale.create({
-      data: {
-        cashierId,
-        caisseSessionId: input.caisseSessionId,
-        totalAmount:     input.totalAmount,
-        amountPaid:      input.amountPaid,
-        paymentMethod:   input.paymentMethod,
-        isCredit:        input.isCredit,
-        items: {
-          create: input.items.map((item) => ({
+    const overrideAdminId = verifyOverrideToken(input.overrideToken, user.id)
+
+    let saleId: string
+    let soldVariantIds: string[]
+    let totalAmount: Prisma.Decimal
+
+    try {
+      const created = await prisma.$transaction(async (tx) => {
+        await assertOpenSession(tx, input.caisseSessionId, "magazin")
+
+        // Merge duplicate variants so the stock check sees the real quantity
+        const wanted = new Map<string, number>()
+        for (const item of input.items) wanted.set(item.variantId, (wanted.get(item.variantId) ?? 0) + item.quantity)
+
+        const variants = await tx.productVariant.findMany({
+          where:   { id: { in: [...wanted.keys()] } },
+          include: { product: { select: { isActive: true, minSellingPrice: true } } },
+        })
+        if (variants.length !== wanted.size) throw new ActionError("not_found")
+        const byId = new Map(variants.map((v) => [v.id, v]))
+
+        let total = D(0)
+        const lines = input.items.map((item) => {
+          const variant = byId.get(item.variantId)!
+          if (!variant.product.isActive) throw new ActionError("not_found")
+
+          const belowMin = D(item.unitPrice).lessThan(variant.product.minSellingPrice)
+          if (belowMin && !overrideAdminId) throw new ActionError("below_min_not_authorized")
+
+          total = total.plus(D(item.unitPrice).times(item.quantity))
+          return {
             variantId:      item.variantId,
             quantity:       item.quantity,
             unitPrice:      item.unitPrice,
-            wasBelowMin:    item.wasBelowMin,
-            authorizedById: item.authorizedById ?? null,
-          })),
-        },
+            wasBelowMin:    belowMin,
+            authorizedById: belowMin ? overrideAdminId : null,
+          }
+        })
+
+        if (D(input.totalAmount).minus(total).abs().greaterThan("0.01")) throw new ActionError("total_mismatch")
+
+        // Money actually kept by the shop: the customer may hand over more than the total (change).
+        let amountPaid: Prisma.Decimal
+        if (isCredit) {
+          if (!input.clientName?.trim()) throw new ActionError("validation", "اسم العميل مطلوب للبيع بالآجل")
+          if (D(input.amountPaid).greaterThanOrEqualTo(total)) throw new ActionError("invalid_amount")
+          amountPaid = D(input.amountPaid)
+        } else {
+          if (D(input.amountPaid).lessThan(total)) throw new ActionError("invalid_amount")
+          amountPaid = total
+        }
+
+        // Atomic stock decrement: the WHERE guard makes overselling impossible under concurrency.
+        for (const [variantId, quantity] of wanted) {
+          const res = await tx.productVariant.updateMany({
+            where: { id: variantId, stock: { gte: quantity } },
+            data:  { stock: { decrement: quantity } },
+          })
+          if (res.count !== 1) throw new ActionError("insufficient_stock")
+        }
+
+        const sale = await tx.sale.create({
+          data: {
+            requestId:       input.requestId,
+            cashierId:       user.id,
+            caisseSessionId: input.caisseSessionId,
+            totalAmount:     total,
+            amountPaid,
+            paymentMethod:   input.paymentMethod,
+            isCredit,
+            items: { create: lines },
+          },
+        })
+
+        if (isCredit) {
+          const balance = total.minus(amountPaid)
+          await tx.credit.create({
+            data: {
+              saleId:      sale.id,
+              clientName:  input.clientName!.trim(),
+              clientPhone: input.clientPhone?.trim() || null,
+              totalAmount: total,
+              amountPaid,
+              balance,
+              status:      amountPaid.greaterThan(0) ? "partial" : "open",
+            },
+          })
+        }
+
+        return { saleId: sale.id, variantIds: [...wanted.keys()], total }
+      })
+      saleId = created.saleId
+      soldVariantIds = created.variantIds
+      totalAmount = created.total
+    } catch (err) {
+      // Two simultaneous submissions of the same request: the loser returns the winner's sale.
+      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
+        const winner = await prisma.sale.findUnique({ where: { requestId: input.requestId }, select: { id: true } })
+        if (winner) return { saleId: winner.id }
+      }
+      throw err
+    }
+
+    await logActivity({
+      portal: "magazin", entityType: "sale", entityId: saleId, actor: user,
+      action: "sale.created",
+      diff: {
+        totalAmount:   totalAmount.toNumber(),
+        amountPaid:    input.paymentMethod === "credit" ? input.amountPaid : totalAmount.toNumber(),
+        itemCount:     input.items.length,
+        isCredit,
+        paymentMethod: input.paymentMethod,
+        ...(overrideAdminId ? { overrideBy: overrideAdminId } : {}),
       },
     })
 
-    // Decrement stock for each variant
-    for (const item of input.items) {
-      await tx.productVariant.update({
-        where: { id: item.variantId },
-        data:  { stock: { decrement: item.quantity } },
-      })
-    }
-
-    // Create Credit record if credit sale
-    if (input.isCredit) {
-      const balance = Math.round((input.totalAmount - input.amountPaid) * 100) / 100
-      await tx.credit.create({
-        data: {
-          saleId:      sale.id,
-          clientName:  input.clientName ?? "Client",
-          clientPhone: input.clientPhone ?? null,
-          totalAmount: input.totalAmount,
-          amountPaid:  input.amountPaid,
-          balance,
-          status:      balance <= 0 ? "settled" : "open",
+    // Low-stock check: runs after the answer is sent, the cashier does not wait for it
+    await defer(async () => {
+      const lowVariants = await prisma.productVariant.findMany({
+        where:   { id: { in: soldVariantIds }, stock: { lte: 2 } },
+        include: {
+          product: { select: { name_ar: true } },
+          size:    { select: { label_ar: true } },
+          color:   { select: { label_ar: true } },
         },
       })
-    }
-
-    return sale
-  })
-
-  await logActivity({
-    portal:     "magazin",
-    entityType: "sale",
-    entityId:   result.id,
-    actorId:    cashierId,
-    action:     "sale.created",
-    diff: {
-      totalAmount:  input.totalAmount,
-      amountPaid:   input.amountPaid,
-      itemCount:    input.items.length,
-      isCredit:     input.isCredit,
-      paymentMethod: input.paymentMethod,
-    },
-  })
-
-  // Low-stock check after sale
-  try {
-    const soldVariantIds = input.items.map(i => i.variantId)
-    const lowVariants = await prisma.productVariant.findMany({
-      where:   { id: { in: soldVariantIds }, stock: { lte: 2 } },
-      include: { product: { select: { name_fr: true } } },
+      for (const v of lowVariants) {
+        await createNotification({
+          title:  "مخزون منخفض",
+          body:   `${v.product.name_ar}${variantDetail(v) ? ` | ${variantDetail(v)}` : ""} | ${v.stock <= 0 ? "نفد" : `المتبقي ${stockText(v.stock)}`}`,
+          type:   "low_stock",
+          portal: "magazin",
+          actor:  user,
+        })
+      }
     })
-    for (const v of lowVariants) {
-      await createNotification({
-        title:  "Stock bas",
-        body:   `${v.product.name_fr} - Stock restant: ${v.stock}`,
-        type:   "low_stock",
-        portal: "magazin",
-      })
-    }
-  } catch { /* non-critical */ }
 
-  return { saleId: result.id }
+    return { saleId }
+  })
 }

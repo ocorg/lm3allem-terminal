@@ -7,9 +7,10 @@ import { Input } from "@/components/ui/Input"
 import { Badge } from "@/components/ui/Badge"
 import { Button } from "@/components/ui/Button"
 import { formatMAD } from "@/lib/utils/currency"
-import { formatDate } from "@/lib/utils/date"
 import type { SessionsResult } from "@/lib/actions/lm3allem/caisse"
 import React from "react"
+import { DateText } from "@/components/ui/DateText"
+import { portalLabel } from "@/lib/utils/labels"
 
 const PORTAL_VARIANT: Record<string, "primary" | "info" | "success"> = {
   magazin:  "primary",
@@ -38,7 +39,8 @@ export function CaisseHistoryClient({ result, filters }: Props) {
   const totalPages = Math.ceil(result.total / result.pageSize)
 
   return (
-    <div style={{ padding: 24, display: "flex", flexDirection: "column", gap: 24 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+      <h1 style={{ fontSize: 22, fontWeight: 700, margin: 0 }}>{t("title")}</h1>
 
       {/* Filters */}
       <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "flex-end" }}>
@@ -65,13 +67,13 @@ export function CaisseHistoryClient({ result, filters }: Props) {
           ]}
         />
         <Input
-          label={t("openedAt")}
+          label={`${t("openedAt")} | من`}
           type="date"
           value={filters.from?.slice(0, 10) ?? ""}
           onChange={(e) => push({ from: e.target.value || undefined })}
         />
         <Input
-          label=""
+          label="إلى"
           type="date"
           value={filters.to?.slice(0, 10) ?? ""}
           onChange={(e) => push({ to: e.target.value || undefined })}
@@ -87,7 +89,7 @@ export function CaisseHistoryClient({ result, filters }: Props) {
               <thead>
                 <tr style={{ background: "var(--surface-2)" }}>
                   {[t("portalColumn"), t("openedBy"), t("openedAt"), t("openingAmount"), t("closingAmount"), t("expectedAmount"), t("difference"), t("allStatuses")].map((h) => (
-                    <th key={h} style={{ padding: "12px 16px", textAlign: "start", fontWeight: 600, fontSize: 12, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.04em", borderBottom: "1px solid var(--border)" }}>
+                    <th key={h} style={{ padding: "12px 16px", textAlign: "start", fontWeight: 600, fontSize: 12, color: "var(--text-muted)",borderBottom: "1px solid var(--border)" }}>
                       {h}
                     </th>
                   ))}
@@ -101,9 +103,9 @@ export function CaisseHistoryClient({ result, filters }: Props) {
                   const isOpen = !s.closedAt
                   return (
                     <tr key={s.id} style={{ borderBottom: i < result.sessions.length - 1 ? "1px solid var(--border)" : "none", borderInlineStart: `3px solid ${isOpen ? "var(--warning)" : "var(--border)"}` }}>
-                      <td style={{ padding: "12px 16px" }}><Badge variant={PORTAL_VARIANT[s.portal] ?? "default"}>{s.portal}</Badge></td>
+                      <td style={{ padding: "12px 16px" }}><Badge variant={PORTAL_VARIANT[s.portal] ?? "default"}>{portalLabel(s.portal)}</Badge></td>
                       <td style={{ padding: "12px 16px" }}>{s.openedByName}</td>
-                      <td style={{ padding: "12px 16px", color: "var(--text-muted)" }}>{formatDate(s.openedAt)}</td>
+                      <td style={{ padding: "12px 16px", color: "var(--text-muted)" }}><DateText value={s.openedAt} /></td>
                       <td style={{ padding: "12px 16px" }}>{formatMAD(s.openingAmount)}</td>
                       <td style={{ padding: "12px 16px" }}>{s.closingAmount ? formatMAD(s.closingAmount) : "-"}</td>
                       <td style={{ padding: "12px 16px" }}>{s.expectedAmount ? formatMAD(s.expectedAmount) : "-"}</td>

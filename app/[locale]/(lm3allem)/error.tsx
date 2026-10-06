@@ -38,12 +38,12 @@ export default function Lm3allemError({
 
       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
         <p style={{ fontSize: 16, fontWeight: 600, color: "var(--text)", margin: 0 }}>
-          {isDbError ? "Base de données inaccessible" : "Une erreur est survenue"}
+          {isDbError ? "قاعدة البيانات غير متاحة" : "حدث خطأ"}
         </p>
         <p style={{ fontSize: 13, color: "var(--text-muted)", maxWidth: 340, lineHeight: 1.6, margin: 0 }}>
           {isDbError
-            ? "La connexion à la base de données a échoué. Vérifiez que votre projet Neon est actif, puis réessayez."
-            : "Une erreur inattendue s'est produite. Réessayez ou contactez le support."}
+            ? "فشل الاتصال بقاعدة البيانات. تحقق من أن مشروع Neon نشط ثم أعد المحاولة."
+            : "حدث خطأ غير متوقع. أعد المحاولة أو تواصل مع الدعم."}
         </p>
       </div>
 
@@ -54,8 +54,8 @@ export default function Lm3allemError({
           alignItems:   "center",
           gap:          6,
           padding:      "8px 20px",
-          background:   "var(--primary)",
-          color:        "#1a1a1a",
+          background:   "var(--brand)",
+          color:        "var(--on-brand)",
           border:       "none",
           borderRadius: 8,
           fontSize:     13,
@@ -65,7 +65,7 @@ export default function Lm3allemError({
         }}
       >
         <RefreshCw size={13} />
-        Réessayer
+        إعادة المحاولة
       </button>
     </div>
   )

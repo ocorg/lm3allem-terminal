@@ -13,13 +13,15 @@ import { Badge } from "@/components/ui/Badge"
 import { toast } from "@/hooks/useToast"
 import { useConfirm } from "@/hooks/useConfirm"
 import { formatMAD } from "@/lib/utils/currency"
-import { formatDate } from "@/lib/utils/date"
+import { formatDay } from "@/lib/utils/date"
+import { calendarKey, todayKey } from "@/lib/utils/time"
 import {
   createExpense, updateExpense, deleteExpense,
   type SerializedExpense, type CreateExpenseInput,
 } from "@/lib/actions/lm3allem/expenses"
 import type { SerializedCategory, SerializedLookupValue } from "@/lib/actions/lm3allem/options"
 import React from "react"
+import { portalLabel } from "@/lib/utils/labels"
 
 const PORTAL_VARIANT: Record<string, "primary" | "info" | "success"> = {
   magazin:  "primary",
@@ -35,13 +37,14 @@ interface Props {
   expenseValues: SerializedLookupValue[]
 }
 
-const EMPTY_FORM: CreateExpenseInput = {
+// Built at call time: a module-level `new Date()` would freeze the date for a tab left open overnight
+const emptyForm = (): CreateExpenseInput => ({
   portal: "lm3allem",
   categoryId: "",
   amount: "",
   description: "",
-  date: new Date().toISOString().slice(0, 10),
-}
+  date: todayKey(),
+})
 
 export function ExpensesClient({ initialExpenses, expenseValues: initialExpenseValues }: Props) {
   const t = useTranslations("lm3allem.expenses")
@@ -53,11 +56,11 @@ export function ExpensesClient({ initialExpenses, expenseValues: initialExpenseV
 
   const [modalOpen, setModalOpen] = useState(false)
   const [editTarget, setEditTarget] = useState<SerializedExpense | null>(null)
-  const [form, setForm] = useState<CreateExpenseInput>(EMPTY_FORM)
+  const [form, setForm] = useState<CreateExpenseInput>(emptyForm)
 
   function openAdd() {
     setEditTarget(null)
-    setForm(EMPTY_FORM)
+    setForm(emptyForm())
     setModalOpen(true)
   }
 
@@ -68,7 +71,7 @@ export function ExpensesClient({ initialExpenses, expenseValues: initialExpenseV
       categoryId: e.categoryId,
       amount: e.amount,
       description: e.description,
-      date: e.date.slice(0, 10),
+      date: calendarKey(e.date),
       receiptUrl: e.receiptUrl ?? undefined,
     })
     setModalOpen(true)
@@ -76,18 +79,13 @@ export function ExpensesClient({ initialExpenses, expenseValues: initialExpenseV
 
   function handleSave() {
     startTransition(async () => {
-      try {
-        if (editTarget) {
-          await updateExpense({ id: editTarget.id, ...form })
-        } else {
-          await createExpense(form)
-        }
-        toast(editTarget ? t("updated") : t("added"), "success")
-        setModalOpen(false)
-        router.refresh()
-      } catch {
-        toast(t("saveError"), "error")
-      }
+      const res = editTarget
+        ? await updateExpense({ id: editTarget.id, categoryId: form.categoryId, amount: form.amount, description: form.description, date: form.date, receiptUrl: form.receiptUrl ?? null })
+        : await createExpense(form)
+      if (!res.ok) { toast(res.message || t("saveError"), "error"); return }
+      toast(editTarget ? t("updated") : t("added"), "success")
+      setModalOpen(false)
+      router.refresh()
     })
   }
 
@@ -95,22 +93,19 @@ export function ExpensesClient({ initialExpenses, expenseValues: initialExpenseV
     const ok = await confirm({ title: t("confirmDelete"), message: "", variant: "danger" })
     if (!ok) return
     startTransition(async () => {
-      try {
-        await deleteExpense(id)
-        toast(t("deleted"), "success")
-        router.refresh()
-      } catch {
-        toast(t("deleteError"), "error")
-      }
+      const res = await deleteExpense(id)
+      if (!res.ok) { toast(res.message || t("deleteError"), "error"); return }
+      toast(t("deleted"), "success")
+      router.refresh()
     })
   }
 
   return (
-    <div style={{ padding: 24, display: "flex", flexDirection: "column", gap: 24 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
       {modal}
 
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.02em", margin: 0 }}>
+        <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text)",margin: 0 }}>
           {t("title")}
         </h1>
         <Button variant="primary" onClick={openAdd}>{t("add")}</Button>
@@ -124,7 +119,7 @@ export function ExpensesClient({ initialExpenses, expenseValues: initialExpenseV
               <thead>
                 <tr style={{ background: "var(--surface-2)" }}>
                   {[t("date"), t("portal"), t("category"), t("description"), t("amount"), t("recordedBy"), ""].map((h, i) => (
-                    <th key={i} style={{ padding: "12px 16px", textAlign: "start", fontWeight: 600, fontSize: 12, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.04em", borderBottom: "1px solid var(--border)" }}>
+                    <th key={i} style={{ padding: "12px 16px", textAlign: "start", fontWeight: 600, fontSize: 12, color: "var(--text-muted)",borderBottom: "1px solid var(--border)" }}>
                       {h}
                     </th>
                   ))}
@@ -133,9 +128,9 @@ export function ExpensesClient({ initialExpenses, expenseValues: initialExpenseV
               <tbody>
                 {initialExpenses.map((e, i) => (
                   <tr key={e.id} style={{ borderBottom: i < initialExpenses.length - 1 ? "1px solid var(--border)" : "none" }}>
-                    <td style={{ padding: "12px 16px", color: "var(--text-muted)" }}>{formatDate(e.date)}</td>
-                    <td style={{ padding: "12px 16px" }}><Badge variant={PORTAL_VARIANT[e.portal] ?? "default"}>{e.portal}</Badge></td>
-                    <td style={{ padding: "12px 16px" }}>{e.categoryLabel_fr}</td>
+                    <td style={{ padding: "12px 16px", color: "var(--text-muted)" }}>{formatDay(e.date)}</td>
+                    <td style={{ padding: "12px 16px" }}><Badge variant={PORTAL_VARIANT[e.portal] ?? "default"}>{portalLabel(e.portal)}</Badge></td>
+                    <td style={{ padding: "12px 16px" }}>{e.categoryLabel_ar}</td>
                     <td style={{ padding: "12px 16px" }}>{e.description}</td>
                     <td style={{ padding: "12px 16px", fontWeight: 600 }}>{formatMAD(e.amount)}</td>
                     <td style={{ padding: "12px 16px", color: "var(--text-muted)" }}>{e.recordedByName}</td>
@@ -167,6 +162,7 @@ export function ExpensesClient({ initialExpenses, expenseValues: initialExpenseV
             onChange={(id) => setForm((f) => ({ ...f, categoryId: id }))}
             onCreated={(opt) => setExpenseValues((prev) => [...prev, { id: opt.value, label_fr: opt.label, label_ar: opt.label }])}
             onDeleted={(id) => setExpenseValues((prev) => prev.filter((v) => v.id !== id))}
+            canDelete
             slug="expense_categories"
             placeholder="-"
             options={expenseValues.map((v) => ({ value: v.id, label: v.label_ar }))}
@@ -174,7 +170,7 @@ export function ExpensesClient({ initialExpenses, expenseValues: initialExpenseV
           <Input label={t("amount")} type="number" value={form.amount} onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))} />
           <Input label={t("date")} type="date" value={form.date} onChange={(e) => setForm((f) => ({ ...f, date: e.target.value }))} />
           <Textarea label={t("description")} value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} />
-          <Input label={t("receiptUrl")} value={form.receiptUrl ?? ""} onChange={(e) => setForm((f) => ({ ...f, receiptUrl: e.target.value || undefined }))} />
+          <Input label={t("receiptUrl")} dir="ltr" value={form.receiptUrl ?? ""} onChange={(e) => setForm((f) => ({ ...f, receiptUrl: e.target.value || undefined }))} />
           <div style={{ display: "flex", gap: 12, justifyContent: "flex-end" }}>
             <Button variant="ghost" onClick={() => setModalOpen(false)}>{tCom("cancel")}</Button>
             <Button variant="primary" onClick={handleSave} loading={isPending}>{tCom("save")}</Button>

@@ -3,17 +3,19 @@
 import { useTransition, useState, useRef, useEffect } from "react"
 import { useTranslations }     from "next-intl"
 import { motion, AnimatePresence, useReducedMotion, type Variants } from "framer-motion"
-import { LogOut, LayoutGrid, Menu, Sun, Moon } from "lucide-react"
+import { KeyRound, LogOut, LayoutGrid, Menu, Sun, Moon } from "lucide-react"
 import NotificationBell        from "@/components/layout/NotificationBell"
 import Link                    from "next/link"
-import { signOutUser }         from "@/lib/auth/actions"
+import { setThemePreference, signOutUser } from "@/lib/auth/actions"
+import { applyTheme }          from "@/components/ui/ThemeToggle"
+import { clearOfflinePageCache } from "@/components/system/ServiceWorkerRegister"
 import type { Portal, Role }   from "@prisma/client"
 import React from "react"
 
 const PORTAL_LABELS: Record<Portal, string> = {
-  magazin:  "MAGAZIN",
-  costumes: "COSTUMES",
-  lm3allem: "LM3ALLEM",
+  magazin:  "المتجر",
+  costumes: "البدلات",
+  lm3allem: "الإدارة",
 }
 
 interface Props {
@@ -37,17 +39,20 @@ export default function Topbar({
 }: Props) {
   const [isPending, startTransition] = useTransition()
   const [menuOpen, setMenuOpen]      = useState(false)
-  const [theme, setTheme]            = useState<"dark" | "light">(() => {
-    if (typeof document === "undefined") return "dark"
-    const current = document.documentElement.dataset.theme
-    return (current === "light" || current === "dark") ? current : "dark"
-  })
+  const [theme, setTheme]            = useState<"dark" | "light">("dark")
   const menuRef                      = useRef<HTMLDivElement>(null)
   const shouldReduce                 = useReducedMotion()
 
   const tCommon = useTranslations("common")
   const tTheme  = useTranslations("theme")
   const tRoles  = useTranslations("roles")
+
+  // The server already rendered the right theme on <html>: mirror it into local state after mount
+  useEffect(() => {
+    const current = document.documentElement.dataset.theme
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (current === "light" || current === "dark") setTheme(current)
+  }, [])
 
   // Close menu on outside click
   useEffect(() => {
@@ -63,6 +68,7 @@ export default function Topbar({
 
   function handleSignOut() {
     startTransition(async () => {
+      await clearOfflinePageCache()
       await signOutUser(locale)
     })
     setMenuOpen(false)
@@ -71,11 +77,9 @@ export default function Topbar({
   function toggleTheme() {
     const next: "dark" | "light" = theme === "dark" ? "light" : "dark"
     setTheme(next)
-    const html = document.documentElement
-    html.dataset.theme = next
-    html.classList.remove(theme)
-    html.classList.add(next)
-    try { localStorage.setItem("lm3allem-theme", next) } catch { /* noop */ }
+    // cookie (read by the server on first paint) + the user's saved profile preference
+    applyTheme(next, theme)
+    void setThemePreference(next)
   }
 
   const initials = userName.charAt(0).toUpperCase()
@@ -127,7 +131,7 @@ export default function Topbar({
           insetInlineStart: 0,
           insetInlineEnd:   0,
           height:          1,
-          background:      "linear-gradient(90deg, transparent, rgba(212,148,31,0.25), transparent)",
+          background:      "linear-gradient(90deg, transparent, rgba(245,154,14,0.25), transparent)",
           pointerEvents:   "none",
         }}
       />
@@ -135,7 +139,7 @@ export default function Topbar({
       {/* Leading */}
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
         {isMobile && (
-          <button
+          <button aria-label="فتح القائمة"
             onClick={onMobileMenuToggle}
             style={{
               display:         "flex",
@@ -166,12 +170,10 @@ export default function Topbar({
 
         <p
           style={{
-            fontSize:      11,
+            fontSize:      12,
             fontWeight:    700,
             fontFamily:    "var(--font-display)",
             color:         "var(--text-muted)",
-            letterSpacing: "0.12em",
-            textTransform: "uppercase",
             whiteSpace:    "nowrap",
           }}
         >
@@ -194,10 +196,10 @@ export default function Topbar({
               height:         32,
               borderRadius:   "50%",
               background:     menuOpen
-                ? "var(--primary)"
+                ? "var(--brand)"
                 : "color-mix(in srgb, var(--primary) 20%, transparent)",
               border:         `1.5px solid ${menuOpen ? "var(--primary)" : "color-mix(in srgb, var(--primary) 40%, transparent)"}`,
-              color:          menuOpen ? "#fff" : "var(--primary)",
+              color:          menuOpen ? "var(--on-brand)" : "var(--primary)",
               cursor:         "pointer",
               fontFamily:     "var(--font-display)",
               fontWeight:     800,
@@ -210,8 +212,8 @@ export default function Topbar({
             }}
             onMouseEnter={e => {
               if (!menuOpen) {
-                e.currentTarget.style.background   = "var(--primary)"
-                e.currentTarget.style.color        = "#fff"
+                e.currentTarget.style.background   = "var(--brand)"
+                e.currentTarget.style.color        = "var(--on-brand)"
                 e.currentTarget.style.borderColor  = "var(--primary)"
               }
             }}
@@ -285,12 +287,12 @@ export default function Topbar({
                       {userName}
                     </p>
                     <p style={{
-                      fontSize:  11,
+                      fontSize:  12,
                       color:     "var(--text-muted)",
                       margin:    "2px 0 0",
                       fontFamily: "var(--font-mono)",
                     }}>
-                      {tRoles(role as Parameters<typeof tRoles>[0])}
+                      {tRoles((role === "ghost" ? "admin" : role) as Parameters<typeof tRoles>[0])}
                     </p>
                   </div>
                 </div>
@@ -308,6 +310,18 @@ export default function Topbar({
                   }
                   <span>{theme === "dark" ? tTheme("light") : tTheme("dark")}</span>
                 </button>
+
+                {/* Change password */}
+                <Link
+                  href={`/${locale}/change-password`}
+                  onClick={() => setMenuOpen(false)}
+                  style={menuItemStyle}
+                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "var(--surface-2)" }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "transparent" }}
+                >
+                  <KeyRound size={15} strokeWidth={1.75} style={{ color: "var(--text-muted)", flexShrink: 0 }} />
+                  <span>{tCommon("changePassword")}</span>
+                </Link>
 
                 {/* Portal switcher */}
                 {canSwitchPortal && (

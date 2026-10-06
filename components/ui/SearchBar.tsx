@@ -24,9 +24,12 @@ export function SearchBar({
   const onChangeRef         = useRef(onChange)
 
   useEffect(() => { onChangeRef.current = onChange })
-  useEffect(() => {
+  // When the parent clears the value, clear the local text too (adjusted during render)
+  const [prevValue, setPrevValue] = useState(value)
+  if (value !== prevValue) {
+    setPrevValue(value)
     if (value === "") setLocal("")
-  }, [value])
+  }
   useEffect(() => () => clearTimeout(timerRef.current), [])
 
   const handleChange = (next: string) => {
@@ -73,7 +76,7 @@ export function SearchBar({
       {local && (
         <button
           onClick={handleClear}
-          aria-label="Clear search"
+          aria-label="مسح البحث"
           style={{
             position:       "absolute",
             insetInlineEnd: 10,

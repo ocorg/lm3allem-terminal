@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import { useTranslations } from "next-intl"
 import { useCaisse } from "@/components/caisse/CaisseProvider"
@@ -11,9 +11,14 @@ import { VariantPickerModal } from "./VariantPickerModal"
 import { PaymentModal } from "./PaymentModal"
 import { toast } from "@/hooks/useToast"
 import { createSale } from "@/lib/actions/magazin/pos"
+import { newRequestId } from "@/lib/utils/request-id"
+import { isNetworkError } from "@/lib/client/online"
+import { enqueueSale } from "@/lib/offline/queue"
+import { useReservedStock } from "@/hooks/useOfflineQueue"
 import type { ProductForPOS, SaleItemInput } from "@/lib/actions/magazin/pos"
 import type { PaymentMethod } from "@prisma/client"
 import React from "react"
+import { useBreakpoint } from "@/hooks/useBreakpoint"
 
 type LookupItem    = { id: string; label_fr: string; label_ar: string }
 type LookupMapItem = { label_fr: string; label_ar: string }
@@ -39,19 +44,32 @@ interface POSClientProps {
   role:       string
 }
 
-export function POSClient({ products, categories, lookupById, locale }: POSClientProps) {
+export function POSClient({ products: serverProducts, categories, lookupById, locale }: POSClientProps) {
   const { session } = useCaisse()
   const router      = useRouter()
   const tPos        = useTranslations("magazin.pos")
   const tP          = useTranslations("payment")
+
+  // Stock promised to sales saved on this device but not yet sent: the till never sells it twice
+  const reserved = useReservedStock("magazin")
+  const products = useMemo(
+    () => serverProducts.map((p) => ({
+      ...p,
+      variants: p.variants.map((v) => ({ ...v, stock: Math.max(0, v.stock - (reserved[v.id] ?? 0)) })),
+    })),
+    [serverProducts, reserved]
+  )
 
   const [cart,          setCart]          = useState<CartItem[]>([])
   const [pickerProduct, setPickerProduct] = useState<ProductForPOS | null>(null)
   const [showPayment,   setShowPayment]   = useState(false)
   const [showBelowMin,  setShowBelowMin]  = useState(false)
   const [pendingItems,  setPendingItems]  = useState<BelowMinItem[]>([])
-  const [authorized,    setAuthorized]    = useState<Record<string, string>>({})
+  // Signed manager-override token (verified by the SERVER when the sale is saved)
+  const [overrideToken, setOverrideToken] = useState<string | null>(null)
   const [saleLoading,   setSaleLoading]   = useState(false)
+  // One idempotency key per sale attempt: a retry after a network error cannot create a duplicate
+  const [requestId,     setRequestId]     = useState(() => newRequestId())
 
   const getVariantLabel = (v: { sizeId: string | null; colorId: string | null }) => {
     const parts: string[] = []
@@ -102,7 +120,12 @@ export function POSClient({ products, categories, lookupById, locale }: POSClien
 
   const handleCheckout = () => {
     if (cart.length === 0) return
-    const belowMin = cart.filter(i => i.unitPrice < i.minSellingPrice && !authorized[i.variantId])
+    const belowMin = cart.filter(i => i.unitPrice < i.minSellingPrice && !overrideToken)
+    if (belowMin.length > 0 && !navigator.onLine) {
+      // the manager's authorisation is checked by the server, so it cannot be given offline
+      toast("لا يمكن البيع بسعر أقل من الحد الأدنى بدون اتصال بالإنترنت، لأن تفويض المسؤول يتطلب الاتصال بالخادم", "error", 8000)
+      return
+    }
     if (belowMin.length > 0) {
       setPendingItems(belowMin.map(i => ({
         name:           `${i.name_fr} (${i.variantLabel})`,
@@ -115,10 +138,8 @@ export function POSClient({ products, categories, lookupById, locale }: POSClien
     }
   }
 
-  const handleBelowMinAuthorized = (adminId: string) => {
-    const next = { ...authorized }
-    cart.filter(i => i.unitPrice < i.minSellingPrice).forEach(i => { next[i.variantId] = adminId })
-    setAuthorized(next)
+  const handleBelowMinAuthorized = (token: string) => {
+    setOverrideToken(token)
     setShowBelowMin(false)
     setShowPayment(true)
   }
@@ -134,31 +155,61 @@ export function POSClient({ products, categories, lookupById, locale }: POSClien
     try {
       const totalAmount = cart.reduce((s, i) => s + i.unitPrice * i.quantity, 0)
       const items: SaleItemInput[] = cart.map(i => ({
-        variantId:      i.variantId,
-        quantity:       i.quantity,
-        unitPrice:      i.unitPrice,
-        wasBelowMin:    i.unitPrice < i.minSellingPrice,
-        authorizedById: authorized[i.variantId],
+        variantId: i.variantId,
+        quantity:  i.quantity,
+        unitPrice: i.unitPrice,
       }))
 
-      await createSale({
+      const saleInput = {
+        requestId,
         caisseSessionId: session.id,
         items,
         paymentMethod:   paymentMethod as PaymentMethod,
-        totalAmount,
+        totalAmount:     Math.round(totalAmount * 100) / 100,
         amountPaid,
-        isCredit,
         clientName,
         clientPhone,
-      })
+        overrideToken:   overrideToken ?? undefined,
+      }
+
+      // No connection (or it dropped mid-way): keep the sale on this device. It keeps the SAME request id,
+      // so even if the server did receive it, sending it again later can never duplicate it.
+      const saveOffline = async () => {
+        await enqueueSale({
+          requestId,
+          kind:        "magazin",
+          payload:     saleInput as unknown as Record<string, unknown>,
+          totalAmount: saleInput.totalAmount,
+          itemCount:   items.length,
+          quantities:  Object.fromEntries(items.map((i) => [i.variantId, i.quantity])),
+        })
+        toast("لا يوجد اتصال: حُفظ البيع على هذا الجهاز وسيُرسل تلقائيا عند عودة الإنترنت", "info", 8000)
+        setCart([]); setOverrideToken(null); setRequestId(newRequestId()); setShowPayment(false)
+      }
+
+      if (!navigator.onLine) { await saveOffline(); return }
+
+      let res
+      try {
+        res = await createSale(saleInput)
+      } catch (err) {
+        if (isNetworkError(err)) { await saveOffline(); return }
+        throw err
+      }
+
+      if (!res.ok) {
+        toast(res.message || tP("saleError"), "error")
+        // an expired / invalid authorisation must be requested again
+        if (res.code === "below_min_not_authorized") setOverrideToken(null)
+        return
+      }
 
       toast(tP("saleSuccess"), "success")
       setCart([])
-      setAuthorized({})
+      setOverrideToken(null)
+      setRequestId(newRequestId())
       setShowPayment(false)
       router.refresh()
-    } catch (e) {
-      toast(e instanceof Error ? e.message : tP("saleError"), "error")
     } finally {
       setSaleLoading(false)
     }
@@ -166,19 +217,14 @@ export function POSClient({ products, categories, lookupById, locale }: POSClien
 
   const isRTL = locale === "ar"
 
-  const [isMobile,  setIsMobile]  = useState(false)
+  const { isMobile } = useBreakpoint()
   const [mobileTab, setMobileTab] = useState<"products" | "cart">("products")
   const totalQty = cart.reduce((s, i) => s + i.quantity, 0)
 
-  useEffect(() => {
-    const check = () => setIsMobile(window.innerWidth < 768)
-    check()
-    window.addEventListener("resize", check)
-    return () => window.removeEventListener("resize", check)
-  }, [])
 
   return (
     <>
+      <h1 className="sr-only">نقطة البيع</h1>
       <div
         style={{
           display:       "flex",
@@ -224,7 +270,7 @@ export function POSClient({ products, categories, lookupById, locale }: POSClien
               display:         "flex",
               flexDirection:   "column",
               overflow:        "hidden",
-              borderInlineEnd: isMobile ? "none" : "1px solid var(--border)",
+              
             }}
           >
             <ProductGrid

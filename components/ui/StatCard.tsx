@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import { useMotionValue, useSpring, useReducedMotion, motion } from "framer-motion"
 import { Skeleton }             from "./Skeleton"
-import { formatMAD }            from "@/lib/utils/currency"
+import { formatNumber }            from "@/lib/utils/currency"
 import React from "react"
 
 interface StatCardProps {
@@ -25,7 +25,6 @@ export function StatCard({
   numericValue,
   icon: Icon,
   trend,
-  trendValue,
   currency  = false,
   loading   = false,
   delay     = 0,
@@ -52,9 +51,12 @@ export function StatCard({
     }
   }, [numericValue, delay, shouldReduce]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // The number is the message: the currency word is shown small next to it, so long amounts fit
+  const UNIT = " درهم"
+  const isMoney = currency || (typeof value === "string" && value.endsWith(UNIT))
   const displayedValue = numericValue !== undefined
-    ? (currency ? formatMAD(displayed) : displayed.toLocaleString("fr-MA"))
-    : value
+    ? (currency ? formatNumber(displayed) : String(displayed))
+    : (typeof value === "string" && isMoney ? value.slice(0, -UNIT.length) : value)
 
   const trendColor =
     trend === "up"      ? "var(--success)"   :
@@ -97,12 +99,10 @@ export function StatCard({
       {/* Label row */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <span style={{
-          fontSize:      10,
-          fontWeight:    700,
-          fontFamily:    "var(--font-display)",
+          fontSize:      13,
+          fontWeight:    500,
+          lineHeight:    1.4,
           color:         "var(--text-muted)",
-          textTransform: "uppercase",
-          letterSpacing: "0.1em",
         }}>
           {label}
         </span>
@@ -113,15 +113,15 @@ export function StatCard({
       {loading ? (
         <Skeleton variant="text" height={28} />
       ) : (
-        <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
+        <div style={{ display: "flex", alignItems: "baseline", gap: 6, flexWrap: "wrap" }}>
           <span
             className="mono"
             style={{
-              fontSize:      26,
-              fontWeight:    500,
+              fontSize:      24,
+              fontWeight:    600,
               color:         "var(--text)",
-              letterSpacing: "-0.03em",
-              lineHeight:    1,
+              lineHeight:    1.2,
+              whiteSpace:    "nowrap",
               animation:     !shouldReduce && numericValue !== undefined
                 ? `countUp 400ms ease-out ${delay}ms both`
                 : undefined,
@@ -129,6 +129,7 @@ export function StatCard({
           >
             {displayedValue}
           </span>
+          {isMoney && <span style={{ fontSize: 13, color: "var(--text-muted)" }}>درهم</span>}
         </div>
       )}
 

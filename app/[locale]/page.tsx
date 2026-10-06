@@ -1,29 +1,24 @@
 import { redirect } from "next/navigation"
-import { auth } from "@/lib/auth/auth"
-import PinEntryScreen from "@/components/ui/PinEntryScreen"
-import { getInitialLockoutState } from "@/lib/auth/pin-lockout"
-import type { Portal } from "@prisma/client"
+import { getCurrentUser } from "@/lib/auth/guard"
+import LoginScreen from "@/components/auth/LoginScreen"
+import { isAdminRole } from "@/lib/permissions"
 import React from "react"
 
-export default async function PinPage({
+export default async function LoginPage({
   params,
 }: {
   params: Promise<{ locale: string }>
 }) {
   const { locale } = await params
-  const session = await auth()
+  const user = await getCurrentUser()
 
-  if (session?.user) {
-    const { role, portalAccess } = session.user
-    if (role === "superadmin" || role === "admin") {
-      redirect(`/${locale}/select-portal`)
-    }
-    if (portalAccess.length === 1) {
-      redirect(`/${locale}/${portalAccess[0] as Portal}`)
+  if (user) {
+    if (user.mustChangePassword) redirect(`/${locale}/change-password`)
+    if (!isAdminRole(user.role) && user.portalAccess.length === 1) {
+      redirect(`/${locale}/${user.portalAccess[0]}`)
     }
     redirect(`/${locale}/select-portal`)
   }
 
-  const lockState = await getInitialLockoutState()
-  return <PinEntryScreen locale={locale} initialLockState={lockState} />
+  return <LoginScreen locale={locale} />
 }

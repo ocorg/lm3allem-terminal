@@ -21,10 +21,12 @@ interface CreatableSelectProps {
   slug:         string
   onCreated:    (opt: Option) => void
   onDeleted?:   (id: string) => void
+  /** Show the "remove option" button (admins only: removing an option affects every record using it). */
+  canDelete?:   boolean
 }
 
 export function CreatableSelect({
-  label, value, onChange, options, placeholder, error, slug, onCreated, onDeleted,
+  label, value, onChange, options, placeholder, error, slug, onCreated, onDeleted, canDelete = false,
 }: CreatableSelectProps) {
   const [adding,    setAdding]    = useState(false)
   const [labelAr,   setLabelAr]   = useState("")
@@ -33,14 +35,11 @@ export function CreatableSelect({
   const handleCreate = () => {
     if (!labelAr.trim()) return
     startTransition(async () => {
-      try {
-        const created = await createLookupBySlug(slug, labelAr.trim())
-        onCreated({ value: created.id, label: created.label_ar })
-        setLabelAr(""); setAdding(false)
-        toast("تمت الإضافة", "success")
-      } catch (err) {
-        toast(err instanceof Error ? err.message : "خطأ في الإضافة", "error")
-      }
+      const res = await createLookupBySlug(slug, labelAr.trim())
+      if (!res.ok) { toast(res.message, "error"); return }
+      onCreated({ value: res.data.id, label: res.data.label_ar })
+      setLabelAr(""); setAdding(false)
+      toast("تمت الإضافة", "success")
     })
   }
 
@@ -48,14 +47,11 @@ export function CreatableSelect({
     if (!value) return
     if (!confirm("حذف هذا الخيار؟")) return
     startTransition(async () => {
-      try {
-        await removeLookupValue(value)
-        onDeleted?.(value)
-        onChange("")
-        toast("تم الحذف", "success")
-      } catch {
-        toast("تعذر الحذف", "error")
-      }
+      const res = await removeLookupValue(value)
+      if (!res.ok) { toast(res.message || "تعذر الحذف", "error"); return }
+      onDeleted?.(value)
+      onChange("")
+      toast("تم الحذف", "success")
     })
   }
 
@@ -63,7 +59,7 @@ export function CreatableSelect({
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         {label && (
-          <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+          <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-muted)" }}>
             {label}
           </span>
         )}
@@ -98,8 +94,8 @@ export function CreatableSelect({
           ]}
         />
       </div>
-      {value && (
-        <button
+      {value && canDelete && (
+        <button aria-label="حذف الخيار المحدد"
           type="button"
           onClick={handleDelete}
           disabled={isPending}
