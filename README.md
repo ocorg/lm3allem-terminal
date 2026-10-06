@@ -149,3 +149,7 @@ The app is Arabic-only: `routing.locales = ["ar"]`. Adding a language means addi
 - Permissions: 57 direct server calls as a logged-out visitor and 44 as a limited staff member: all refused.
 - Bad input: 67 hostile inputs as an admin (negative or huge amounts, fake roles, script text, impossible dates): all refused.
 - Every server action must validate its input shape (`parseInput` / `asId` in `lib/validation.ts`) and authorize itself.
+
+## Business clock and automatic till closing
+- Morocco time is a fixed offset in `lib/utils/time.ts` (UTC+0), not read from the server time-zone database, which was one hour wrong. If Morocco changes its clock, set `NEXT_PUBLIC_BUSINESS_UTC_OFFSET_MINUTES` (for example `60`) and redeploy.
+- A till not closed by hand is closed automatically at 04:00: by the daily job `/api/cron/close-caisse`, and also the moment anyone opens a till screen. The counted amount stays empty for such a closing; the expected cash is recorded and an alert is sent.

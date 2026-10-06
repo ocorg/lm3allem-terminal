@@ -1,7 +1,7 @@
 import { formatDistance, isValid } from "date-fns"
 import { fr, arMA } from "date-fns/locale"
 import type { Language } from "@prisma/client"
-import { BUSINESS_TZ, calendarKey } from "@/lib/utils/time"
+import { businessClock, calendarKey } from "@/lib/utils/time"
 
 function toDate(d: Date | string | null | undefined): Date | null {
   if (!d) return null
@@ -13,25 +13,17 @@ function locale(lang: Language) {
   return lang === "ar" ? arMA : fr
 }
 
-// Dates are always shown in Morocco time with plain digits, built from parts so the text is
-// identical on the server (UTC on the host) and in the browser. Never use toLocaleString here.
-const partsFmt = new Intl.DateTimeFormat("en-GB", {
-  timeZone: BUSINESS_TZ, year: "numeric", month: "2-digit", day: "2-digit",
-  hour: "2-digit", minute: "2-digit", hourCycle: "h23",
-})
-
-function parts(d: Date): Record<string, string> {
-  const out: Record<string, string> = {}
-  for (const p of partsFmt.formatToParts(d)) out[p.type] = p.value
-  return out
-}
+// Dates are always shown in Morocco time with plain digits. They are computed from the business
+// clock (lib/utils/time.ts), never from a time-zone database, so the server and every browser
+// print exactly the same text.
+const two = (n: number) => String(n).padStart(2, "0")
 
 /** "03/08/2026" */
 export function formatDate(date: Date | string | null | undefined): string {
   const d = toDate(date)
   if (!d) return "-"
-  const p = parts(d)
-  return `${p.day}/${p.month}/${p.year}`
+  const c = businessClock(d)
+  return `${two(c.day)}/${two(c.month)}/${c.year}`
 }
 
 /** A calendar date picked by the user (rental pickup / return / event, expense date): "07/10/2026". */
@@ -46,8 +38,8 @@ export function formatDay(date: Date | string | null | undefined): string {
 export function formatDateTime(date: Date | string | null | undefined): string {
   const d = toDate(date)
   if (!d) return "-"
-  const p = parts(d)
-  return `${p.day}/${p.month}/${p.year} ${p.hour}:${p.minute}`
+  const c = businessClock(d)
+  return `${two(c.day)}/${two(c.month)}/${c.year} ${two(c.hour)}:${two(c.minute)}`
 }
 
 export function formatRelative(

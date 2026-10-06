@@ -1,46 +1,49 @@
-/** All business dates are interpreted in Morocco time. */
-export const BUSINESS_TZ = "Africa/Casablanca"
+/**
+ * Business clock: every "day", "month" and "4 o'clock" in the ERP is Morocco time.
+ *
+ * Morocco is on UTC+0 (checked on 2026-10-06 against the shop computer and current browsers).
+ * The offset is written here on purpose instead of asking the server's time-zone database:
+ * that database was one hour wrong on the server (it still believed UTC+1), which shifted the
+ * business day, the reports and the clock shown in messages.
+ *
+ * If Morocco changes its clock again, set NEXT_PUBLIC_BUSINESS_UTC_OFFSET_MINUTES (for example
+ * 60 for UTC+1) in the hosting settings and redeploy. Nothing else has to change.
+ */
+const fromEnv = Number(process.env.NEXT_PUBLIC_BUSINESS_UTC_OFFSET_MINUTES)
+export const BUSINESS_UTC_OFFSET_MINUTES = Number.isFinite(fromEnv) && process.env.NEXT_PUBLIC_BUSINESS_UTC_OFFSET_MINUTES !== undefined && process.env.NEXT_PUBLIC_BUSINESS_UTC_OFFSET_MINUTES !== ""
+  ? fromEnv
+  : 0
 
-const dayFmt = new Intl.DateTimeFormat("en-CA", {
-  timeZone: BUSINESS_TZ,
-  year: "numeric",
-  month: "2-digit",
-  day: "2-digit",
-})
+const OFFSET_MS = BUSINESS_UTC_OFFSET_MINUTES * 60_000
 
-const partsFmt = new Intl.DateTimeFormat("en-US", {
-  timeZone: BUSINESS_TZ,
-  hourCycle: "h23",
-  year: "numeric",
-  month: "2-digit",
-  day: "2-digit",
-  hour: "2-digit",
-  minute: "2-digit",
-  second: "2-digit",
-})
+/** The same instant, moved so that its UTC fields read as Morocco wall-clock time. */
+function shifted(d: Date): Date {
+  return new Date(d.getTime() + OFFSET_MS)
+}
+
+export interface BusinessClock {
+  year: number; month: number; day: number; hour: number; minute: number
+}
+
+/** Morocco wall-clock fields of an instant. */
+export function businessClock(d: Date): BusinessClock {
+  const s = shifted(d)
+  return { year: s.getUTCFullYear(), month: s.getUTCMonth() + 1, day: s.getUTCDate(), hour: s.getUTCHours(), minute: s.getUTCMinutes() }
+}
 
 /** "YYYY-MM-DD" of an instant, in Morocco time. */
 export function dayKey(d: Date): string {
-  return dayFmt.format(d)
+  return shifted(d).toISOString().slice(0, 10)
 }
 
 /** "YYYY-MM" of an instant, in Morocco time. */
 export function monthKey(d: Date): string {
-  return dayFmt.format(d).slice(0, 7)
+  return dayKey(d).slice(0, 7)
 }
 
-/** Offset (ms) of BUSINESS_TZ from UTC at the given instant. */
-function tzOffsetMs(at: Date): number {
-  const p = Object.fromEntries(partsFmt.formatToParts(at).map((x) => [x.type, x.value]))
-  const asUtc = Date.UTC(+p.year, +p.month - 1, +p.day, +p.hour, +p.minute, +p.second)
-  return asUtc - Math.floor(at.getTime() / 1000) * 1000
-}
-
-/** Wall-clock time in BUSINESS_TZ -> UTC instant. */
+/** Morocco wall-clock time -> the real instant. */
 function zonedToUtc(y: number, m: number, d: number, h: number, mi: number, s: number, ms: number): Date {
-  const guess = Date.UTC(y, m - 1, d, h, mi, s, ms)
-  const first = guess - tzOffsetMs(new Date(guess))
-  return new Date(guess - tzOffsetMs(new Date(first)))
+  return new Date(Date.UTC(y, m - 1, d, h, mi, s, ms) - OFFSET_MS)
 }
 
 const DATE_ONLY = /^(\d{4})-(\d{2})-(\d{2})$/
@@ -65,9 +68,19 @@ export function todayKey(): string {
 }
 
 /**
+ * The most recent moment the clock showed `hour`:00 in Morocco (today's if it has passed, otherwise
+ * yesterday's). Used for daily cut-offs such as the automatic closing of the till at 4 o'clock.
+ */
+export function lastDailyCutoff(hour: number, now: Date = new Date()): Date {
+  const c = businessClock(now)
+  const today = zonedToUtc(c.year, c.month, c.day, hour, 0, 0, 0)
+  return today.getTime() <= now.getTime() ? today : new Date(today.getTime() - 86_400_000)
+}
+
+/**
  * A calendar date picked by the user (rental pickup / return / event, expense date): "YYYY-MM-DD"
  * stored at 12:00 UTC of that day. It is a DAY, not an instant, so it must show the same day on
- * every device even when the server and a browser disagree about Morocco's clock by an hour.
+ * every device whatever clock that device believes in.
  */
 export function calendarDate(input: string): Date {
   const m = DATE_ONLY.exec(input.slice(0, 10))
@@ -76,17 +89,16 @@ export function calendarDate(input: string): Date {
 }
 
 /**
- * "YYYY-MM-DD" that is certainly not later than today in Morocco, whatever the time-zone data of
- * this server says. Use it to refuse dates in the past without refusing "today" around midnight.
+ * "YYYY-MM-DD" that is certainly not later than today in Morocco, even if a device clock is a
+ * little off. Use it to refuse dates in the past without refusing "today" around midnight.
  */
 export function earliestTodayKey(): string {
   return dayKey(new Date(Date.now() - 2 * 3_600_000))
 }
 
 /**
- * "YYYY-MM-DD" of a stored calendar date, read without any time-zone data (so the server and
- * every device always agree). The 2-hour nudge also reads correctly the older rows that were
- * stored at Morocco midnight (23:00 or 00:00 UTC) instead of noon.
+ * "YYYY-MM-DD" of a stored calendar date, read without any time-zone rule. The 2-hour nudge also
+ * reads correctly the older rows that were stored at midnight (23:00 or 00:00 UTC) instead of noon.
  */
 export function calendarKey(d: Date | string): string {
   const t = typeof d === "string" ? new Date(d) : d

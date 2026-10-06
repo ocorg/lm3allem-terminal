@@ -113,7 +113,11 @@ export function CaisseHistoryClient({ result, filters }: Props) {
                         {diff === null ? "-" : formatMAD(diff.toString())}
                       </td>
                       <td style={{ padding: "12px 16px" }}>
-                        <Badge variant={isOpen ? "warning" : "success"}>{isOpen ? t("open") : t("closed")}</Badge>
+                        {isOpen
+                          ? <Badge variant="warning">{t("open")}</Badge>
+                          : !s.closedByName && !s.closingAmount
+                            ? <Badge variant="info">مغلق تلقائيا</Badge>
+                            : <Badge variant="success">{t("closed")}</Badge>}
                       </td>
                     </tr>
                   )
