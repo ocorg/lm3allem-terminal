@@ -14,6 +14,7 @@ import { ActionError, run, type ActionResult } from "@/lib/actions/result"
 import { D } from "@/lib/utils/money"
 import { id, money, parseInput, requestId, settlementMethod } from "@/lib/validation"
 import { defer } from "@/lib/utils/defer"
+import { alertCostumeSale } from "@/lib/notifications/alerts"
 
 // ── Shared lookup types (re-exported for costumes components) ──
 export interface LookupItem {
@@ -210,6 +211,9 @@ export async function createCostumeSale(
       },
     })
 
+    // Owner alerts (sale under the minimum price, unusually large sale)
+    await alertCostumeSale(saleId, user)
+
     // Low-stock check: runs after the answer is sent, the cashier does not wait for it
     await defer(async () => {
       const lowItems = await prisma.costumeItem.findMany({
@@ -223,7 +227,7 @@ export async function createCostumeSale(
       })
       for (const item of lowItems) {
         await createNotification({
-          title:  "مخزون منخفض",
+          title:  item.stock <= 0 ? "نفد المخزون: بيعت آخر قطعة" : "مخزون منخفض",
           body:   `${item.name_ar}${costumeDetail(item) ? ` | ${costumeDetail(item)}` : ""} | ${item.stock <= 0 ? "نفد" : `المتبقي ${stockText(item.stock)}`}`,
           type:   "low_stock",
           portal: "costumes",

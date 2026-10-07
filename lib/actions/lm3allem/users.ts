@@ -12,6 +12,7 @@ import {
 import { ActionError, run, type ActionResult } from "@/lib/actions/result"
 import { PORTAL_MODULES, normalizePermissions, type ModulePermissions } from "@/lib/permissions"
 import { id, parseInput, asId } from "@/lib/validation"
+import { alertAccount } from "@/lib/notifications/alerts"
 
 /**
  * User management.
@@ -95,7 +96,7 @@ function cleanPermissions(raw: unknown, portals: Portal[]): ModulePermissions {
 }
 
 async function assertManageable(targetId: string) {
-  const target = await prisma.user.findUnique({ where: { id: targetId }, select: { id: true, role: true, isActive: true } })
+  const target = await prisma.user.findUnique({ where: { id: targetId }, select: { id: true, role: true, isActive: true, name: true, email: true } })
   // A ghost account is invisible: to everyone else it simply does not exist.
   if (!target || target.role === "ghost") throw new ActionError("not_found")
   return target
@@ -143,6 +144,7 @@ export async function createUser(
       portal: "lm3allem", entityType: "user", entityId: user.id, actor,
       action: "user.created", diff: { name: input.name, role: input.role, email },
     })
+    await alertAccount("created", { name: input.name, email, role: input.role }, actor)
 
     return { user: serialize(user), temporaryPassword }
   })
@@ -224,7 +226,7 @@ export async function resetUserPassword(
   userId = asId(userId)
   return run(async () => {
     const actor = await requireAdmin()
-    await assertManageable(userId)
+    const target = await assertManageable(userId)
     if (userId === actor.id) throw new ActionError("cannot_modify_user", "غيّر كلمة مرورك من القائمة الشخصية")
 
     const temporaryPassword = generatePassword()
@@ -241,6 +243,7 @@ export async function resetUserPassword(
     await logActivity({
       portal: "lm3allem", entityType: "user", entityId: userId, actor, action: "user.password_reset",
     })
+    await alertAccount("password_reset", { name: target.name, email: target.email }, actor)
 
     return { temporaryPassword }
   })

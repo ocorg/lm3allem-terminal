@@ -818,7 +818,11 @@
         "rental": "إيجار",
         "caisse_open": "فتح الصندوق",
         "caisse_close": "إغلاق الصندوق",
-        "low_stock": "مخزون منخفض"
+        "low_stock": "مخزون منخفض",
+        "discount": "تخفيض",
+        "big_amount": "مبلغ كبير",
+        "cash_alert": "تنبيه الصندوق",
+        "account": "حساب"
       }
     },
     "alerts": {

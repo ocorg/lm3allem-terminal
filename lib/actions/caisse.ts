@@ -13,6 +13,7 @@ import { isValidMoney } from "@/lib/utils/money"
 import { portalLabel } from "@/lib/utils/labels"
 import { formatMAD } from "@/lib/utils/currency"
 import { asId } from "@/lib/validation"
+import { alertCashWithdrawal, alertTillGap } from "@/lib/notifications/alerts"
 
 // ── Serialisable session shape ─────────────────────
 // Decimal and Date fields are converted to primitives
@@ -115,6 +116,8 @@ export async function closeCaisseSession(
       actor:  user,
     })
 
+    await alertTillGap(session.portal, user, closingAmount, totals.expectedCash)
+
     return {
       expectedAmount: totals.expectedCash,
       difference:     Math.round((closingAmount - totals.expectedCash) * 100) / 100,
@@ -154,5 +157,6 @@ export async function addManualEntry(
       portal: session.portal, entityType: "caisse", entityId: session.id, actor: user,
       action: "caisse.manual_entry", diff: { amount, reason: trimmed },
     })
+    await alertCashWithdrawal(session.portal, user, amount, trimmed)
   })
 }

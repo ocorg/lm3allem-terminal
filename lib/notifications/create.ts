@@ -4,7 +4,9 @@ import type { Role }       from "@prisma/client"
 import { sendTelegram }    from "@/lib/notifications/telegram"
 import { defer }           from "@/lib/utils/defer"
 
-export type NotificationType = "rental" | "caisse_open" | "caisse_close" | "low_stock"
+export type NotificationType =
+  | "rental" | "caisse_open" | "caisse_close" | "low_stock"
+  | "discount" | "big_amount" | "cash_alert" | "account"
 
 export interface NotificationInput {
   title:  string
@@ -18,7 +20,7 @@ export interface NotificationInput {
 }
 
 const PORTAL_LABEL: Record<string, string> = { magazin: "المتجر", costumes: "البدلات", lm3allem: "الإدارة" }
-const TYPE_ICON: Record<string, string> = { rental: "👔", caisse_open: "🟢", caisse_close: "🔴", low_stock: "⚠️" }
+const TYPE_ICON: Record<string, string> = { rental: "👔", caisse_open: "🟢", caisse_close: "🔴", low_stock: "⚠️", discount: "🏷️", big_amount: "💰", cash_alert: "🚨", account: "🔐" }
 
 /** Best-effort: never throws, so it can be awaited after a committed business operation. */
 export async function createNotification(input: NotificationInput): Promise<void> {

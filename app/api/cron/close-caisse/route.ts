@@ -1,5 +1,5 @@
-import { timingSafeEqual } from "node:crypto"
 import { NextRequest, NextResponse } from "next/server"
+import { isCronAuthorized } from "@/lib/cron/auth"
 import { autoCloseStaleSessions } from "@/lib/finance/auto-close"
 
 /**
@@ -11,16 +11,8 @@ import { autoCloseStaleSessions } from "@/lib/finance/auto-close"
  */
 export const dynamic = "force-dynamic"
 
-function authorized(req: NextRequest): boolean {
-  const secret = process.env.CRON_SECRET
-  if (!secret) return false
-  const given = Buffer.from(req.headers.get("authorization") ?? "")
-  const expected = Buffer.from(`Bearer ${secret}`)
-  return given.length === expected.length && timingSafeEqual(given, expected)
-}
-
 export async function GET(req: NextRequest) {
-  if (!authorized(req)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  if (!isCronAuthorized(req)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   const closed = await autoCloseStaleSessions()
   return NextResponse.json({ closed })
 }

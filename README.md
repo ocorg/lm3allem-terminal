@@ -153,3 +153,8 @@ The app is Arabic-only: `routing.locales = ["ar"]`. Adding a language means addi
 ## Business clock and automatic till closing
 - Morocco time is a fixed offset in `lib/utils/time.ts` (UTC+0), not read from the server time-zone database, which was one hour wrong. If Morocco changes its clock, set `NEXT_PUBLIC_BUSINESS_UTC_OFFSET_MINUTES` (for example `60`) and redeploy.
 - A till not closed by hand is closed automatically at 04:00: by the daily job `/api/cron/close-caisse`, and also the moment anyone opens a till screen. The counted amount stays empty for such a closing; the expected cash is recorded and an alert is sent.
+
+## Owner alerts on Telegram
+- Instant alerts (`lib/notifications/alerts.ts`): sale under the minimum price, sale or debt of 1 000 dirhams or more, till closed with a gap, cash taken out of the till, rental cancelled, account created / password reset / locked, last piece sold.
+- Daily: morning brief at 10:00 and evening report at 22:00 (`/api/cron/morning`, `/api/cron/evening`). The morning job also sends the weekly summary on Mondays and the monthly results on the 1st.
+- Ask the bot: commands such as `/today`, `/stock`, `/caisse`, `/rentals`, `/debts`, `/week`, `/month`, `/help` typed in the owners group are answered by `/api/telegram/webhook`. Read-only, and only for the configured group.

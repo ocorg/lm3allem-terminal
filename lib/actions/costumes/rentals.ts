@@ -21,6 +21,7 @@ import {
 } from "@/lib/validation"
 import type { LookupById } from "./pos"
 import { formatMAD } from "@/lib/utils/currency"
+import { alertRentalCancelled } from "@/lib/notifications/alerts"
 
 // ── Shapes ─────────────────────────────────────────────────────
 export interface RentalForList {
@@ -632,6 +633,7 @@ export async function cancelRental(
       action: "rental.cancelled",
       diff: { reason: input.reason, ...(input.refund ? { refund: input.refund.amount } : {}) },
     })
+    await alertRentalCancelled(rentalId, user, input.reason, input.refund?.amount ?? 0)
   })
 }
 

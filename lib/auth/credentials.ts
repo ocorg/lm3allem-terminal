@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db/prisma"
 import { normalizeEmail, verifyAgainstDummy, verifyPassword } from "@/lib/auth/password"
 import { normalizePermissions, type ModulePermissions } from "@/lib/permissions"
 import type { Language, Portal, Role, Theme } from "@prisma/client"
+import { alertAccount } from "@/lib/notifications/alerts"
 
 export const MAX_FAILED_ATTEMPTS = 5
 export const LOCKOUT_MS = 5 * 60_000
@@ -51,6 +52,7 @@ export async function verifyCredentials(emailRaw: string, password: string): Pro
     if (next >= MAX_FAILED_ATTEMPTS) {
       const lockedUntil = new Date(Date.now() + LOCKOUT_MS)
       await prisma.user.update({ where: { id: user.id }, data: { failedLogins: 0, lockedUntil } })
+      if (user.role !== "ghost") await alertAccount("locked", { name: user.name, email: user.email })
       return { ok: false, reason: "locked", lockedUntil }
     }
     await prisma.user.update({ where: { id: user.id }, data: { failedLogins: next, lockedUntil: null } })
