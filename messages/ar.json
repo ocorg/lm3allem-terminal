@@ -281,12 +281,12 @@
     "staffWaitingMessage": "الصندوق مغلق. يرجى انتظار المسؤول لفتح الجلسة.",
     "creditPayments": "سداد الديون (نقدا)",
     "nonCash": "بطاقة / تحويل (خارج الصندوق)",
-    "returnsCash": "المرتجعات نقدا (العدد: {count})"
+    "returnsCash": "الإرجاع نقدا (العدد: {count})"
   },
   "magazin": {
     "nav": {
       "pos": "نقطة البيع",
-      "sales": "المبيعات والمرتجعات",
+      "sales": "المبيعات والإرجاع",
       "inventory": "المخزون",
       "caisse": "الصندوق",
       "credits": "الديون",
@@ -412,7 +412,7 @@
       "clearFilters": "مسح التصفية"
     },
     "sales": {
-      "title": "المبيعات والمرتجعات",
+      "title": "المبيعات والإرجاع",
       "windowNote": "مدة الإرجاع: {days} أيام بعد البيع، بموافقة مسؤول. بعدها يمكن لمسؤول فقط القيام بالإرجاع من حسابه.",
       "from": "من",
       "to": "إلى",
@@ -426,9 +426,9 @@
       "next": "التالي",
       "pageOf": "صفحة {page} من {pages}",
       "pieces": "القطع: {count}",
-      "statePartial": "مرتجع جزئيا",
-      "stateFull": "مرتجع بالكامل",
-      "returnedValue": "قيمة المرتجع: {amount}",
+      "statePartial": "إرجاع جزئي",
+      "stateFull": "إرجاع كامل",
+      "returnedValue": "قيمة الإرجاع: {amount}",
       "detailTitle": "تفاصيل البيع",
       "loadError": "تعذر تحميل البيع",
       "soldAt": "تاريخ البيع",
@@ -439,7 +439,7 @@
       "debtLeft": "الدين المتبقي",
       "item": "المنتج",
       "qty": "الكمية",
-      "returnedQty": "المرتجع",
+      "returnedQty": "أُرجع",
       "price": "السعر",
       "returnableUntil": "قابل للإرجاع حتى",
       "windowExpired": "انتهت مدة الإرجاع ({days} أيام)",
@@ -448,7 +448,7 @@
       "allReturned": "تم إرجاع كل قطع هذا البيع.",
       "tillClosed": "الصندوق مغلق: يجب فتح صندوق المتجر لتسجيل إرجاع.",
       "startReturn": "إرجاع سلع",
-      "history": "سجل المرتجعات",
+      "history": "سجل الإرجاع",
       "noReturns": "لا يوجد أي إرجاع لهذا البيع.",
       "by": "بواسطة {name}",
       "approvedBy": "الموافقة: {name}",
@@ -750,8 +750,8 @@
       "title": "لوحة التحكم",
       "stats": {
         "totalRevenue": "إجمالي الإيرادات",
-        "magazinRevenue": "إيرادات المتجر (بعد المرتجعات)",
-        "magazinReturns": "مرتجعات المتجر",
+        "magazinRevenue": "إيرادات المتجر (بعد الإرجاع)",
+        "magazinReturns": "إرجاع المتجر",
         "costumesRevenue": "إيرادات البدلات",
         "openRentals": "إيجارات جارية",
         "activeUsers": "المستخدمون النشطون",
@@ -775,7 +775,7 @@
       "last6Months": "آخر 6 أشهر",
       "thisYear": "هذه السنة",
       "magazinSales": "مبيعات المتجر",
-      "magazinReturns": "مرتجعات المتجر",
+      "magazinReturns": "إرجاع المتجر",
       "costumesSales": "مبيعات البدلات",
       "rentalRevenue": "إيرادات الإيجار",
       "expenses": "المصروفات",
@@ -903,7 +903,7 @@
       "maintenanceWarning": "سيؤدي تفعيل وضع الصيانة إلى منع جميع الموظفين من استخدام النظام.",
       "saveError": "تعذر الحفظ",
       "defaultStaffPermissionsDesc": "تُحدَّد مسبقا عند إنشاء حساب موظف جديد (يمكن تعديلها لكل مستخدم).",
-      "returnsTitle": "المرتجعات في المتجر",
+      "returnsTitle": "الإرجاع في المتجر",
       "returnsDesc": "مدة الإرجاع بعد البيع. خلالها يمكن للموظف الإرجاع بموافقة مسؤول، وبعدها يمكن لمسؤول فقط القيام به من حسابه. يُطبَّق التغيير فورا على كل المبيعات.",
       "returnWindowDays": "مدة الإرجاع (بالأيام)",
       "returnWindowInvalid": "أدخل عددا صحيحا من {min} إلى {max} يوما"

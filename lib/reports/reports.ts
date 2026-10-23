@@ -65,7 +65,7 @@ async function returnsSummary(window: DateWindow): Promise<ReturnsSummary> {
 function returnsLines(r: ReturnsSummary): string[] {
   if (!r.count) return []
   return [
-    `↩️ المرتجعات: ${count(r.count)}${r.corrections ? ` (منها تصحيح أخطاء: ${count(r.corrections)})` : ""} | القيمة ${formatMAD(r.value)}`,
+    `↩️ الإرجاع: ${count(r.count)}${r.corrections ? ` (منها تصحيح أخطاء: ${count(r.corrections)})` : ""} | القيمة ${formatMAD(r.value)}`,
     `   المبلغ المرجع ${formatMAD(r.refunded)}${r.debt ? ` | خُصم من الديون ${formatMAD(r.debt)}` : ""}${r.damaged ? ` | قطع تالفة ${count(r.damaged)}` : ""}`,
   ]
 }
@@ -226,7 +226,7 @@ export async function weeklyReport(now: Date = new Date()): Promise<string> {
   const spent = toNum(expenses._sum.amount)
 
   const out: string[] = [`🗓️ ملخص الأسبوع | من ${formatDate(week.from)} إلى ${formatDate(now)}`, ""]
-  out.push(`المتجر (بعد المرتجعات): ${formatMAD(rev.magazin)}`, ...returnsLines(shopReturns), `البدلات (بيع): ${formatMAD(rev.costumes)}`, `الإيجار: ${formatMAD(rev.rentals)}`)
+  out.push(`المتجر (بعد الإرجاع): ${formatMAD(rev.magazin)}`, ...returnsLines(shopReturns), `البدلات (بيع): ${formatMAD(rev.costumes)}`, `الإيجار: ${formatMAD(rev.rentals)}`)
   out.push(`💵 المجموع: ${formatMAD(rev.total)} | الأسبوع السابق ${formatMAD(revBefore.total)} | ${trend(rev.total, revBefore.total)}`)
   out.push(`🧮 المصروفات: ${formatMAD(spent)} | 📈 الصافي: ${formatSignedMAD(rev.total - spent, { plus: false })}`, "")
 
@@ -261,7 +261,7 @@ export async function monthlyReport(now: Date = new Date()): Promise<{ text: str
   ])
   const spent = toNum(expenses._sum.amount)
   const title = `حصيلة شهر ${MONTHS[month - 1]} ${year}`
-  const rows: [string, number][] = [["مبيعات المتجر", rev.magazin + rev.returns], ["مرتجعات المتجر", -rev.returns], ["مبيعات البدلات", rev.costumes], ["إيرادات الإيجار", rev.rentals], ["مجموع الإيرادات", rev.total], ["المصروفات", -spent], ["الصافي", rev.total - spent]]
+  const rows: [string, number][] = [["مبيعات المتجر", rev.magazin + rev.returns], ["إرجاع المتجر", -rev.returns], ["مبيعات البدلات", rev.costumes], ["إيرادات الإيجار", rev.rentals], ["مجموع الإيرادات", rev.total], ["المصروفات", -spent], ["الصافي", rev.total - spent]]
 
   return {
     text: [`📅 ${title}`, "", ...rows.map(([label, v]) => `${label}: ${formatMAD(v)}`), "", ...(items.length ? ["🏆 الأكثر مبيعا", ...items.slice(0, 5).map((i, n) => `${n + 1}. ${i.name} | الكمية: ${i.quantity}`)] : [])].join("\n").trim(),

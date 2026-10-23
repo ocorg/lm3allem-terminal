@@ -50,7 +50,7 @@ Other rules: inputs validated with zod (`lib/validation.ts`); stock changes use 
 
 ## Shop returns (magazin)
 
-Screen: **المبيعات والمرتجعات** (`/magazin/sales`, same permission as the POS). Code: `lib/actions/magazin/sales.ts`, rules in `lib/returns/`.
+Screen: **المبيعات والإرجاع** (`/magazin/sales`, same permission as the POS). Code: `lib/actions/magazin/sales.ts`, rules in `lib/returns/`.
 
 - A return is **its own record** (`SaleReturn` + `SaleReturnItem`). The original sale is never edited; `SaleItem.returnedQuantity` counts what came back (guarded update + database check: never more than sold).
 - Two kinds, recorded as such: **customer return** (`customer_return`: money back in cash from the till, on the card or by transfer) and **correction of an entry mistake** (`entry_error`). For a correction the server decides: if the sale's till is still open its money is taken back out of that till (same method as the sale); if that till is closed, nothing physical moves (`refundMethod = none`) and only stock and revenue are corrected.
