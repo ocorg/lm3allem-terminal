@@ -35,7 +35,7 @@ export default async function SelectPortalPage({
 
   if (!isPrivileged && portalsToShow.length === 0) {
     return (
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "100vh", background: "var(--bg)", gap: 16, padding: 24, textAlign: "center" }}>
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "100dvh", background: "var(--bg)", gap: 16, padding: 24, textAlign: "center" }}>
         <BrandLogo size={88} />
         <p style={{ fontSize: 18, fontWeight: 700, color: "var(--text)", margin: 0, fontFamily: "var(--font-display)" }}>
           {t("noAccess")}
@@ -63,7 +63,7 @@ export default async function SelectPortalPage({
         flexDirection:  "column",
         alignItems:     "center",
         justifyContent: "center",
-        minHeight:      "100vh",
+        minHeight:      "100dvh",
         background:     "var(--bg)",
         gap:            48,
         padding:        24,

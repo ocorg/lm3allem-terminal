@@ -11,6 +11,8 @@ import type { Portal } from "@prisma/client"
  *   - a credit sale's advance is treated as cash;
  *   - credit repayments received in cash are included;
  *   - a refunded rental deposit / cancelled-rental refund paid back in cash is an outflow;
+ *   - a shop return refunded in cash is an outflow; refunded by card / transfer it reduces the
+ *     non-cash total; a return without money ("none", or only a debt reduction) moves nothing;
  *   - manual entries are signed (negative = money taken out).
  */
 
@@ -18,7 +20,7 @@ export interface CaisseTotals {
   openingAmount: number
   /** cash received (sales + rentals + credit repayments), before outflows */
   cashIn:        number
-  /** cash paid out (refunded deposits) */
+  /** cash paid out (refunded deposits, shop returns refunded in cash) */
   cashOut:       number
   /** signed manual entries */
   manual:        number
@@ -27,12 +29,16 @@ export interface CaisseTotals {
   /** what should physically be in the drawer */
   expectedCash:  number
   salesCount:    number
+  /** shop returns recorded in this session (all refund methods) */
+  returnsCount:  number
   /** itemised cash lines, for the stat cards */
   lines: {
     sales:          number
     rentalPayments: number
     deposits:       number
     creditPayments: number
+    /** shop returns refunded in cash (already inside cashOut) */
+    returnsCash:    number
   }
 }
 
@@ -52,15 +58,19 @@ export async function computeCaisseTotals(sessionId: string, portal: Portal): Pr
   let salesCash = D(0), salesNonCash = D(0), salesCount = 0
   let rentalCash = D(0), depositCash = D(0), outflow = D(0), rentalNonCash = D(0)
   let creditCash = D(0), creditNonCash = D(0)
+  let returnsCash = D(0), returnsNonCash = D(0), returnsCount = 0
 
   if (portal === "magazin") {
-    const [sales, credits] = await Promise.all([
+    const [sales, credits, returns] = await Promise.all([
       prisma.sale.groupBy({
         by: ["paymentMethod"], where: { caisseSessionId: sessionId },
         _sum: { amountPaid: true }, _count: { _all: true },
       }),
       prisma.creditPayment.groupBy({
         by: ["method"], where: { caisseSessionId: sessionId }, _sum: { amount: true },
+      }),
+      prisma.saleReturn.groupBy({
+        by: ["refundMethod"], where: { caisseSessionId: sessionId }, _sum: { refundAmount: true }, _count: { _all: true },
       }),
     ])
     for (const row of sales) {
@@ -75,6 +85,13 @@ export async function computeCaisseTotals(sessionId: string, portal: Portal): Pr
       if (row.method === "cash") creditCash = creditCash.plus(amount)
       else creditNonCash = creditNonCash.plus(amount)
     }
+    for (const row of returns) {
+      returnsCount += row._count._all
+      const amount = sum(row._sum.refundAmount)
+      if (row.refundMethod === "cash") returnsCash = returnsCash.plus(amount)
+      else if (row.refundMethod === "tpe" || row.refundMethod === "banque") returnsNonCash = returnsNonCash.plus(amount)
+    }
+    outflow = outflow.plus(returnsCash)
   } else if (portal === "costumes") {
     const [sales, rentals] = await Promise.all([
       prisma.costumeSale.groupBy({
@@ -114,14 +131,16 @@ export async function computeCaisseTotals(sessionId: string, portal: Portal): Pr
     cashIn:        toNum(cashIn),
     cashOut:       toNum(outflow),
     manual:        toNum(manual),
-    nonCash:       toNum(salesNonCash.plus(rentalNonCash).plus(creditNonCash)),
+    nonCash:       toNum(salesNonCash.plus(rentalNonCash).plus(creditNonCash).minus(returnsNonCash)),
     expectedCash:  toNum(expected),
     salesCount,
+    returnsCount,
     lines: {
       sales:          toNum(salesCash),
       rentalPayments: toNum(rentalCash),
       deposits:       toNum(depositCash),
       creditPayments: toNum(creditCash),
+      returnsCash:    toNum(returnsCash),
     },
   }
 }

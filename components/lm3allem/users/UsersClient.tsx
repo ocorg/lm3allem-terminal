@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/Button"
 import { Input } from "@/components/ui/Input"
 import { Select } from "@/components/ui/Select"
 import { Modal } from "@/components/ui/Modal"
+import { DataTable } from "@/components/ui/DataTable"
 import { Badge } from "@/components/ui/Badge"
 import { toast } from "@/hooks/useToast"
 import { useConfirm } from "@/hooks/useConfirm"
@@ -167,62 +168,61 @@ export function UsersClient({ initialUsers, defaultPermissions }: Props) {
         <Button variant="primary" onClick={openCreate}>{t("add")}</Button>
       </div>
 
-      <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "8px", overflow: "auto" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14, minWidth: 900 }}>
-          <thead>
-            <tr style={{ background: "var(--surface-2)" }}>
-              {[t("name"), t("email"), t("role"), t("portals"), t("active"), t("lastLogin"), t("actionsHeader")].map((h, i) => (
-                <th key={i} style={{ padding: "12px 16px", textAlign: "start", fontWeight: 600, fontSize: 12, color: "var(--text-muted)",borderBottom: "1px solid var(--border)" }}>
-                  {h}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {initialUsers.map((u, i) => (
-              <tr key={u.id} style={{ borderBottom: i < initialUsers.length - 1 ? "1px solid var(--border)" : "none", background: u.isActive ? undefined : "var(--surface-2)" }}>
-                <td style={{ padding: "12px 16px", fontWeight: 600 }}>
-                  {u.name}
-                  {u.mustChangePassword && <div style={{ fontSize: 12, color: "var(--warning)", fontWeight: 400 }}>{t("passwordPending")}</div>}
-                </td>
-                <td dir="ltr" style={{ padding: "12px 16px", textAlign: "start", color: u.email ? "var(--text)" : "var(--danger)", fontSize: 13 }}>
-                  {u.email ?? t("noEmail")}
-                </td>
-                <td style={{ padding: "12px 16px" }}>
-                  <Badge variant={u.role === "admin" ? "info" : "default"}>
-                    {t(`roles.${u.role === "admin" ? "admin" : "staff"}`)}
-                  </Badge>
-                </td>
-                <td style={{ padding: "12px 16px" }}>
-                  <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
-                    {u.role === "admin"
-                      ? <Badge variant="default">{t("allPortals")}</Badge>
-                      : u.portalAccess.map((p) => <Badge key={p} variant="default">{PORTAL_LABELS[p] ?? p}</Badge>)}
-                  </div>
-                </td>
-                <td style={{ padding: "12px 16px" }}>
-                  <Badge variant={u.isActive ? "success" : "default"}>{u.isActive ? t("active") : t("inactive")}</Badge>
-                </td>
-                <td style={{ padding: "12px 16px", color: "var(--text-muted)", fontSize: 12, whiteSpace: "nowrap" }}>
-                  <DateText value={u.lastLoginAt} time />
-                </td>
-                <td style={{ padding: "12px 16px" }}>
-                  <div style={{ display: "flex", gap: 12, flexWrap: "nowrap", alignItems: "center", whiteSpace: "nowrap" }}>
-                    <Button variant="secondary" size="sm" onClick={() => openEdit(u)}>{t("edit")}</Button>
-                    <Button variant="secondary" size="sm" onClick={() => handleResetPassword(u)}>{t("resetPassword")}</Button>
-                    <Button variant={u.isActive ? "danger" : "primary"} size="sm" style={{ marginInlineStart: 12 }} onClick={() => handleToggleActive(u)} loading={isToggling}>
-                      {u.isActive ? t("deactivate") : t("activate")}
-                    </Button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-            {initialUsers.length === 0 && (
-              <tr><td colSpan={7} style={{ padding: 32, textAlign: "center", color: "var(--text-muted)" }}>{t("noUsers")}</td></tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+      <DataTable
+        data={initialUsers}
+        emptyMessage={t("noUsers")}
+        isRowMuted={(u) => !u.isActive}
+        pageSize={100}
+        columns={[
+          {
+            key: "name", label: t("name"), primary: true,
+            render: (_, u) => (
+              <span style={{ fontWeight: 600 }}>
+                {u.name}
+                {u.mustChangePassword && <span style={{ display: "block", fontSize: 12, color: "var(--warning)", fontWeight: 400 }}>{t("passwordPending")}</span>}
+              </span>
+            ),
+          },
+          {
+            key: "email", label: t("email"),
+            render: (_, u) => <span dir="ltr" style={{ color: u.email ? "var(--text)" : "var(--danger)", fontSize: 13 }}>{u.email ?? t("noEmail")}</span>,
+          },
+          {
+            key: "role", label: t("role"),
+            render: (_, u) => <Badge variant={u.role === "admin" ? "info" : "default"}>{t(`roles.${u.role === "admin" ? "admin" : "staff"}`)}</Badge>,
+          },
+          {
+            key: "portalAccess", label: t("portals"),
+            render: (_, u) => (
+              <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+                {u.role === "admin"
+                  ? <Badge variant="default">{t("allPortals")}</Badge>
+                  : u.portalAccess.map((p) => <Badge key={p} variant="default">{PORTAL_LABELS[p] ?? p}</Badge>)}
+              </div>
+            ),
+          },
+          {
+            key: "isActive", label: t("active"),
+            render: (_, u) => <Badge variant={u.isActive ? "success" : "default"}>{u.isActive ? t("active") : t("inactive")}</Badge>,
+          },
+          {
+            key: "lastLoginAt", label: t("lastLogin"),
+            render: (_, u) => <span style={{ color: "var(--text-muted)", fontSize: 12, whiteSpace: "nowrap" }}><DateText value={u.lastLoginAt} time /></span>,
+          },
+          {
+            key: "id", label: t("actionsHeader"), actions: true,
+            render: (_, u) => (
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+                <Button variant="secondary" size="sm" onClick={() => openEdit(u)}>{t("edit")}</Button>
+                <Button variant="secondary" size="sm" onClick={() => handleResetPassword(u)}>{t("resetPassword")}</Button>
+                <Button variant={u.isActive ? "danger" : "primary"} size="sm" style={{ marginInlineStart: 12 }} onClick={() => handleToggleActive(u)} loading={isToggling}>
+                  {u.isActive ? t("deactivate") : t("activate")}
+                </Button>
+              </div>
+            ),
+          },
+        ]}
+      />
 
       {/* Create / Edit Modal */}
       <Modal isOpen={formOpen} onClose={() => setFormOpen(false)} title={editTarget ? t("edit") : t("add")} size="lg">
@@ -243,11 +243,11 @@ export function UsersClient({ initialUsers, defaultPermissions }: Props) {
             <>
               <div>
                 <p style={{ fontSize: 12, fontWeight: 600, color: "var(--text-muted)", marginBottom: 8 }}>{t("portals")}</p>
-                <div style={{ display: "flex", gap: 8 }}>
+                <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
                   {(Object.keys(PORTAL_MODULES) as EditablePortal[]).map((p) => {
                     const on = form.portalAccess.includes(p)
                     return (
-                      <button type="button" key={p} onClick={() => togglePortal(p)} aria-pressed={on} style={{ padding: "0.25rem 0.75rem", borderRadius: "4px", border: "1px solid var(--border)", background: on ? "var(--brand)" : "var(--surface-2)", color: on ? "#000" : "var(--text)", cursor: "pointer", fontSize: 13 }}>
+                      <button type="button" key={p} onClick={() => togglePortal(p)} aria-pressed={on} style={{ padding: "0 14px", minHeight: 38, borderRadius: 8, border: "1px solid var(--border)", background: on ? "var(--brand)" : "var(--surface-2)", color: on ? "#000" : "var(--text)", cursor: "pointer", fontSize: 13 }}>
                         {PORTAL_LABELS[p]}
                       </button>
                     )
@@ -257,12 +257,12 @@ export function UsersClient({ initialUsers, defaultPermissions }: Props) {
 
               <div>
                 <p style={{ fontSize: 12, fontWeight: 600, color: "var(--text-muted)", marginBottom: 8 }}>{t("permissions")}</p>
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 150px), 1fr))", gap: 12 }}>
                   {(Object.keys(PORTAL_MODULES) as EditablePortal[]).map((portal) => (
                     <div key={portal} style={{ opacity: form.portalAccess.includes(portal) ? 1 : 0.4 }}>
                       <p style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 4 }}>{PORTAL_LABELS[portal]}</p>
                       {PORTAL_MODULES[portal].map((m) => (
-                        <label key={m} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, marginBottom: 4, cursor: "pointer" }}>
+                        <label key={m} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, minHeight: 32, cursor: "pointer" }}>
                           <input
                             type="checkbox"
                             disabled={!form.portalAccess.includes(portal)}

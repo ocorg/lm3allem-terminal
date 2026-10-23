@@ -43,7 +43,7 @@ export default function ChangePasswordForm({ locale, forced }: Props) {
   }
 
   return (
-    <main style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "100vh", background: "var(--bg)", padding: 24 }}>
+    <main style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "100dvh", background: "var(--bg)", padding: 24 }}>
       <form
         onSubmit={handleSubmit}
         style={{ width: "100%", maxWidth: 380, display: "flex", flexDirection: "column", gap: 14, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 14, padding: 24 }}

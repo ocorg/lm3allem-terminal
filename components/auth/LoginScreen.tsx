@@ -70,7 +70,7 @@ export default function LoginScreen({ locale }: Props) {
         flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
-        minHeight: "100vh",
+        minHeight: "100dvh",
         background: "var(--bg)",
         padding: 24,
         position: "relative",

@@ -10,6 +10,7 @@ import { CreatableSelect } from "@/components/ui/CreatableSelect"
 import { Textarea } from "@/components/ui/Textarea"
 import { Modal } from "@/components/ui/Modal"
 import { Badge } from "@/components/ui/Badge"
+import { DataTable } from "@/components/ui/DataTable"
 import { toast } from "@/hooks/useToast"
 import { useConfirm } from "@/hooks/useConfirm"
 import { formatMAD } from "@/lib/utils/currency"
@@ -104,49 +105,32 @@ export function ExpensesClient({ initialExpenses, expenseValues: initialExpenseV
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
       {modal}
 
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
         <h1 style={{ fontSize: 22, fontWeight: 700, color: "var(--text)",margin: 0 }}>
           {t("title")}
         </h1>
         <Button variant="primary" onClick={openAdd}>{t("add")}</Button>
       </div>
 
-      <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "8px", overflow: "hidden" }}>
-        {initialExpenses.length === 0
-          ? <p style={{ padding: "2rem", textAlign: "center", color: "var(--text-muted)" }}>{t("noExpenses")}</p>
-          : (
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
-              <thead>
-                <tr style={{ background: "var(--surface-2)" }}>
-                  {[t("date"), t("portal"), t("category"), t("description"), t("amount"), t("recordedBy"), ""].map((h, i) => (
-                    <th key={i} style={{ padding: "12px 16px", textAlign: "start", fontWeight: 600, fontSize: 12, color: "var(--text-muted)",borderBottom: "1px solid var(--border)" }}>
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {initialExpenses.map((e, i) => (
-                  <tr key={e.id} style={{ borderBottom: i < initialExpenses.length - 1 ? "1px solid var(--border)" : "none" }}>
-                    <td style={{ padding: "12px 16px", color: "var(--text-muted)" }}>{formatDay(e.date)}</td>
-                    <td style={{ padding: "12px 16px" }}><Badge variant={PORTAL_VARIANT[e.portal] ?? "default"}>{portalLabel(e.portal)}</Badge></td>
-                    <td style={{ padding: "12px 16px" }}>{e.categoryLabel_ar}</td>
-                    <td style={{ padding: "12px 16px" }}>{e.description}</td>
-                    <td style={{ padding: "12px 16px", fontWeight: 600 }}>{formatMAD(e.amount)}</td>
-                    <td style={{ padding: "12px 16px", color: "var(--text-muted)" }}>{e.recordedByName}</td>
-                    <td style={{ padding: "12px 16px" }}>
-                      <div style={{ display: "flex", gap: 8 }}>
-                        <Button variant="ghost" size="sm" onClick={() => openEdit(e)}>{t("edit")}</Button>
-                        <Button variant="danger" size="sm" onClick={() => handleDelete(e.id)}>{t("delete")}</Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )
-        }
-      </div>
+      <DataTable
+        data={initialExpenses}
+        emptyMessage={t("noExpenses")}
+        pageSize={50}
+        columns={[
+          { key: "description", label: t("description"), primary: true },
+          { key: "amount", label: t("amount"), render: (_, e) => <span style={{ fontWeight: 600 }}>{formatMAD(e.amount)}</span> },
+          { key: "date", label: t("date"), render: (_, e) => <span style={{ color: "var(--text-muted)" }}>{formatDay(e.date)}</span> },
+          { key: "portal", label: t("portal"), render: (_, e) => <Badge variant={PORTAL_VARIANT[e.portal] ?? "default"}>{portalLabel(e.portal)}</Badge> },
+          { key: "categoryLabel_ar", label: t("category") },
+          { key: "recordedByName", label: t("recordedBy"), render: (_, e) => <span style={{ color: "var(--text-muted)" }}>{e.recordedByName}</span> },
+          { key: "id", label: "", actions: true, render: (_, e) => (
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+              <Button variant="secondary" size="sm" onClick={() => openEdit(e)}>{t("edit")}</Button>
+              <Button variant="danger" size="sm" onClick={() => handleDelete(e.id)}>{t("delete")}</Button>
+            </div>
+          ) },
+        ]}
+      />
 
       <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={editTarget ? t("edit") : t("add")}>
         <div style={{ display: "flex", flexDirection: "column", gap: 16, width: "100%" }}>
@@ -154,7 +138,7 @@ export function ExpensesClient({ initialExpenses, expenseValues: initialExpenseV
             label={t("portal")}
             value={form.portal}
             onChange={(e) => setForm((f) => ({ ...f, portal: e.target.value as CreateExpenseInput["portal"] }))}
-            options={PORTALS.map((p) => ({ value: p, label: p }))}
+            options={PORTALS.map((p) => ({ value: p, label: portalLabel(p) }))}
           />
           <CreatableSelect
             label={t("category")}

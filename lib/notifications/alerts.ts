@@ -5,7 +5,8 @@ import { costumeDetail, variantDetail } from "@/lib/inventory/low-stock"
 import { actorLabel } from "@/lib/utils/actor"
 import { formatMAD, formatSignedMAD } from "@/lib/utils/currency"
 import { defer } from "@/lib/utils/defer"
-import { paymentMethodLabel, portalLabel } from "@/lib/utils/labels"
+import { paymentMethodLabel, portalLabel, refundMethodLabel, returnKindLabel } from "@/lib/utils/labels"
+import { formatDateTime } from "@/lib/utils/date"
 import { toNum } from "@/lib/utils/money"
 
 /**
@@ -124,6 +125,45 @@ export function alertCostumeSale(saleId: string, actor: Actor): Promise<void> {
       approvedBy: i.authorizedBy ? actorLabel(i.authorizedBy) : null,
     }))
     await reportSale("costumes", actor, toNum(sale.totalAmount), sale.paymentMethod, lines, null)
+  })
+}
+
+/**
+ * Every shop return or correction is reported: it takes money or a debt back, so the owner sees
+ * each one, who did it and who approved it.
+ */
+export function alertShopReturn(returnId: string, actor: Actor): Promise<void> {
+  return safely(async () => {
+    const r = await prisma.saleReturn.findUnique({
+      where:   { id: returnId },
+      include: {
+        authorizedBy: { select: { name: true, role: true } },
+        sale:         { select: { createdAt: true, totalAmount: true, paymentMethod: true, credit: { select: { clientName: true } } } },
+        items:        { include: { saleItem: { include: { variant: { include: { product: { select: { name_ar: true } }, size: { select: { label_ar: true } }, color: { select: { label_ar: true } } } } } } } },
+      },
+    })
+    if (!r) return
+    const refund = toNum(r.refundAmount), debt = toNum(r.debtReduction)
+    const damaged = r.items.filter((i) => !i.restocked)
+    const label = (i: (typeof r.items)[number]) => [i.saleItem.variant.product.name_ar, variantDetail(i.saleItem.variant)].filter(Boolean).join(" | ")
+
+    await createNotification({
+      title:  r.kind === "entry_error" ? "تصحيح خطأ في بيع" : "إرجاع سلع من عميل",
+      body:   [
+        `البيع الأصلي: ${formatDateTime(r.sale.createdAt)} | ${formatMAD(toNum(r.sale.totalAmount))} | ${paymentMethodLabel(r.sale.paymentMethod)}${r.sale.credit ? ` | العميل: ${r.sale.credit.clientName}` : ""}`,
+        ...r.items.slice(0, 6).map((i) => `• ${label(i)} × ${i.quantity}${i.restocked ? "" : " (تالف، لم يعد إلى المخزون)"}`),
+        ...(r.items.length > 6 ? [`وعناصر أخرى: ${r.items.length - 6}`] : []),
+        `القيمة: ${formatMAD(toNum(r.totalValue))}`,
+        ...(debt > 0 ? [`خُصم من الدين: ${formatMAD(debt)}`] : []),
+        refund > 0 ? `المبلغ المرجع: ${formatMAD(refund)} | ${refundMethodLabel(r.refundMethod)}` : "لم يُرجع أي مبلغ",
+        `النوع: ${returnKindLabel(r.kind)} | السبب: ${r.reason}`,
+        `بواسطة: ${actor.name} | الموافقة: ${actorLabel(r.authorizedBy)}${r.afterDeadline ? " | بعد انتهاء مدة الإرجاع" : ""}`,
+        ...(damaged.length ? [`قطع تالفة: ${damaged.reduce((n, i) => n + i.quantity, 0)}`] : []),
+      ].join("\n"),
+      type:   refund >= BIG_AMOUNT ? "big_amount" : "return",
+      portal: "magazin",
+      actor,
+    })
   })
 }
 

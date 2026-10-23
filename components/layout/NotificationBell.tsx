@@ -19,6 +19,7 @@ const TYPE_COLOR: Record<string, string> = {
   caisse_open:  "var(--success)",
   caisse_close: "var(--text-muted)",
   low_stock:    "var(--danger)",
+  return:       "var(--warning)",
 }
 
 const PORTAL_VARIANT: Record<string, "primary" | "info" | "success"> = {
@@ -151,10 +152,12 @@ export default function NotificationBell() {
 
       {open && (
         <div style={{
-          position: "absolute", insetInlineEnd: 0, top: "calc(100% + 8px)",
-          width: 340, background: "var(--surface)",
+          // pinned to the screen edge (not to the bell) so it always fits, even on a narrow phone
+          position: "fixed", insetInlineEnd: 12, top: 68,
+          width: "min(360px, calc(100vw - 24px))", maxHeight: "calc(100dvh - 88px)", overflowY: "auto",
+          background: "var(--surface)",
           border: "1px solid var(--border)", borderRadius: 10,
-          boxShadow: "0 8px 24px rgba(0,0,0,0.18)", zIndex: 500, overflow: "hidden",
+          boxShadow: "0 8px 24px rgba(0,0,0,0.18)", zIndex: 500,
         }}>
           <div style={{
             display: "flex", alignItems: "center", justifyContent: "space-between",
@@ -165,8 +168,8 @@ export default function NotificationBell() {
             </span>
             {unreadCount > 0 && (
               <button onClick={handleMarkAllRead} style={{
-                fontSize: 12, color: "var(--primary)",
-                background: "none", border: "none", cursor: "pointer", padding: 0,
+                fontSize: 12, color: "var(--primary)", minHeight: 36, paddingInline: 8,
+                background: "none", border: "none", cursor: "pointer", borderRadius: 8,
               }}>
                 {t("markAllRead")}
               </button>
@@ -199,7 +202,7 @@ export default function NotificationBell() {
                   }} />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: "flex", justifyContent: "space-between", gap: 6, marginBottom: 2 }}>
-                      <span style={{ fontSize: 12, fontWeight: n.isRead ? 400 : 600, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      <span style={{ fontSize: 12, fontWeight: n.isRead ? 400 : 600, color: "var(--text)", overflowWrap: "anywhere" }}>
                         {n.title}
                       </span>
                       <span style={{ fontSize: 12, color: "var(--text-muted)", flexShrink: 0 }}>
@@ -212,7 +215,7 @@ export default function NotificationBell() {
                       </span>
                       <Badge variant={PORTAL_VARIANT[n.portal] ?? "default"}>{portalLabel(n.portal)}</Badge>
                     </div>
-                    <p style={{ margin: "3px 0 0", fontSize: 12, color: "var(--text-muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    <p style={{ margin: "3px 0 0", fontSize: 12, color: "var(--text-muted)", overflowWrap: "anywhere", whiteSpace: "pre-line" }}>
                       {n.body}
                     </p>
                   </div>

@@ -78,7 +78,8 @@ export function StatCard({
         borderInlineStart: "4px solid",
         borderInlineStartColor: `color-mix(in srgb, var(--primary) 40%, transparent)`,
         borderRadius:   12,
-        padding:        "18px 20px 16px",
+        padding:        "clamp(12px, 3.5vw, 18px) clamp(12px, 3.5vw, 20px) clamp(12px, 3vw, 16px)",
+        minWidth:       0,
         display:        "flex",
         flexDirection:  "column",
         gap:            10,
@@ -97,16 +98,16 @@ export function StatCard({
       data-statcard="1"
     >
       {/* Label row */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 6 }}>
         <span style={{
-          fontSize:      13,
+          fontSize:      "clamp(12px, 3.2vw, 13px)",
           fontWeight:    500,
           lineHeight:    1.4,
           color:         "var(--text-muted)",
         }}>
           {label}
         </span>
-        {Icon && <Icon size={15} style={{ color: "var(--text-muted)" }} />}
+        {Icon && <Icon size={15} style={{ color: "var(--text-muted)", flexShrink: 0 }} />}
       </div>
 
       {/* Value */}
@@ -117,7 +118,8 @@ export function StatCard({
           <span
             className="mono"
             style={{
-              fontSize:      24,
+              // smaller on a phone (two cards per row) so long amounts still fit
+              fontSize:      "clamp(17px, 4.6vw, 24px)",
               fontWeight:    600,
               color:         "var(--text)",
               lineHeight:    1.2,

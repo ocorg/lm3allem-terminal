@@ -367,7 +367,8 @@ function StepKit({ data, upd, costumeItems, lookupById, errors }: { data: Wizard
   const setQty     = (id: string, q: number) => upd({ kitItems: data.kitItems.map(k => k.costumeItemId === id ? { ...k, quantity: Math.max(1, Math.min(q, k.stock)) } : k) })
 
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, height: 320 }}>
+    // side by side when there is room, one under the other on a phone (nothing cut off)
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 260px), 1fr))", gap: 16 }}>
       <div style={{ display: "flex", flexDirection: "column", gap: 8, minHeight: 0 }}>
         <p style={{ fontSize: 12, fontWeight: 600, color: "var(--text-muted)", margin: 0 }}>
           {tRental("availableItems")}
@@ -382,7 +383,7 @@ function StepKit({ data, upd, costumeItems, lookupById, errors }: { data: Wizard
             style={{ width: "100%", paddingInlineStart: 32, height: 34, border: "1px solid var(--border)", borderRadius: 8, background: "var(--surface)", color: "var(--text)", fontSize: 13, outline: "none", boxSizing: "border-box" }}
           />
         </div>
-        <div style={{ flex: 1, overflowY: "auto", border: "1px solid var(--border)", borderRadius: 8 }}>
+        <div style={{ height: 280, overflowY: "auto", border: "1px solid var(--border)", borderRadius: 8 }}>
           {filtered.map(({ item, label }) => {
             const inKit = data.kitItems.some(k => k.costumeItemId === item.id)
             const isOut = item.stock === 0
@@ -399,7 +400,7 @@ function StepKit({ data, upd, costumeItems, lookupById, errors }: { data: Wizard
                       // eslint-disable-next-line @next/next/no-img-element
                       ? <img src={item.images[0]} alt="" width={36} height={36} style={{ width: 36, height: 36, borderRadius: 6, objectFit: "cover", flexShrink: 0 }} />
                       : <div style={{ width: 36, height: 36, borderRadius: 6, background: "var(--surface-2)", flexShrink: 0 }} />}
-                    <p style={{ fontSize: 12, fontWeight: 600, color: "var(--text)", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    <p style={{ fontSize: 12, fontWeight: 600, color: "var(--text)", margin: 0, overflowWrap: "anywhere" }}>
                       {label} {item.stock > 1 ? `· ×${item.stock}` : ""}
                     </p>
                   </div>
@@ -419,13 +420,13 @@ function StepKit({ data, upd, costumeItems, lookupById, errors }: { data: Wizard
           {tRental("kitSelected")}
         </p>
         {errors.kit && <p style={{ color: "var(--danger)", fontSize: 12, margin: 0 }}>{errors.kit}</p>}
-        <div style={{ flex: 1, overflowY: "auto", border: "1px solid var(--border)", borderRadius: 8 }}>
+        <div style={{ minHeight: 120, maxHeight: 280, overflowY: "auto", border: "1px solid var(--border)", borderRadius: 8 }}>
           {data.kitItems.length === 0
             ? <p style={{ padding: "16px", color: "var(--text-muted)", fontSize: 13, margin: 0, textAlign: "center" }}>{tRental("noItemAdded")}</p>
             : data.kitItems.map(ki => (
               <div key={ki.costumeItemId} style={{ padding: "8px 12px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 8 }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{ fontSize: 12, fontWeight: 600, color: "var(--text)", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{ki.label}</p>
+                  <p style={{ fontSize: 12, fontWeight: 600, color: "var(--text)", margin: 0, overflowWrap: "anywhere" }}>{ki.label}</p>
                 </div>
                 {ki.stock > 1 && (
                   <div style={{ display: "flex", alignItems: "center", border: "1px solid var(--border)", borderRadius: 8, overflow: "hidden", flexShrink: 0 }}>

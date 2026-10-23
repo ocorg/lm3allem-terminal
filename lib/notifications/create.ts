@@ -6,7 +6,7 @@ import { defer }           from "@/lib/utils/defer"
 
 export type NotificationType =
   | "rental" | "caisse_open" | "caisse_close" | "low_stock"
-  | "discount" | "big_amount" | "cash_alert" | "account"
+  | "discount" | "big_amount" | "cash_alert" | "account" | "return"
 
 export interface NotificationInput {
   title:  string
@@ -20,7 +20,7 @@ export interface NotificationInput {
 }
 
 const PORTAL_LABEL: Record<string, string> = { magazin: "المتجر", costumes: "البدلات", lm3allem: "الإدارة" }
-const TYPE_ICON: Record<string, string> = { rental: "👔", caisse_open: "🟢", caisse_close: "🔴", low_stock: "⚠️", discount: "🏷️", big_amount: "💰", cash_alert: "🚨", account: "🔐" }
+const TYPE_ICON: Record<string, string> = { rental: "👔", caisse_open: "🟢", caisse_close: "🔴", low_stock: "⚠️", discount: "🏷️", big_amount: "💰", cash_alert: "🚨", account: "🔐", return: "↩️" }
 
 /** Best-effort: never throws, so it can be awaited after a committed business operation. */
 export async function createNotification(input: NotificationInput): Promise<void> {

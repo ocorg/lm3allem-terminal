@@ -104,7 +104,7 @@ export function RequestList({ requests, categories: initialCategories, role }: R
     { key: "requestedByName", label: t("requestedBy"), render: (v) => <span style={{ fontSize: 12, color: "var(--text-muted)" }}>{v as string}</span> },
     { key: "createdAt",       label: tCom("date"),      render: (v) => <span style={{ fontSize: 12, color: "var(--text-muted)" }}><DateText value={v as string} /></span> },
     ...(isAdmin ? [{
-      key: "id" as keyof ProductRequestForList, label: t("action"),
+      key: "id" as keyof ProductRequestForList, label: t("action"), actions: true,
       render: (_: unknown, row: ProductRequestForList) => (
         <div style={{ display: "flex", gap: 10, flexWrap: "nowrap" }}>
           {row.status === "pending" && (

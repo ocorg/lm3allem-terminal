@@ -3,7 +3,7 @@ import { formatSignedMAD }      from "@/lib/utils/currency"
 import { formatRelative } from "@/lib/utils/date"
 import type { TransactionEntry } from "@/lib/actions/magazin/caisse"
 import React from "react"
-import { paymentMethodLabel } from "@/lib/utils/labels"
+import { paymentMethodLabel, refundMethodLabel } from "@/lib/utils/labels"
 
 export function TransactionList({ transactions }: { transactions: TransactionEntry[] }) {
   const t = useTranslations("caisse")
@@ -26,8 +26,10 @@ export function TransactionList({ transactions }: { transactions: TransactionEnt
       {transactions.map((tx, i) => {
         const amount = parseFloat(tx.amount)
         const isNeg  = amount < 0
-        const accent = tx.type === "sale" ? "var(--primary)" : isNeg ? "var(--danger)" : "var(--success)"
+        const isReturn = tx.type === "return"
+        const accent = tx.type === "sale" ? "var(--primary)" : isReturn ? "var(--warning)" : isNeg ? "var(--danger)" : "var(--success)"
         const nonCash = tx.method === "tpe" || tx.method === "banque"
+        const methodText = tx.method ? (isReturn ? refundMethodLabel(tx.method) : paymentMethodLabel(tx.method)) : ""
 
         return (
           <div
@@ -43,9 +45,10 @@ export function TransactionList({ transactions }: { transactions: TransactionEnt
           >
             <div style={{ flex: 1, minWidth: 0 }}>
               <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", margin: 0 }}>{tx.label}</p>
+              {tx.note && <p style={{ fontSize: 12, color: "var(--text-muted)", margin: "2px 0 0" }}>{tx.note}</p>}
               <p style={{ fontSize: 12, color: "var(--text-muted)", margin: "2px 0 0" }}>
                 {tx.actorName}
-                {tx.method ? ` · ${paymentMethodLabel(tx.method)}` : ""}{nonCash ? " (خارج الصندوق)" : ""}
+                {methodText ? ` · ${methodText}` : ""}{nonCash ? " (خارج الصندوق)" : ""}
                 {" · "}{formatRelative(tx.createdAt)}
               </p>
             </div>

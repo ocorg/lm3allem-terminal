@@ -116,13 +116,13 @@ export function CostumesInventoryClient({
 
   const columns: Column<(typeof rows)[number]>[] = [
     {
-      key: "images", label: tInv("colPhoto"), width: 56,
+      key: "images", label: tInv("colPhoto"), width: 56, media: true,
       render: (_, row) => row.images[0]
         ? <Image src={row.images[0]} alt="" width={40} height={40} style={{ borderRadius: 6, objectFit: "cover" }} />
         : <div style={{ width: 40, height: 40, borderRadius: 6, background: "var(--surface-2)" }} />,
     },
     {
-      key: "sku", label: "الرمز", sortable: true,
+      key: "sku", label: "الرمز", sortable: true, primary: true,
       render: (_, row) => <span className="mono" style={{ fontSize: 12, fontWeight: 600 }}>{row.sku ?? "-"}</span>,
     },
     {

@@ -5,6 +5,7 @@ import React from "react"
 const EMPTY_STATS: DashboardStats = {
   totalRevenue:       "0",
   magazinRevenue:     "0",
+  magazinReturns:     "0",
   costumesRevenue:    "0",
   openRentals:        0,
   activeUsers:        0,

@@ -25,7 +25,7 @@ import { IconButton } from "@/components/ui/IconButton"
 // ── Types ──────────────────────────────────────────────────────
 interface CartEntry {
   costumeItemId:   string
-  name_fr:         string
+  name_ar:         string
   itemLabel:       string
   stock:           number
   sellingPrice:    number
@@ -94,7 +94,7 @@ export function CostumesPOSClient({ items: serverItems, costumeTypes, lookupById
       }
       return [...prev, {
         costumeItemId:   item.id,
-        name_fr:         item.name_fr,
+        name_ar:         item.name_ar,
         itemLabel:       label(item),
         stock:           item.stock,
         sellingPrice:    parseFloat(item.sellingPrice),
@@ -117,7 +117,7 @@ export function CostumesPOSClient({ items: serverItems, costumeTypes, lookupById
   const totalQty  = cart.reduce((s, c) => s + c.quantity, 0)
   const isRTL     = locale === "ar"
 
-  const { isMobile } = useBreakpoint()
+  const { isMobile, isTablet } = useBreakpoint()
   const [mobileTab, setMobileTab] = useState<"products" | "cart">("products")
 
 
@@ -129,7 +129,7 @@ export function CostumesPOSClient({ items: serverItems, costumeTypes, lookupById
       return
     }
     if (below.length) {
-      setPendingItems(below.map(c => ({ name: c.name_fr, requestedPrice: c.unitPrice, minPrice: c.minSellingPrice })))
+      setPendingItems(below.map(c => ({ name: c.name_ar, requestedPrice: c.unitPrice, minPrice: c.minSellingPrice })))
       setShowBelowMin(true)
     } else {
       setShowPayment(true)
@@ -189,7 +189,7 @@ export function CostumesPOSClient({ items: serverItems, costumeTypes, lookupById
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: isMobile ? "column" : (isRTL ? "row-reverse" : "row"), height: "calc(100vh - 64px)", overflow: "hidden" }}>
+    <div style={{ display: "flex", flexDirection: isMobile ? "column" : (isRTL ? "row-reverse" : "row"), height: "calc(100dvh - 64px)", overflow: "hidden" }}>
 
       <h1 className="sr-only">نقطة بيع البدلات</h1>
       {/* Mobile: tab switcher */}
@@ -226,7 +226,7 @@ export function CostumesPOSClient({ items: serverItems, costumeTypes, lookupById
       <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", borderInlineEnd: isMobile ? "none" : "1px solid var(--border)" }}>
         <div style={{ padding: "12px 16px 0", display: "flex", flexDirection: "column", gap: 10, flexShrink: 0 }}>
           <SearchBar value={search} onChange={setSearch} placeholder="بحث..." />
-          <div style={{ display: "flex", gap: 10, overflowX: "auto", scrollbarWidth: "none", paddingBottom: 2 }}>
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", paddingBottom: 2 }}>
             <Chip label="الكل"  active={!typeFilter}   onClick={() => setTypeFilter(null)} />
             {costumeTypes.map(t => (
               <Chip key={t.id} label={t.label_ar} active={typeFilter === t.id} onClick={() => setTypeFilter(f => f === t.id ? null : t.id)} />
@@ -238,7 +238,7 @@ export function CostumesPOSClient({ items: serverItems, costumeTypes, lookupById
           {filtered.length === 0 ? (
             <p style={{ textAlign: "center", color: "var(--text-muted)", paddingTop: 64, fontSize: 13, margin: 0 }}>لا توجد منتجات</p>
           ) : (
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(148px, 1fr))", gap: 12 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 132px), 1fr))", gap: 12 }}>
               {filtered.map(item => {
                 const inCart = cart.some(c => c.costumeItemId === item.id)
                 const isOut  = item.stock === 0
@@ -257,8 +257,8 @@ export function CostumesPOSClient({ items: serverItems, costumeTypes, lookupById
                       }
                     </div>
                     <div style={{ padding: "8px 10px 10px" }}>
-                      <p style={{ fontSize: 12, fontWeight: 600, color: "var(--text)", margin: "0 0 2px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{name}</p>
-                      <p style={{ fontSize: 12, color: "var(--text-muted)", margin: "0 0 6px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{label(item)}</p>
+                      <p style={{ fontSize: 12, fontWeight: 600, color: "var(--text)", margin: "0 0 2px", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", overflowWrap: "anywhere" }}>{name}</p>
+                      <p style={{ fontSize: 12, color: "var(--text-muted)", margin: "0 0 6px", overflowWrap: "anywhere" }}>{label(item)}</p>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                         <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text)" }}>{formatMAD(item.sellingPrice)}</span>
                         <span style={{
@@ -281,7 +281,7 @@ export function CostumesPOSClient({ items: serverItems, costumeTypes, lookupById
 
       {/* ── Cart panel ── */}
       {(!isMobile || mobileTab === "cart") && (
-      <div style={{ width: isMobile ? "100%" : 340, flexShrink: 0, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+      <div style={{ width: isMobile ? "100%" : isTablet ? 300 : 340, flexShrink: 0, display: "flex", flexDirection: "column", overflow: "hidden" }}>
         <div style={{ padding: "14px 16px 12px", borderBottom: "1px solid var(--border)", flexShrink: 0, display: "flex", alignItems: "center", gap: 8 }}>
           <ShoppingCart size={16} style={{ color: "var(--text-muted)" }} />
           <span style={{ fontSize: 14, fontWeight: 600, color: "var(--text)" }}>السلة</span>
@@ -295,12 +295,12 @@ export function CostumesPOSClient({ items: serverItems, costumeTypes, lookupById
               <div key={entry.costumeItemId} style={{ padding: "10px 16px", borderBottom: "1px solid var(--border)" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
                   <div style={{ flex: 1, minWidth: 0, marginInlineEnd: 8 }}>
-                    <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{entry.name_fr}</p>
+                    <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", margin: 0, overflowWrap: "anywhere" }}>{entry.name_ar}</p>
                     <p style={{ fontSize: 12, color: "var(--text-muted)", margin: "2px 0 0" }}>{entry.itemLabel}</p>
                   </div>
                   <IconButton label="حذف من السلة" tone="danger" size="sm" onClick={() => updateQty(entry.costumeItemId, 0)}><Trash2 size={16} /></IconButton>
                 </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                   <div style={{ display: "flex", alignItems: "center", border: "1px solid var(--border)", borderRadius: 8, overflow: "hidden", flexShrink: 0 }}>
                     <IconButton label="إنقاص الكمية" size="sm" onClick={() => updateQty(entry.costumeItemId, entry.quantity - 1)} style={{ border: "none", borderRadius: 0, background: "var(--surface-2)" }}><Minus size={16} /></IconButton>
                     <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", minWidth: 32, textAlign: "center" }}>{entry.quantity}</span>
@@ -308,10 +308,12 @@ export function CostumesPOSClient({ items: serverItems, costumeTypes, lookupById
                   </div>
                   <input
                     type="number"
+                    aria-label="سعر الوحدة"
+                    inputMode="decimal"
                     value={entry.unitPrice}
                     onChange={e => updatePrice(entry.costumeItemId, parseFloat(e.target.value) || 0)}
                     style={{
-                      flex: 1, background: "var(--surface-2)", outline: "none",
+                      flex: 1, minWidth: 90, minHeight: 32, background: "var(--surface-2)", outline: "none",
                       border: `1px solid ${entry.unitPrice < entry.minSellingPrice ? "var(--warning)" : "var(--border)"}`,
                       borderRadius: 6, padding: "4px 8px", fontSize: 13, fontWeight: 600, color: "var(--text)",
                     }}

@@ -6,13 +6,18 @@ import { computeCaisseTotals } from "@/lib/finance/caisse"
 import { ActionError } from "@/lib/actions/result"
 import { actorLabel } from "@/lib/utils/actor"
 import { asId } from "@/lib/validation"
+import { returnKindLabel } from "@/lib/utils/labels"
+import { formatMAD } from "@/lib/utils/currency"
 
 // ── Shapes ─────────────────────────────────────────
 export interface TransactionEntry {
-  type:       "sale" | "credit_payment" | "manual"
+  type:       "sale" | "credit_payment" | "manual" | "return"
   id:         string
   amount:     string
   label:      string
+  /** extra line under the label (e.g. a debt reduced by a return) */
+  note?:      string
+  /** for returns: "none" = no money moved */
   method?:    string
   actorName:  string
   createdAt:  string
@@ -25,6 +30,9 @@ export interface SessionStats {
   totalSales:     number
   /** cash received from credit repayments */
   creditPayments: number
+  /** cash handed back for returns */
+  returnsCash:    number
+  returnsCount:   number
   totalManual:    number
   /** card + bank transfers: NOT in the drawer */
   nonCash:        number
@@ -47,7 +55,7 @@ export async function getSessionStats(
   })
   if (!session || session.portal !== "magazin") throw new ActionError("not_found")
 
-  const [totals, sales, creditPayments, manualEntries] = await Promise.all([
+  const [totals, sales, creditPayments, manualEntries, returns] = await Promise.all([
     computeCaisseTotals(sessionId, "magazin"),
     prisma.sale.findMany({
       where:   { caisseSessionId: sessionId },
@@ -76,6 +84,15 @@ export async function getSessionStats(
       orderBy: { createdAt: "desc" },
       take:    40,
     }),
+    prisma.saleReturn.findMany({
+      where:   { caisseSessionId: sessionId },
+      select:  {
+        id: true, kind: true, reason: true, refundAmount: true, refundMethod: true, debtReduction: true, createdAt: true,
+        processedBy: { select: { name: true, role: true } },
+      },
+      orderBy: { createdAt: "desc" },
+      take:    40,
+    }),
   ])
 
   const transactions: TransactionEntry[] = [
@@ -97,6 +114,17 @@ export async function getSessionStats(
       actorName: actorLabel(p.recordedBy),
       createdAt: p.createdAt.toISOString(),
     })),
+    // returns are their own lines: money going OUT (negative), or nothing when no money moved
+    ...returns.map((r) => ({
+      type:      "return" as const,
+      id:        r.id,
+      amount:    r.refundAmount.negated().toString(),
+      label:     `${returnKindLabel(r.kind)}: ${r.reason}`,
+      note:      r.debtReduction.greaterThan(0) ? `خُصم من الدين ${formatMAD(r.debtReduction)}` : undefined,
+      method:    r.refundMethod,
+      actorName: actorLabel(r.processedBy),
+      createdAt: r.createdAt.toISOString(),
+    })),
     ...manualEntries.map((e) => ({
       type:      "manual" as const,
       id:        e.id,
@@ -114,6 +142,8 @@ export async function getSessionStats(
     openingAmount:  totals.openingAmount.toString(),
     totalSales:     totals.lines.sales,
     creditPayments: totals.lines.creditPayments,
+    returnsCash:    totals.lines.returnsCash,
+    returnsCount:   totals.returnsCount,
     totalManual:    totals.manual,
     nonCash:        totals.nonCash,
     runningTotal:   totals.expectedCash,

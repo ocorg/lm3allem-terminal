@@ -1,6 +1,8 @@
 /** Arabic labels for activity-log action codes (unknown codes fall back to the raw code). */
 const LABELS: Record<string, string> = {
   "sale.created":              "عملية بيع",
+  "sale.returned":             "إرجاع سلع من عميل",
+  "sale.corrected":            "تصحيح خطأ في بيع",
   "costume_sale.created":      "بيع بدلة",
   "credit.payment_added":      "أداء دين",
   "caisse.opened":             "فتح الصندوق",
@@ -45,4 +47,27 @@ const LABELS: Record<string, string> = {
 
 export function actionLabel(action: string): string {
   return LABELS[action] ?? action
+}
+
+/** Arabic names for the kinds of records in the activity log (unknown kinds fall back to the raw code). */
+const ENTITIES: Record<string, string> = {
+  sale:           "بيع",
+  sale_return:    "إرجاع",
+  costume_sale:   "بيع بدلة",
+  credit:         "دين",
+  caisse:         "صندوق",
+  rental:         "إيجار",
+  rental_payment: "دفعة إيجار",
+  client:         "عميل",
+  product:        "منتج",
+  productRequest: "طلب منتج",
+  costume_item:   "قطعة بدلة",
+  expense:        "مصروف",
+  user:           "مستخدم",
+  settings:       "إعدادات",
+  lookup_value:   "خيار",
+}
+
+export function entityLabel(entityType: string): string {
+  return ENTITIES[entityType] ?? entityType
 }

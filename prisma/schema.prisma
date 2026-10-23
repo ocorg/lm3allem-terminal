@@ -81,6 +81,23 @@ enum CreditStatus {
   settled
 }
 
+/// Why goods came back to the shop. Each kind is recorded as itself, never as a negative sale.
+enum ReturnKind {
+  /// the customer brought the goods back
+  customer_return
+  /// the sale was recorded by mistake (it did not really happen, or not like that)
+  entry_error
+}
+
+/// How the money of a return went back. "none" = no money changed hands (a correction of a sale
+/// whose till is already closed, or a return that only reduced a debt).
+enum RefundMethod {
+  cash
+  tpe
+  banque
+  none
+}
+
 enum RequestStatus {
   pending
   reviewed
@@ -122,6 +139,8 @@ model User {
   rentalPayments         RentalPayment[]
   expenses               Expense[]
   authorizedSaleItems    SaleItem[]          @relation("SaleItemAuthorizer")
+  processedReturns       SaleReturn[]        @relation("SaleReturnProcessor")
+  authorizedReturns      SaleReturn[]        @relation("SaleReturnAuthorizer")
   authorizedCostumeItems CostumeSaleItem[]   @relation("CostumeSaleItemAuthorizer")
 }
 
@@ -168,6 +187,8 @@ model SystemSettings {
   maintenanceMessage_fr String?
   maintenanceMessage_ar String?
   defaultStaffPermissions Json
+  /// A shop sale can be returned during this many days. After that, only an admin can do it.
+  returnWindowDays      Int      @default(7)
   updatedAt             DateTime @updatedAt
 }
 
@@ -243,6 +264,7 @@ model Sale {
 
   items           SaleItem[]
   credit          Credit?
+  returns         SaleReturn[]
 
   @@index([createdAt])
   @@index([caisseSessionId])
@@ -259,6 +281,63 @@ model SaleItem {
   wasBelowMin    Boolean        @default(false)
   authorizedById String?
   authorizedBy   User?          @relation("SaleItemAuthorizer", fields: [authorizedById], references: [id])
+  /// Pieces of this line already returned (all returns together). Never above `quantity`.
+  returnedQuantity Int          @default(0)
+
+  returnItems    SaleReturnItem[]
+}
+
+// ─── MAGAZIN | RETURNS ───────────────────────────────
+
+/// Goods brought back from a shop sale (or a sale recorded by mistake). The original sale is never
+/// changed: the return is its own record, attached to the till that was open when it happened.
+///
+///   totalValue    = returned pieces x the price they were sold at
+///   debtReduction = part of that value taken off the customer's debt (credit sales)
+///   refundAmount  = the rest: money handed back (or, for a correction, money that never came in)
+model SaleReturn {
+  id              String        @id @default(cuid())
+  /// idempotency key: a retried request returns the first return
+  requestId       String        @unique
+  saleId          String
+  sale            Sale          @relation(fields: [saleId], references: [id])
+  caisseSessionId String
+  caisseSession   CaisseSession @relation(fields: [caisseSessionId], references: [id])
+  kind            ReturnKind
+  reason          String
+  totalValue      Decimal       @db.Decimal(10, 2)
+  refundAmount    Decimal       @db.Decimal(10, 2)
+  refundMethod    RefundMethod
+  debtReduction   Decimal       @db.Decimal(10, 2) @default(0)
+  /// done after the return period, which only an admin may do
+  afterDeadline   Boolean       @default(false)
+  processedById   String
+  processedBy     User          @relation("SaleReturnProcessor", fields: [processedById], references: [id])
+  /// the admin who approved it (the admin themself when they did it)
+  authorizedById  String
+  authorizedBy    User          @relation("SaleReturnAuthorizer", fields: [authorizedById], references: [id])
+  createdAt       DateTime      @default(now())
+
+  items           SaleReturnItem[]
+
+  @@index([createdAt])
+  @@index([saleId])
+  @@index([caisseSessionId])
+}
+
+model SaleReturnItem {
+  id         String     @id @default(cuid())
+  returnId   String
+  saleReturn SaleReturn @relation(fields: [returnId], references: [id])
+  saleItemId String
+  saleItem   SaleItem   @relation(fields: [saleItemId], references: [id])
+  quantity   Int
+  unitPrice  Decimal    @db.Decimal(10, 2)
+  /// false = damaged, kept out of stock
+  restocked  Boolean
+
+  @@index([returnId])
+  @@index([saleItemId])
 }
 
 // ─── CAISSE ───────────────────────────────────────────
@@ -279,6 +358,7 @@ model CaisseSession {
   closedAt       DateTime?
 
   sales          Sale[]
+  saleReturns    SaleReturn[]
   costumeSales   CostumeSale[]
   rentalPayments RentalPayment[]
   creditPayments CreditPayment[]

@@ -61,7 +61,7 @@ export function ProductTable({ products, categories, sizes, colors, lookupById, 
 
   const columns: Column<ProductForInventory & { id: string }>[] = [
     {
-      key: "images", label: t("colPhoto"), width: 60,
+      key: "images", label: t("colPhoto"), width: 60, media: true,
       render: (_, row) => (
         <div style={{ width: 40, height: 40, borderRadius: 6, overflow: "hidden", background: "var(--surface-2)" }}>
           {row.images[0]
@@ -72,7 +72,7 @@ export function ProductTable({ products, categories, sizes, colors, lookupById, 
       ),
     },
     {
-      key: "name_ar", label: t("colProduct"), sortable: true,
+      key: "name_ar", label: t("colProduct"), sortable: true, primary: true,
       render: (_, row) => (
         <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", margin: 0 }}>{row.name_ar}</p>
       ),

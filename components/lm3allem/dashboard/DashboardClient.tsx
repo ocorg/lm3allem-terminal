@@ -9,6 +9,7 @@ import {
   XAxis, YAxis, Tooltip, Legend,
   ResponsiveContainer,
 } from "recharts"
+import { Button }        from "@/components/ui/Button"
 import { StatCard }      from "@/components/ui/StatCard"
 import { Skeleton }      from "@/components/ui/Skeleton"
 import { Badge }         from "@/components/ui/Badge"
@@ -16,7 +17,7 @@ import { formatNumber, formatMAD }     from "@/lib/utils/currency"
 import { formatRelative } from "@/lib/utils/date"
 import { actionLabel } from "@/lib/utils/action-labels"
 import {
-  TrendingUp, Store, Shirt, Calendar, Users, Wallet,
+  TrendingUp, Store, Shirt, Calendar, Users, Wallet, Undo2,
 } from "lucide-react"
 import type { DashboardStats } from "@/lib/actions/lm3allem/dashboard"
 import React from "react"
@@ -66,10 +67,14 @@ const chartVariants: Variants = {
   visible:  { opacity: 1, transition: { duration: 0.4, delay: 0.42 } },
 }
 
+const LOW_PREVIEW = 6
+
 export function DashboardClient({ stats }: { stats: DashboardStats }) {
   const t             = useTranslations("lm3allem.dashboard")
   const shouldReduce  = useReducedMotion()
   const [mounted, setMounted] = useState(false)
+  // a short list first: the full list is one tap away (long lists are tiring on a phone)
+  const [showAllLow, setShowAllLow] = useState(false)
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -91,11 +96,12 @@ export function DashboardClient({ stats }: { stats: DashboardStats }) {
         variants={shouldReduce ? {} : containerVariants}
         initial={shouldReduce ? false : "hidden"}
         animate="visible"
-        style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))", gap: 12 }}
+        className="stat-grid"
       >
         {[
           { label: t("stats.totalRevenue"),       value: formatMAD(stats.totalRevenue),       numericValue: Number(stats.totalRevenue),       icon: TrendingUp, trend: "up"      as const, currency: true,  delay: 0   },
           { label: t("stats.magazinRevenue"),     value: formatMAD(stats.magazinRevenue),     numericValue: Number(stats.magazinRevenue),     icon: Store,      trend: "neutral" as const, currency: true,  delay: 60  },
+          { label: t("stats.magazinReturns"),     value: formatMAD(stats.magazinReturns),     numericValue: Number(stats.magazinReturns),     icon: Undo2,      trend: undefined,           currency: true,  delay: 90  },
           { label: t("stats.costumesRevenue"),    value: formatMAD(stats.costumesRevenue),    numericValue: Number(stats.costumesRevenue),    icon: Shirt,      trend: "neutral" as const, currency: true,  delay: 120 },
           { label: t("stats.openRentals"),        value: stats.openRentals.toString(),        numericValue: stats.openRentals,                icon: Calendar,   trend: undefined,           currency: false, delay: 180 },
           { label: t("stats.activeUsers"),        value: stats.activeUsers.toString(),        numericValue: stats.activeUsers,                icon: Users,      trend: undefined,           currency: false, delay: 240 },
@@ -241,8 +247,8 @@ export function DashboardClient({ stats }: { stats: DashboardStats }) {
             <p style={{ color: "var(--text-muted)", fontSize: 14 }}>{t("noLowStock")}</p>
           ) : (
             <div style={{ display: "flex", flexDirection: "column" }}>
-              {stats.lowStockItems.map((item, i) => (
-                <div key={item.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0.625rem 0", borderBottom: i < stats.lowStockItems.length - 1 ? "1px solid var(--border)" : "none", borderInlineStart: `3px solid ${item.stock === 0 ? "var(--danger)" : "var(--warning)"}`, paddingInlineStart: 12 }}>
+              {(showAllLow ? stats.lowStockItems : stats.lowStockItems.slice(0, LOW_PREVIEW)).map((item, i, shown) => (
+                <div key={item.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, padding: "0.625rem 0", borderBottom: i < shown.length - 1 ? "1px solid var(--border)" : "none", borderInlineStart: `3px solid ${item.stock === 0 ? "var(--danger)" : "var(--warning)"}`, paddingInlineStart: 12 }}>
                   <div>
                     <div style={{ fontSize: 14, color: "var(--text)" }}>{item.name}</div>
                     <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 2 }}>{portalLabel(item.portal)}</div>
@@ -252,6 +258,11 @@ export function DashboardClient({ stats }: { stats: DashboardStats }) {
                   </Badge>
                 </div>
               ))}
+              {stats.lowStockItems.length > LOW_PREVIEW && (
+                <Button variant="secondary" size="sm" style={{ alignSelf: "flex-start", marginTop: 12 }} onClick={() => setShowAllLow((v) => !v)}>
+                  {showAllLow ? t("showLess") : t("showAll", { count: stats.lowStockItems.length })}
+                </Button>
+              )}
             </div>
           )}
         </div>

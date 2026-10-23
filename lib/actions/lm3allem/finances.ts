@@ -15,7 +15,10 @@ export interface DateRange {
 
 export interface MonthlyData {
   month: string // "YYYY-MM"
+  /** shop sales + debt repayments, before returns */
   magazinSales: string
+  /** money given back for shop returns (subtracted in net) */
+  magazinReturns: string
   costumesSales: string
   rentalRevenue: string
   expenses: string
@@ -26,6 +29,7 @@ export interface FinancesData {
   monthly: MonthlyData[]
   totals: {
     magazinSales: string
+    magazinReturns: string
     costumesSales: string
     rentalRevenue: string
     expenses: string
@@ -50,15 +54,16 @@ export async function getFinancesData(range: DateRange): Promise<FinancesData> {
     }),
   ])
 
-  type Bucket = { magazinSales: number; costumesSales: number; rentalRevenue: number; expenses: number }
+  type Bucket = { magazinSales: number; magazinReturns: number; costumesSales: number; rentalRevenue: number; expenses: number }
   const map = new Map<string, Bucket>()
   const ensure = (k: string): Bucket => {
     let b = map.get(k)
-    if (!b) { b = { magazinSales: 0, costumesSales: 0, rentalRevenue: 0, expenses: 0 }; map.set(k, b) }
+    if (!b) { b = { magazinSales: 0, magazinReturns: 0, costumesSales: 0, rentalRevenue: 0, expenses: 0 }; map.set(k, b) }
     return b
   }
 
   revenue.magazin.forEach((r)  => { ensure(monthKey(r.at)).magazinSales  += r.amount })
+  revenue.magazinReturns.forEach((r) => { ensure(monthKey(r.at)).magazinReturns += r.amount })
   revenue.costumes.forEach((r) => { ensure(monthKey(r.at)).costumesSales += r.amount })
   revenue.rentals.forEach((r)  => { ensure(monthKey(r.at)).rentalRevenue += r.amount })
   expenses.forEach((e)         => { ensure(monthKey(e.date)).expenses    += toNum(e.amount) })
@@ -73,13 +78,14 @@ export async function getFinancesData(range: DateRange): Promise<FinancesData> {
     if (m > 12) { m = 1; y += 1 }
   }
 
-  const empty: Bucket = { magazinSales: 0, costumesSales: 0, rentalRevenue: 0, expenses: 0 }
+  const empty: Bucket = { magazinSales: 0, magazinReturns: 0, costumesSales: 0, rentalRevenue: 0, expenses: 0 }
   const monthly: MonthlyData[] = allMonths.map((month) => {
     const b = map.get(month) ?? empty
-    const net = b.magazinSales + b.costumesSales + b.rentalRevenue - b.expenses
+    const net = b.magazinSales - b.magazinReturns + b.costumesSales + b.rentalRevenue - b.expenses
     return {
       month,
       magazinSales:  round2(b.magazinSales).toString(),
+      magazinReturns: round2(b.magazinReturns).toString(),
       costumesSales: round2(b.costumesSales).toString(),
       rentalRevenue: round2(b.rentalRevenue).toString(),
       expenses:      round2(b.expenses).toString(),
@@ -90,18 +96,20 @@ export async function getFinancesData(range: DateRange): Promise<FinancesData> {
   const sums = monthly.reduce(
     (acc, m) => ({
       magazinSales:  acc.magazinSales  + Number(m.magazinSales),
+      magazinReturns: acc.magazinReturns + Number(m.magazinReturns),
       costumesSales: acc.costumesSales + Number(m.costumesSales),
       rentalRevenue: acc.rentalRevenue + Number(m.rentalRevenue),
       expenses:      acc.expenses      + Number(m.expenses),
       net:           acc.net           + Number(m.net),
     }),
-    { magazinSales: 0, costumesSales: 0, rentalRevenue: 0, expenses: 0, net: 0 }
+    { magazinSales: 0, magazinReturns: 0, costumesSales: 0, rentalRevenue: 0, expenses: 0, net: 0 }
   )
 
   return {
     monthly,
     totals: {
       magazinSales:  round2(sums.magazinSales).toString(),
+      magazinReturns: round2(sums.magazinReturns).toString(),
       costumesSales: round2(sums.costumesSales).toString(),
       rentalRevenue: round2(sums.rentalRevenue).toString(),
       expenses:      round2(sums.expenses).toString(),

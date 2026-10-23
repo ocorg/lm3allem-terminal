@@ -49,7 +49,7 @@ export function CartItem({ item, onUpdateQty, onUpdatePrice, onRemove }: CartIte
       {/* Name row */}
       <div style={{ display: "flex", alignItems: "flex-start", gap: 8, marginBottom: 8 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <p style={{ fontSize: 12, fontWeight: 600, color: "var(--text)", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          <p style={{ fontSize: 12, fontWeight: 600, color: "var(--text)", margin: 0, overflowWrap: "anywhere" }}>
             {item.name_ar}
           </p>
           <p style={{ fontSize: 12, color: "var(--text-muted)", margin: "1px 0 0" }}>
@@ -66,8 +66,8 @@ export function CartItem({ item, onUpdateQty, onUpdatePrice, onRemove }: CartIte
         </IconButton>
       </div>
 
-      {/* Controls row */}
-      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+      {/* Controls row (wraps in a narrow cart so the price stays readable) */}
+      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
 
         {/* Qty */}
         <div style={{ display: "flex", alignItems: "center", border: "1px solid var(--border)", borderRadius: 6, overflow: "hidden", flexShrink: 0 }}>
@@ -83,8 +83,10 @@ export function CartItem({ item, onUpdateQty, onUpdatePrice, onRemove }: CartIte
         </div>
 
         {/* Unit price (editable) */}
-        <div style={{ display: "flex", alignItems: "center", gap: 4, flex: 1, minWidth: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 4, flex: 1, minWidth: 110 }}>
           <input
+            aria-label="سعر الوحدة"
+            inputMode="decimal"
             type="number"
             value={priceStr}
             min="0"

@@ -64,7 +64,7 @@ export function CatalogueGrid({ products, categories, sizes, colors, lookupById 
           {t("noProducts")}
         </div>
       ) : (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 16 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 150px), 1fr))", gap: 12 }}>
           {filtered.map(p => {
             const totalStock = p.variants.reduce((s, v) => s + v.stock, 0)
             const isOut      = totalStock === 0

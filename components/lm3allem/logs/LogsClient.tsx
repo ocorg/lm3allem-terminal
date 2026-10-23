@@ -1,5 +1,6 @@
 "use client"
 
+import { DataTable } from "@/components/ui/DataTable"
 import { useRouter, useParams } from "next/navigation"
 import { useTranslations } from "next-intl"
 import { Select } from "@/components/ui/Select"
@@ -13,7 +14,7 @@ const PORTAL_VARIANT: Record<string, "primary" | "info" | "success"> = {
   lm3allem: "success",
 }
 import type { LogsResult } from "@/lib/actions/lm3allem/logs"
-import { actionLabel } from "@/lib/utils/action-labels"
+import { actionLabel, entityLabel } from "@/lib/utils/action-labels"
 import React from "react"
 import { DateText } from "@/components/ui/DateText"
 import { portalLabel } from "@/lib/utils/labels"
@@ -65,7 +66,7 @@ export function LogsClient({ result, actors, entityTypes, currentFilters }: Prop
           style={{ minWidth: "140px" }}
           options={[
             { value: "", label: t("allPortals") },
-            ...PORTALS.map((p) => ({ value: p, label: p })),
+            ...PORTALS.map((p) => ({ value: p, label: portalLabel(p) })),
           ]}
         />
         <Select
@@ -75,7 +76,7 @@ export function LogsClient({ result, actors, entityTypes, currentFilters }: Prop
           style={{ minWidth: "150px" }}
           options={[
             { value: "", label: "-" },
-            ...entityTypes.map((e) => ({ value: e, label: e })),
+            ...entityTypes.map((e) => ({ value: e, label: entityLabel(e) })),
           ]}
         />
         <Select
@@ -93,39 +94,19 @@ export function LogsClient({ result, actors, entityTypes, currentFilters }: Prop
         <Button variant="ghost" size="sm" onClick={() => router.push(`/${locale}/lm3allem/logs`)}>{t("reset")}</Button>
       </div>
 
-      {/* Table */}
-      <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "8px", overflow: "hidden" }}>
-        {result.logs.length === 0
-          ? <p style={{ padding: "2rem", textAlign: "center", color: "var(--text-muted)" }}>{t("noLogs")}</p>
-          : (
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
-              <thead>
-                <tr style={{ background: "var(--surface-2)" }}>
-                  {[t("at"), t("by"), t("action"), t("entity"), "Portal"].map((h, i) => (
-                    <th key={i} style={{ padding: "10px 16px", textAlign: "start", fontWeight: 600, fontSize: 12, color: "var(--text-muted)",borderBottom: "1px solid var(--border)" }}>
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {result.logs.map((l, i) => (
-                  <tr key={l.id} style={{ borderBottom: i < result.logs.length - 1 ? "1px solid var(--border)" : "none" }}>
-                    <td style={{ padding: "10px 16px", color: "var(--text-muted)", whiteSpace: "nowrap" }}><DateText value={l.createdAt} time /></td>
-                    <td style={{ padding: "10px 16px", fontWeight: 500 }}>{l.actorName}</td>
-                    <td style={{ padding: "10px 16px" }}>
-                      <div>{actionLabel(l.action)}</div>
-                      <code style={{ fontSize: 12, background: "var(--surface-2)", padding: "1px 5px", borderRadius: "4px", color: "var(--text-muted)" }}>{l.action}</code>
-                    </td>
-                    <td style={{ padding: "10px 16px", color: "var(--text-muted)" }}>{l.entityType} <span style={{ color: "var(--text-muted)", fontSize: 12 }}>#{l.entityId.slice(-6)}</span></td>
-                    <td style={{ padding: "10px 16px" }}><Badge variant={PORTAL_VARIANT[l.portal] ?? "default"}>{portalLabel(l.portal)}</Badge></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )
-        }
-      </div>
+      {/* Table (cards when it does not fit) */}
+      <DataTable
+        data={result.logs}
+        emptyMessage={t("noLogs")}
+        pageSize={1000}
+        columns={[
+          { key: "action", label: t("action"), primary: true, render: (_, l) => actionLabel(l.action) },
+          { key: "createdAt", label: t("at"), render: (_, l) => <span style={{ color: "var(--text-muted)", whiteSpace: "nowrap" }}><DateText value={l.createdAt} time /></span> },
+          { key: "actorName", label: t("by"), render: (_, l) => <span style={{ fontWeight: 500 }}>{l.actorName}</span> },
+          { key: "entityType", label: t("entity"), render: (_, l) => <span style={{ color: "var(--text-muted)" }}>{entityLabel(l.entityType)} <span style={{ fontSize: 12 }}>#{l.entityId.slice(-6)}</span></span> },
+          { key: "portal", label: t("portal"), render: (_, l) => <Badge variant={PORTAL_VARIANT[l.portal] ?? "default"}>{portalLabel(l.portal)}</Badge> },
+        ]}
+      />
 
       {/* Pagination */}
       {totalPages > 1 && (

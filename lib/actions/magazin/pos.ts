@@ -5,7 +5,7 @@ import { z } from "zod"
 import { getActiveLookups } from "@/lib/queries/lookups"
 import { prisma } from "@/lib/db/prisma"
 import { requireModule } from "@/lib/auth/guard"
-import { verifyOverrideToken } from "@/lib/auth/override"
+import { BELOW_MIN_SCOPE, verifyOverrideToken } from "@/lib/auth/override"
 import { logActivity } from "@/lib/activity/logger"
 import { createNotification } from "@/lib/notifications/create"
 import { assertOpenSession } from "@/lib/finance/session"
@@ -154,7 +154,7 @@ export async function createSale(
       return { saleId: existing.id }
     }
 
-    const overrideAdminId = verifyOverrideToken(input.overrideToken, user.id)
+    const overrideAdminId = verifyOverrideToken(input.overrideToken, user.id, BELOW_MIN_SCOPE)
 
     let saleId: string
     let soldVariantIds: string[]

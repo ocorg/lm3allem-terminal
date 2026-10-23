@@ -38,26 +38,55 @@ function trend(now: number, before: number): string {
 
 async function revenue(window: DateWindow) {
   const rows = await getRevenueRows(window)
-  const magazin = sum(rows.magazin), costumes = sum(rows.costumes), rentals = sum(rows.rentals)
-  return { magazin, costumes, rentals, total: magazin + costumes + rentals }
+  const returns = sum(rows.magazinReturns)
+  // shop revenue is NET of the money given back for returns; the returns are also reported apart
+  const magazin = sum(rows.magazin) - returns, costumes = sum(rows.costumes), rentals = sum(rows.rentals)
+  return { magazin, returns, costumes, rentals, total: magazin + costumes + rentals }
+}
+
+interface ReturnsSummary { count: number; value: number; refunded: number; debt: number; damaged: number; corrections: number }
+
+/** Shop returns made in a window, for the reports (each return is reported as a return). */
+async function returnsSummary(window: DateWindow): Promise<ReturnsSummary> {
+  const rows = await prisma.saleReturn.findMany({
+    where:  { createdAt: { gte: window.from, lte: window.to } },
+    select: { kind: true, totalValue: true, refundAmount: true, debtReduction: true, items: { select: { quantity: true, restocked: true } } },
+  })
+  return {
+    count:       rows.length,
+    value:       rows.reduce((s, r) => s + toNum(r.totalValue), 0),
+    refunded:    rows.reduce((s, r) => s + toNum(r.refundAmount), 0),
+    debt:        rows.reduce((s, r) => s + toNum(r.debtReduction), 0),
+    damaged:     rows.reduce((s, r) => s + r.items.filter((i) => !i.restocked).reduce((n, i) => n + i.quantity, 0), 0),
+    corrections: rows.filter((r) => r.kind === "entry_error").length,
+  }
+}
+
+function returnsLines(r: ReturnsSummary): string[] {
+  if (!r.count) return []
+  return [
+    `↩️ المرتجعات: ${count(r.count)}${r.corrections ? ` (منها تصحيح أخطاء: ${count(r.corrections)})` : ""} | القيمة ${formatMAD(r.value)}`,
+    `   المبلغ المرجع ${formatMAD(r.refunded)}${r.debt ? ` | خُصم من الديون ${formatMAD(r.debt)}` : ""}${r.damaged ? ` | قطع تالفة ${count(r.damaged)}` : ""}`,
+  ]
 }
 
 interface SoldItem { name: string; quantity: number; amount: number }
 
-/** What was sold in a window, both shops together, biggest quantity first. */
+/** What was sold in a window (minus the pieces returned since), both shops together, biggest quantity first. */
 async function soldItems(window: DateWindow): Promise<SoldItem[]> {
   const range = { gte: window.from, lte: window.to }
   const [shop, costumes] = await Promise.all([
-    prisma.saleItem.findMany({ where: { sale: { createdAt: range } }, select: { quantity: true, unitPrice: true, variant: { select: { product: { select: { name_ar: true } } } } } }),
+    prisma.saleItem.findMany({ where: { sale: { createdAt: range } }, select: { quantity: true, returnedQuantity: true, unitPrice: true, variant: { select: { product: { select: { name_ar: true } } } } } }),
     prisma.costumeSaleItem.findMany({ where: { sale: { createdAt: range } }, select: { quantity: true, unitPrice: true, costumeItem: { select: { name_ar: true, sku: true } } } }),
   ])
   const map = new Map<string, SoldItem>()
   const add = (name: string, quantity: number, price: number) => {
+    if (quantity <= 0) return
     const cur = map.get(name) ?? { name, quantity: 0, amount: 0 }
     cur.quantity += quantity; cur.amount += quantity * price
     map.set(name, cur)
   }
-  for (const i of shop) add(i.variant.product.name_ar, i.quantity, toNum(i.unitPrice))
+  for (const i of shop) add(i.variant.product.name_ar, i.quantity - i.returnedQuantity, toNum(i.unitPrice))
   for (const i of costumes) add([i.costumeItem.sku, i.costumeItem.name_ar].filter(Boolean).join(" "), i.quantity, toNum(i.unitPrice))
   return [...map.values()].sort((a, b) => b.quantity - a.quantity || b.amount - a.amount)
 }
@@ -133,7 +162,7 @@ export async function dayReport(now: Date = new Date(), title = "🌙 تقرير
   const range = { gte: from, lte: now }
   const today = dayKey(now)
 
-  const [rev, revBefore, shopSales, costumeSales, deposits, expenses, items] = await Promise.all([
+  const [rev, revBefore, shopSales, costumeSales, deposits, expenses, items, shopReturns] = await Promise.all([
     revenue(window),
     revenue(lastWeek),
     prisma.sale.findMany({ where: { createdAt: range }, select: { totalAmount: true, paymentMethod: true } }),
@@ -141,6 +170,7 @@ export async function dayReport(now: Date = new Date(), title = "🌙 تقرير
     prisma.rentalPayment.findMany({ where: { createdAt: range, type: { in: ["deposit_collected", "deposit_returned"] } }, select: { amount: true, type: true } }),
     prisma.expense.findMany({ where: { date: { gte: startOfDay(today), lte: endOfDay(today) } }, select: { amount: true, description: true } }),
     soldItems(window),
+    returnsSummary(window),
   ])
 
   const shopBlock = (label: string, sales: { totalAmount: unknown; paymentMethod: string }[]) => {
@@ -159,7 +189,7 @@ export async function dayReport(now: Date = new Date(), title = "🌙 تقرير
   const spent = expenses.reduce((s, e) => s + toNum(e.amount), 0)
 
   const out: string[] = [`${title} | ${formatDate(now)}`, `من ${formatDateTime(from)} إلى ${formatDateTime(now)}`, ""]
-  out.push("🧾 المبيعات", ...shopBlock("المتجر", shopSales), ...shopBlock("البدلات", costumeSales), "")
+  out.push("🧾 المبيعات", ...shopBlock("المتجر", shopSales), ...returnsLines(shopReturns), ...shopBlock("البدلات", costumeSales), "")
   out.push(`👔 إيرادات الإيجار: ${formatMAD(rev.rentals)}`)
   if (depositsIn || depositsOut) out.push(`   ضمانات مستلمة ${formatMAD(depositsIn)} | ضمانات مُرجعة ${formatMAD(depositsOut)}`)
   out.push("")
@@ -179,7 +209,7 @@ export async function weeklyReport(now: Date = new Date()): Promise<string> {
   const before: DateWindow = { from: new Date(now.getTime() - 14 * DAY), to: week.from }
   const monthAgo = new Date(now.getTime() - 30 * DAY)
 
-  const [rev, revBefore, items, expenses, oldDebts, sleeping] = await Promise.all([
+  const [rev, revBefore, items, expenses, oldDebts, sleeping, shopReturns] = await Promise.all([
     revenue(week),
     revenue(before),
     soldItems(week),
@@ -191,11 +221,12 @@ export async function weeklyReport(now: Date = new Date()): Promise<string> {
       select: { name_ar: true, variants: { select: { stock: true } } },
       take:   10,
     }),
+    returnsSummary(week),
   ])
   const spent = toNum(expenses._sum.amount)
 
   const out: string[] = [`🗓️ ملخص الأسبوع | من ${formatDate(week.from)} إلى ${formatDate(now)}`, ""]
-  out.push(`المتجر: ${formatMAD(rev.magazin)}`, `البدلات (بيع): ${formatMAD(rev.costumes)}`, `الإيجار: ${formatMAD(rev.rentals)}`)
+  out.push(`المتجر (بعد المرتجعات): ${formatMAD(rev.magazin)}`, ...returnsLines(shopReturns), `البدلات (بيع): ${formatMAD(rev.costumes)}`, `الإيجار: ${formatMAD(rev.rentals)}`)
   out.push(`💵 المجموع: ${formatMAD(rev.total)} | الأسبوع السابق ${formatMAD(revBefore.total)} | ${trend(rev.total, revBefore.total)}`)
   out.push(`🧮 المصروفات: ${formatMAD(spent)} | 📈 الصافي: ${formatSignedMAD(rev.total - spent, { plus: false })}`, "")
 
@@ -230,7 +261,7 @@ export async function monthlyReport(now: Date = new Date()): Promise<{ text: str
   ])
   const spent = toNum(expenses._sum.amount)
   const title = `حصيلة شهر ${MONTHS[month - 1]} ${year}`
-  const rows: [string, number][] = [["مبيعات المتجر", rev.magazin], ["مبيعات البدلات", rev.costumes], ["إيرادات الإيجار", rev.rentals], ["مجموع الإيرادات", rev.total], ["المصروفات", -spent], ["الصافي", rev.total - spent]]
+  const rows: [string, number][] = [["مبيعات المتجر", rev.magazin + rev.returns], ["مرتجعات المتجر", -rev.returns], ["مبيعات البدلات", rev.costumes], ["إيرادات الإيجار", rev.rentals], ["مجموع الإيرادات", rev.total], ["المصروفات", -spent], ["الصافي", rev.total - spent]]
 
   return {
     text: [`📅 ${title}`, "", ...rows.map(([label, v]) => `${label}: ${formatMAD(v)}`), "", ...(items.length ? ["🏆 الأكثر مبيعا", ...items.slice(0, 5).map((i, n) => `${n + 1}. ${i.name} | الكمية: ${i.quantity}`)] : [])].join("\n").trim(),

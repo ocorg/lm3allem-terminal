@@ -41,6 +41,12 @@ export const ERROR_MESSAGES = {
   item_unavailable:        "قطعة غير متوفرة",
 
   option_exists:           "هذا الخيار موجود بالفعل",
+
+  return_not_authorized:   "الإرجاع يتطلب موافقة مسؤول",
+  return_window_expired:   "انتهت مدة الإرجاع لهذا البيع. يمكن لمسؤول فقط القيام بالإرجاع من حسابه",
+  return_quantity:         "الكمية المرجعة أكبر من الكمية المتبقية في هذا البيع",
+  return_not_enough_cash:  "النقد المتوقع في الصندوق لا يكفي لإرجاع هذا المبلغ نقدا. اختر طريقة أخرى أو أدخل نقودا إلى الصندوق",
+  changed_meanwhile:       "تغيرت بيانات هذا البيع أثناء العملية، يرجى المحاولة مرة أخرى",
 } as const
 
 export type ErrorCode = keyof typeof ERROR_MESSAGES

@@ -82,7 +82,7 @@ export function CostumesCatalogueGrid({ items, sizes, colors, costumeTypes, look
           {t("catalogue.noItems")}
         </div>
       ) : (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 16 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 150px), 1fr))", gap: 12 }}>
           {filtered.map(item => {
             const isOut = item.stock === 0
             const name  = locale === "ar" ? item.name_ar : item.name_fr
@@ -116,8 +116,8 @@ export function CostumesCatalogueGrid({ items, sizes, colors, costumeTypes, look
                   </div>
                 </div>
                 <div style={{ padding: "10px 12px 12px" }}>
-                  <p style={{ fontSize: 13, fontWeight: 700, color: "var(--text)", margin: "0 0 2px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{name}</p>
-                  {lbl && <p style={{ fontSize: 12, color: "var(--text-muted)", margin: "0 0 8px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{lbl}</p>}
+                  <p style={{ fontSize: 13, fontWeight: 700, color: "var(--text)", margin: "0 0 2px", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden", overflowWrap: "anywhere" }}>{name}</p>
+                  {lbl && <p style={{ fontSize: 12, color: "var(--text-muted)", margin: "0 0 8px", overflowWrap: "anywhere" }}>{lbl}</p>}
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                     <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text)" }}>{formatMAD(item.sellingPrice)}</span>
                     <Badge variant="default">{item.typeLabelAr}</Badge>

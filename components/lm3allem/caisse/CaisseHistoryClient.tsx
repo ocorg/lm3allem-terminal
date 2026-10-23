@@ -1,5 +1,6 @@
 "use client"
 
+import { DataTable } from "@/components/ui/DataTable"
 import { useRouter, useParams } from "next/navigation"
 import { useTranslations } from "next-intl"
 import { Select } from "@/components/ui/Select"
@@ -51,8 +52,8 @@ export function CaisseHistoryClient({ result, filters }: Props) {
           style={{ minWidth: "160px" }}
           options={[
             { value: "", label: t("allPortals") },
-            { value: "magazin", label: "Magazin" },
-            { value: "costumes", label: "Costumes" },
+            { value: "magazin", label: portalLabel("magazin") },
+            { value: "costumes", label: portalLabel("costumes") },
           ]}
         />
         <Select
@@ -80,53 +81,33 @@ export function CaisseHistoryClient({ result, filters }: Props) {
         />
       </div>
 
-      {/* Table */}
-      <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "8px", overflow: "hidden" }}>
-        {result.sessions.length === 0
-          ? <p style={{ padding: "2rem", textAlign: "center", color: "var(--text-muted)" }}>{t("noSessions")}</p>
-          : (
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
-              <thead>
-                <tr style={{ background: "var(--surface-2)" }}>
-                  {[t("portalColumn"), t("openedBy"), t("openedAt"), t("openingAmount"), t("closingAmount"), t("expectedAmount"), t("difference"), t("allStatuses")].map((h) => (
-                    <th key={h} style={{ padding: "12px 16px", textAlign: "start", fontWeight: 600, fontSize: 12, color: "var(--text-muted)",borderBottom: "1px solid var(--border)" }}>
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {result.sessions.map((s, i) => {
-                  const diff = s.closingAmount && s.expectedAmount
-                    ? Number(s.closingAmount) - Number(s.expectedAmount)
-                    : null
-                  const isOpen = !s.closedAt
-                  return (
-                    <tr key={s.id} style={{ borderBottom: i < result.sessions.length - 1 ? "1px solid var(--border)" : "none", borderInlineStart: `3px solid ${isOpen ? "var(--warning)" : "var(--border)"}` }}>
-                      <td style={{ padding: "12px 16px" }}><Badge variant={PORTAL_VARIANT[s.portal] ?? "default"}>{portalLabel(s.portal)}</Badge></td>
-                      <td style={{ padding: "12px 16px" }}>{s.openedByName}</td>
-                      <td style={{ padding: "12px 16px", color: "var(--text-muted)" }}><DateText value={s.openedAt} /></td>
-                      <td style={{ padding: "12px 16px" }}>{formatMAD(s.openingAmount)}</td>
-                      <td style={{ padding: "12px 16px" }}>{s.closingAmount ? formatMAD(s.closingAmount) : "-"}</td>
-                      <td style={{ padding: "12px 16px" }}>{s.expectedAmount ? formatMAD(s.expectedAmount) : "-"}</td>
-                      <td style={{ padding: "12px 16px", fontWeight: 600, color: diff === null ? "var(--text-muted)" : diff >= 0 ? "var(--success)" : "var(--danger)" }}>
-                        {diff === null ? "-" : formatMAD(diff.toString())}
-                      </td>
-                      <td style={{ padding: "12px 16px" }}>
-                        {isOpen
-                          ? <Badge variant="warning">{t("open")}</Badge>
-                          : !s.closedByName && !s.closingAmount
-                            ? <Badge variant="info">مغلق تلقائيا</Badge>
-                            : <Badge variant="success">{t("closed")}</Badge>}
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          )
-        }
-      </div>
+      {/* Table (cards when it does not fit) */}
+      <DataTable
+        data={result.sessions}
+        emptyMessage={t("noSessions")}
+        pageSize={1000}
+        columns={[
+          { key: "portal", label: t("portalColumn"), primary: true, render: (_, s) => (
+            <span style={{ display: "inline-flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+              <Badge variant={PORTAL_VARIANT[s.portal] ?? "default"}>{portalLabel(s.portal)}</Badge>
+              <span style={{ fontSize: 12, color: "var(--text-muted)", fontWeight: 400 }}><DateText value={s.openedAt} /></span>
+            </span>
+          ) },
+          { key: "openedByName", label: t("openedBy") },
+          { key: "openingAmount", label: t("openingAmount"), render: (_, s) => formatMAD(s.openingAmount) },
+          { key: "closingAmount", label: t("closingAmount"), render: (_, s) => s.closingAmount ? formatMAD(s.closingAmount) : "-" },
+          { key: "expectedAmount", label: t("expectedAmount"), render: (_, s) => s.expectedAmount ? formatMAD(s.expectedAmount) : "-" },
+          { key: "difference", label: t("difference"), render: (_, s) => {
+            const diff = s.closingAmount && s.expectedAmount ? Number(s.closingAmount) - Number(s.expectedAmount) : null
+            return <span style={{ fontWeight: 600, color: diff === null ? "var(--text-muted)" : diff >= 0 ? "var(--success)" : "var(--danger)" }}>{diff === null ? "-" : formatMAD(diff.toString())}</span>
+          } },
+          { key: "closedAt", label: t("allStatuses"), render: (_, s) => !s.closedAt
+            ? <Badge variant="warning">{t("open")}</Badge>
+            : !s.closedByName && !s.closingAmount
+              ? <Badge variant="info">مغلق تلقائيا</Badge>
+              : <Badge variant="success">{t("closed")}</Badge> },
+        ]}
+      />
 
       {/* Pagination */}
       {totalPages > 1 && (

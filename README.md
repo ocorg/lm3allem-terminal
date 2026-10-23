@@ -4,7 +4,7 @@ Internal ERP / point-of-sale for **Lm3allem Clothing** (Morocco). Arabic-first (
 
 | Portal | What it does |
 |---|---|
-| **Magazin** (retail) | POS, inventory with size/colour variants, caisse (cash drawer), customer credits, product requests, catalogue |
+| **Magazin** (retail) | POS, sales history and **returns**, inventory with size/colour variants, caisse (cash drawer), customer credits, product requests, catalogue |
 | **Costumes** (suits) | Suit sales POS, **rentals** (7-step lifecycle, guarantee, deposits, cancellation, refunds), rental/sale inventory, clients, caisse |
 | **Lm3allem** (back office, admins only) | Dashboard, finances, caisse history, expenses, users & permissions, activity log, alerts, settings (maintenance) |
 
@@ -43,10 +43,25 @@ Other rules: inputs validated with zod (`lib/validation.ts`); stock changes use 
 ## Money rules
 
 - Everything uses Prisma `Decimal` (`lib/utils/money.ts`), amounts have at most 2 decimals.
-- **Caisse expected = cash only**: opening + cash sales + cash rental payments/deposits + cash credit repayments − cash deposits/refunds paid out ± manual entries. Card (`tpe`) and bank transfers (`banque`) are reported separately and never counted in the drawer. One implementation (`lib/finance/caisse.ts`) feeds both the live screens and the closing action.
-- **Revenue is cash-basis** (`lib/finance/revenue.ts`): sale amounts actually collected + credit repayments + rental payments (`rental_payment`, `remaining_balance`) − `rental_refund`. Refundable deposits (`deposit_collected/returned`) are never revenue.
+- **Caisse expected = cash only**: opening + cash sales + cash rental payments/deposits + cash credit repayments − cash deposits/refunds paid out − shop returns refunded in cash ± manual entries. Card (`tpe`) and bank transfers (`banque`) are reported separately and never counted in the drawer. One implementation (`lib/finance/caisse.ts`) feeds both the live screens and the closing action.
+- **Revenue is cash-basis** (`lib/finance/revenue.ts`): sale amounts actually collected + credit repayments − money given back for shop returns + rental payments (`rental_payment`, `remaining_balance`) − `rental_refund`. Refundable deposits (`deposit_collected/returned`) are never revenue. Shop returns are also kept as their own figure (finances, dashboard, reports) so they are never hidden inside the sales.
 - One open caisse session per portal (partial unique index).
 - Business dates use Morocco time (`lib/utils/time.ts`).
+
+## Shop returns (magazin)
+
+Screen: **المبيعات والمرتجعات** (`/magazin/sales`, same permission as the POS). Code: `lib/actions/magazin/sales.ts`, rules in `lib/returns/`.
+
+- A return is **its own record** (`SaleReturn` + `SaleReturnItem`). The original sale is never edited; `SaleItem.returnedQuantity` counts what came back (guarded update + database check: never more than sold).
+- Two kinds, recorded as such: **customer return** (`customer_return`: money back in cash from the till, on the card or by transfer) and **correction of an entry mistake** (`entry_error`). For a correction the server decides: if the sale's till is still open its money is taken back out of that till (same method as the sale); if that till is closed, nothing physical moves (`refundMethod = none`) and only stock and revenue are corrected.
+- **Credit sales**: the returned value first cancels what the customer still owes (`debtReduction`); only the rest is handed back. The credit's total, paid and balance are updated together.
+- **Who**: an admin directly; staff only with an admin's approval (email + password at the counter). The approval token is signed for that one sale (`return:<saleId>` scope in `lib/auth/override.ts`).
+- **Return period**: `SystemSettings.returnWindowDays` (default 7, admin Settings screen, read live everywhere through `getReturnWindowDays`). After it, only an admin logged in as themself can return, and the return is flagged `afterDeadline`.
+- Each returned piece goes **back into stock**, or is marked **damaged** (kept out of stock).
+- A return needs an **open magazin till** and a connection (never queued offline). A cash refund cannot exceed the cash the till should hold.
+- Everywhere it shows: till lines and a stat card, debts screen, revenue / dashboard / finances (own column), daily-weekly-monthly Telegram reports, an owner alert for **every** return, activity log (`sale.returned`, `sale.corrected`).
+- An exchange = a return, then a normal new sale.
+- Never record a return as a negative manual till entry.
 
 ## Rentals
 
@@ -155,7 +170,7 @@ The app is Arabic-only: `routing.locales = ["ar"]`. Adding a language means addi
 - A till not closed by hand is closed automatically at 04:00: by the daily job `/api/cron/close-caisse`, and also the moment anyone opens a till screen. The counted amount stays empty for such a closing; the expected cash is recorded and an alert is sent.
 
 ## Owner alerts on Telegram
-- Instant alerts (`lib/notifications/alerts.ts`): sale under the minimum price, sale or debt of 1 000 dirhams or more, till closed with a gap, cash taken out of the till, rental cancelled, account created / password reset / locked, last piece sold.
+- Instant alerts (`lib/notifications/alerts.ts`): sale under the minimum price, sale or debt of 1 000 dirhams or more, every shop return or correction, till closed with a gap, cash taken out of the till, rental cancelled, account created / password reset / locked, last piece sold.
 - Daily: morning brief at 10:00 and evening report at 22:00 (`/api/cron/morning`, `/api/cron/evening`). The morning job also sends the weekly summary on Mondays and the monthly results on the 1st.
 - Ask the bot: commands such as `/today`, `/stock`, `/caisse`, `/rentals`, `/debts`, `/week`, `/month`, `/help` typed in the owners group are answered by `/api/telegram/webhook`. Read-only, and only for the configured group.
 

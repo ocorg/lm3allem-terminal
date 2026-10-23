@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/Input"
 import { toast } from "@/hooks/useToast"
 import { updateSystemSettings, type SerializedSettings } from "@/lib/actions/lm3allem/settings"
 import { PORTAL_MODULES, type ModulePermissions } from "@/lib/permissions"
+import { MAX_RETURN_WINDOW_DAYS, MIN_RETURN_WINDOW_DAYS } from "@/lib/returns/window"
 import React from "react"
 
 const PORTAL_LABELS: Record<string, string> = { magazin: "المتجر", costumes: "البدلات" }
@@ -34,18 +35,23 @@ export function SettingsClient({ settings }: Props) {
   const [msgAr, setMsgAr] = useState(settings.maintenanceMessage_ar ?? "")
   // { portal: { module: boolean } } - the same shape every permission check reads
   const [perms, setPerms] = useState<ModulePermissions>(settings.defaultStaffPermissions)
+  const [returnDays, setReturnDays] = useState(String(settings.returnWindowDays))
+  const returnDaysNum = Number(returnDays)
+  const returnDaysValid = /^\d+$/.test(returnDays.trim()) && returnDaysNum >= MIN_RETURN_WINDOW_DAYS && returnDaysNum <= MAX_RETURN_WINDOW_DAYS
 
   function togglePerm(portal: EditablePortal, module: string) {
     setPerms((p) => ({ ...p, [portal]: { ...(p[portal] ?? {}), [module]: !p[portal]?.[module] } }))
   }
 
   function handleSave() {
+    if (!returnDaysValid) { toast(t("returnWindowInvalid", { min: MIN_RETURN_WINDOW_DAYS, max: MAX_RETURN_WINDOW_DAYS }), "error"); return }
     startTransition(async () => {
       const res = await updateSystemSettings({
         id: settings.id,
         maintenanceMode,
         maintenanceMessage_ar: msgAr || null,
         defaultStaffPermissions: perms,
+        returnWindowDays: returnDaysNum,
       })
       if (!res.ok) { toast(res.message || t("saveError"), "error"); return }
       toast(t("saved"), "success")
@@ -94,11 +100,32 @@ export function SettingsClient({ settings }: Props) {
         <Input label={t("maintenanceMessageAr")} value={msgAr} onChange={(e) => setMsgAr(e.target.value)} dir="rtl" />
       </section>
 
+      {/* Shop returns */}
+      <section style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "8px", padding: 20, display: "flex", flexDirection: "column", gap: 12 }}>
+        <div>
+          <p style={{ margin: 0, fontWeight: 600 }}>{t("returnsTitle")}</p>
+          <p style={{ margin: "2px 0 0", fontSize: 13, color: "var(--text-muted)" }}>{t("returnsDesc")}</p>
+        </div>
+        <div style={{ maxWidth: 220 }}>
+          <Input
+            label={t("returnWindowDays")}
+            type="number"
+            inputMode="numeric"
+            min={MIN_RETURN_WINDOW_DAYS}
+            max={MAX_RETURN_WINDOW_DAYS}
+            step={1}
+            value={returnDays}
+            onChange={(e) => setReturnDays(e.target.value)}
+            error={returnDaysValid ? undefined : t("returnWindowInvalid", { min: MIN_RETURN_WINDOW_DAYS, max: MAX_RETURN_WINDOW_DAYS })}
+          />
+        </div>
+      </section>
+
       {/* Default Staff Permissions */}
       <section style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "8px", padding: 20 }}>
         <p style={{ margin: "0 0 4px", fontWeight: 600 }}>{t("defaultStaffPermissions")}</p>
         <p style={{ margin: "0 0 16px", fontSize: 12, color: "var(--text-muted)" }}>{t("defaultStaffPermissionsDesc")}</p>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 200px), 1fr))", gap: 24 }}>
           {(Object.keys(PORTAL_MODULES) as EditablePortal[]).map((portal) => (
             <div key={portal}>
               <p style={{ fontSize: 12, fontWeight: 700,color: "var(--text-muted)", margin: "0 0 8px" }}>{PORTAL_LABELS[portal]}</p>

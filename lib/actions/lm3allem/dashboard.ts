@@ -32,7 +32,9 @@ export interface RevenueTrendEntry {
 
 export interface DashboardStats {
   totalRevenue:       string
+  /** net of returns */
   magazinRevenue:     string
+  magazinReturns:     string
   costumesRevenue:    string
   openRentals:        number
   activeUsers:        number
@@ -87,6 +89,7 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     days.map((d) => [d, { magazin: 0, costumes: 0 }])
   )
   for (const r of trendRows.magazin)  { const b = trendMap.get(dayKey(r.at)); if (b) b.magazin  += r.amount }
+  for (const r of trendRows.magazinReturns) { const b = trendMap.get(dayKey(r.at)); if (b) b.magazin -= r.amount }
   for (const r of trendRows.costumes) { const b = trendMap.get(dayKey(r.at)); if (b) b.costumes += r.amount }
   for (const r of trendRows.rentals)  { const b = trendMap.get(dayKey(r.at)); if (b) b.costumes += r.amount }
 
@@ -99,6 +102,7 @@ export async function getDashboardStats(): Promise<DashboardStats> {
   return {
     totalRevenue:       toNum(magazinRev + costumesRev).toString(),
     magazinRevenue:     magazinRev.toString(),
+    magazinReturns:     totals.magazinReturns.toString(),
     costumesRevenue:    costumesRev.toString(),
     openRentals,
     activeUsers,

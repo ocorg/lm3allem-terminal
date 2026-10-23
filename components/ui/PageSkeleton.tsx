@@ -6,7 +6,7 @@ export default function PageSkeleton() {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }} aria-busy="true" aria-live="polite">
       <Skeleton variant="row" width={220} height={28} />
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))", gap: 12 }}>
+      <div className="stat-grid">
         {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} variant="card" height={84} />)}
       </div>
       <Skeleton variant="row" height={40} />

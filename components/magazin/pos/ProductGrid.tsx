@@ -36,12 +36,12 @@ export function ProductGrid({ products, categories, onProductClick }: ProductGri
 
       <div
         style={{
+          // categories wrap onto a second line instead of hiding past the screen edge
           display:       "flex",
+          flexWrap:      "wrap",
           gap:           10,
           padding:       "12px 16px",
-          overflowX:     "auto",
           flexShrink:    0,
-          scrollbarWidth: "none",
         }}
       >
         <CategoryTab label={t("allCategories")} active={!activeCategory} onClick={() => setActiveCategory(null)} />
@@ -64,7 +64,7 @@ export function ProductGrid({ products, categories, onProductClick }: ProductGri
           <div
             style={{
               display:             "grid",
-              gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))",
+              gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 132px), 1fr))",
               gap:                 12,
             }}
           >

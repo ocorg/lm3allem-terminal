@@ -29,6 +29,8 @@ export interface CreditForList {
   status:      string
   createdAt:   string
   payments:    CreditPaymentRecord[]
+  /** value of goods returned from this sale (already taken off totalAmount) */
+  returnedAmount: string
 }
 
 // ── getCredits ─────────────────────────────────────
@@ -41,6 +43,7 @@ export async function getCredits(): Promise<CreditForList[]> {
         include: { recordedBy: { select: { name: true, role: true } } },
         orderBy: { createdAt: "desc" },
       },
+      sale: { select: { returns: { select: { totalValue: true } } } },
     },
     orderBy: { createdAt: "desc" },
     take:    1000,
@@ -62,6 +65,7 @@ export async function getCredits(): Promise<CreditForList[]> {
       recordedByName: actorLabel(p.recordedBy),
       createdAt:      p.createdAt.toISOString(),
     })),
+    returnedAmount: (c.sale?.returns ?? []).reduce((v, r) => v.plus(r.totalValue), D(0)).toString(),
   }))
 }
 

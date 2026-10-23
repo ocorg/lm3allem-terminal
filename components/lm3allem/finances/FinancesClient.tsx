@@ -25,6 +25,8 @@ const C_PRIMARY = "#F59A0E"
 const C_INFO    = "#3B82C4"
 const C_SUCCESS = "#2E9E5E"
 const C_DANGER  = "#D02828"
+// shop returns: a colour of its own, so they never look like sales or expenses
+const C_RETURN  = "#8E5BB5"
 
 // ── Moroccan month names ───────────────────────────────────────
 const ARABIC_MONTHS = [
@@ -109,6 +111,7 @@ export function FinancesClient({ initialData }: { initialData: FinancesData }) {
   const chartData = data.monthly.map((m) => ({
     month: m.month.slice(0, 7),
     [t("magazinSales")]:  Number(m.magazinSales),
+    [t("magazinReturns")]: -Number(m.magazinReturns),
     [t("costumesSales")]: Number(m.costumesSales),
     [t("rentalRevenue")]: Number(m.rentalRevenue),
     [t("expenses")]:      -Number(m.expenses),
@@ -140,8 +143,9 @@ export function FinancesClient({ initialData }: { initialData: FinancesData }) {
       </div>
 
       {/* ── Summary stat cards ── */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))", gap: 12 }}>
+      <div className="stat-grid">
         <StatCard label={t("magazinSales")}  value={formatMAD(data.totals.magazinSales)} />
+        <StatCard label={t("magazinReturns")} value={formatMAD(data.totals.magazinReturns)} />
         <StatCard label={t("costumesSales")} value={formatMAD(data.totals.costumesSales)} />
         <StatCard label={t("rentalRevenue")} value={formatMAD(data.totals.rentalRevenue)} />
         <StatCard label={t("expenses")}      value={formatMAD(data.totals.expenses)} />
@@ -164,9 +168,13 @@ export function FinancesClient({ initialData }: { initialData: FinancesData }) {
                 <Tooltip
                   formatter={tooltipFormatter}
                   contentStyle={{ background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: 6, fontSize: 13 }}
+                  // readable text in both themes (the bar colours are only for the bars)
+                  itemStyle={{ color: "var(--text)" }}
+                  labelStyle={{ color: "var(--text)" }}
                 />
-                <Legend wrapperStyle={{ fontSize: 13 }} />
+                <Legend wrapperStyle={{ fontSize: 13 }} formatter={(value) => <span style={{ color: "var(--text)" }}>{value}</span>} />
                 <Bar dataKey={t("magazinSales")}  fill={C_PRIMARY} radius={[3,3,0,0]} />
+                <Bar dataKey={t("magazinReturns")} fill={C_RETURN} radius={[3,3,0,0]} />
                 <Bar dataKey={t("costumesSales")} fill={C_INFO}    radius={[3,3,0,0]} />
                 <Bar dataKey={t("rentalRevenue")} fill={C_SUCCESS} radius={[3,3,0,0]} />
                 <Bar dataKey={t("expenses")}      fill={C_DANGER}  radius={[3,3,0,0]} />
@@ -260,12 +268,10 @@ export function FinancesClient({ initialData }: { initialData: FinancesData }) {
 
                           {/* Revenue / expense quick-read */}
                           <span style={{ display: "flex", gap: 16, fontSize: 12 }}>
-                            <span style={{ color: C_SUCCESS, fontWeight: 500 }}>
-                              ↑ {formatMAD(m.magazinSales !== "0" || m.costumesSales !== "0" || m.rentalRevenue !== "0"
-                                  ? (Number(m.magazinSales) + Number(m.costumesSales) + Number(m.rentalRevenue)).toString()
-                                  : "0")}
+                            <span style={{ color: "var(--success)", fontWeight: 500 }}>
+                              ↑ {formatMAD(Number(m.magazinSales) - Number(m.magazinReturns) + Number(m.costumesSales) + Number(m.rentalRevenue))}
                             </span>
-                            <span style={{ color: C_DANGER, fontWeight: 500 }}>
+                            <span style={{ color: "var(--danger)", fontWeight: 500 }}>
                               ↓ {formatMAD(m.expenses)}
                             </span>
                           </span>
@@ -287,10 +293,11 @@ export function FinancesClient({ initialData }: { initialData: FinancesData }) {
                             borderTop: "1px solid var(--border)",
                             padding: "14px 20px",
                             display: "grid",
-                            gridTemplateColumns: "1fr 1fr",
+                            gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 220px), 1fr))",
                             gap: "10px 32px",
                           }}>
                             <BreakdownRow label={t("magazinSales")}  value={m.magazinSales}  dot={C_PRIMARY} />
+                            <BreakdownRow label={t("magazinReturns")} value={m.magazinReturns} dot={C_RETURN} negative />
                             <BreakdownRow label={t("costumesSales")} value={m.costumesSales} dot={C_INFO}    />
                             <BreakdownRow label={t("rentalRevenue")} value={m.rentalRevenue} dot={C_SUCCESS} />
                             <BreakdownRow label={t("expenses")}      value={m.expenses}      dot={C_DANGER}  negative />
@@ -339,7 +346,7 @@ function BreakdownRow({
         <span style={{ width: 7, height: 7, borderRadius: "50%", background: dot, flexShrink: 0 }} />
         {label}
       </span>
-      <span style={{ fontSize: 13, fontWeight: bold ? 700 : 500, color: dot }}>
+      <span style={{ fontSize: 13, fontWeight: bold ? 700 : 500, color: "var(--text)" }}>
         {formatMAD(negative && Number(value) > 0 ? -Number(value) : value)}
       </span>
     </div>

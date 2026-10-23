@@ -8,6 +8,7 @@ import { DEFAULT_STAFF_PERMISSIONS, normalizePermissions, type ModulePermissions
 import { invalidateMaintenanceCache } from "@/lib/utils/maintenance"
 import { z } from "zod"
 import { id, parseInput } from "@/lib/validation"
+import { MAX_RETURN_WINDOW_DAYS, MIN_RETURN_WINDOW_DAYS } from "@/lib/returns/window"
 
 export interface SerializedSettings {
   id: string
@@ -15,6 +16,8 @@ export interface SerializedSettings {
   maintenanceMessage_fr: string | null
   maintenanceMessage_ar: string | null
   defaultStaffPermissions: ModulePermissions
+  /** shop sales can be returned during this many days (after that: admins only) */
+  returnWindowDays: number
 }
 
 export async function getSystemSettings(): Promise<SerializedSettings> {
@@ -40,6 +43,7 @@ export async function getSystemSettings(): Promise<SerializedSettings> {
     maintenanceMessage_ar: settings.maintenanceMessage_ar ?? null,
     // fall back to the built-in defaults while the stored value is empty / legacy-shaped
     defaultStaffPermissions: Object.keys(defaults).length ? defaults : DEFAULT_STAFF_PERMISSIONS,
+    returnWindowDays: settings.returnWindowDays,
   }
 }
 
@@ -48,6 +52,7 @@ export interface UpdateSettingsInput {
   maintenanceMode?: boolean
   maintenanceMessage_ar?: string | null
   defaultStaffPermissions?: ModulePermissions
+  returnWindowDays?: number
 }
 
 const updateSchema = z.object({
@@ -55,6 +60,7 @@ const updateSchema = z.object({
   maintenanceMode:         z.boolean().optional(),
   maintenanceMessage_ar:   z.string().max(500).nullable().optional(),
   defaultStaffPermissions: z.record(z.string(), z.record(z.string(), z.boolean())).optional(),
+  returnWindowDays:        z.number().int().min(MIN_RETURN_WINDOW_DAYS).max(MAX_RETURN_WINDOW_DAYS).optional(),
 })
 
 export async function updateSystemSettings(
@@ -67,6 +73,7 @@ export async function updateSystemSettings(
     // count as "maintenance ON".
     const input = parseInput(updateSchema, rawInput)
     const message = input.maintenanceMessage_ar
+    const before = await prisma.systemSettings.findUnique({ where: { id: input.id }, select: { returnWindowDays: true } })
 
     const res = await prisma.systemSettings.updateMany({
       where: { id: input.id },
@@ -76,6 +83,7 @@ export async function updateSystemSettings(
         ...(input.defaultStaffPermissions !== undefined && {
           defaultStaffPermissions: normalizePermissions(input.defaultStaffPermissions),
         }),
+        ...(input.returnWindowDays !== undefined && { returnWindowDays: input.returnWindowDays }),
       },
     })
     if (res.count === 0) throw new ActionError("not_found")
@@ -84,7 +92,13 @@ export async function updateSystemSettings(
 
     await logActivity({
       portal: "lm3allem", entityType: "settings", entityId: input.id, actor,
-      action: "settings.updated", diff: { maintenanceMode: input.maintenanceMode ?? null },
+      action: "settings.updated",
+      diff: {
+        maintenanceMode: input.maintenanceMode ?? null,
+        ...(input.returnWindowDays !== undefined && before && before.returnWindowDays !== input.returnWindowDays
+          ? { returnWindowDays: { from: before.returnWindowDays, to: input.returnWindowDays } }
+          : {}),
+      },
     })
   })
 }

@@ -82,7 +82,17 @@ export function CreditList({ credits }: CreditListProps) {
         </div>
       ),
     },
-    { key: "totalAmount", label: t("total"),  align: "right", render: (v) => <span style={{ fontSize: 13 }}>{formatMAD(v as string)}</span> },
+    {
+      key: "totalAmount", label: t("total"), align: "right",
+      render: (v, row) => (
+        <div>
+          <span style={{ fontSize: 13 }}>{formatMAD(v as string)}</span>
+          {parseFloat(row.returnedAmount) > 0 && (
+            <p style={{ fontSize: 12, color: "var(--text-muted)", margin: "1px 0 0" }}>{t("afterReturn", { amount: formatMAD(row.returnedAmount) })}</p>
+          )}
+        </div>
+      ),
+    },
     { key: "amountPaid",  label: t("paid"),   align: "right", render: (v) => <span style={{ fontSize: 13, color: "var(--success)" }}>{formatMAD(v as string)}</span> },
     {
       key: "balance", label: t("balance"), align: "right", sortable: true,

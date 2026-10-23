@@ -75,7 +75,7 @@ export function POSClient({ products: serverProducts, categories, lookupById, lo
     const parts: string[] = []
     if (v.sizeId  && lookupById[v.sizeId])  parts.push(lookupById[v.sizeId].label_ar)
     if (v.colorId && lookupById[v.colorId]) parts.push(lookupById[v.colorId].label_ar)
-    return parts.join(" - ") || "Standard"
+    return parts.join(" - ") || "مقاس موحد"
   }
 
   const addVariantToCart = (product: ProductForPOS, variantId: string) => {
@@ -128,7 +128,7 @@ export function POSClient({ products: serverProducts, categories, lookupById, lo
     }
     if (belowMin.length > 0) {
       setPendingItems(belowMin.map(i => ({
-        name:           `${i.name_fr} (${i.variantLabel})`,
+        name:           `${i.name_ar} (${i.variantLabel})`,
         requestedPrice: i.unitPrice,
         minPrice:       i.minSellingPrice,
       })))
@@ -217,7 +217,7 @@ export function POSClient({ products: serverProducts, categories, lookupById, lo
 
   const isRTL = locale === "ar"
 
-  const { isMobile } = useBreakpoint()
+  const { isMobile, isTablet } = useBreakpoint()
   const [mobileTab, setMobileTab] = useState<"products" | "cart">("products")
   const totalQty = cart.reduce((s, i) => s + i.quantity, 0)
 
@@ -229,7 +229,7 @@ export function POSClient({ products: serverProducts, categories, lookupById, lo
         style={{
           display:       "flex",
           flexDirection: isMobile ? "column" : (isRTL ? "row-reverse" : "row"),
-          height:        "calc(100vh - 64px)",
+          height:        "calc(100dvh - 64px)",
           overflow:      "hidden",
         }}
       >
@@ -284,7 +284,7 @@ export function POSClient({ products: serverProducts, categories, lookupById, lo
 
         {/* Cart panel */}
         {(!isMobile || mobileTab === "cart") && (
-          <div style={{ width: isMobile ? "100%" : 360, flexShrink: 0, display: "flex", flexDirection: "column", overflow: "hidden" }}>
+          <div style={{ width: isMobile ? "100%" : isTablet ? 300 : 360, flexShrink: 0, display: "flex", flexDirection: "column", overflow: "hidden" }}>
             <CartPanel
               items={cart}
               locale={locale}

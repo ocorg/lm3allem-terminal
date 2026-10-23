@@ -20,7 +20,7 @@ export default async function MaintenanceScreen({ locale, message }: Props) {
         flexDirection:  "column",
         alignItems:     "center",
         justifyContent: "center",
-        minHeight:      "100vh",
+        minHeight:      "100dvh",
         background:     "var(--bg)",
         padding:        24,
         gap:            24,

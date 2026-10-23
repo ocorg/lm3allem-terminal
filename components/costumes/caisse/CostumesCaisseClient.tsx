@@ -44,7 +44,7 @@ export function CostumesCaisseClient({ initialStats, role }: Props) {
       </div>
 
       {/* Stats */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))", gap: 12 }}>
+      <div className="stat-grid">
         <StatCard label="رصيد الافتتاح"   value={formatMAD(initialStats.openingAmount)} icon={DollarSign}  />
         <StatCard label="مبيعات البدلات"    value={formatMAD(initialStats.totalSales)}    icon={ShoppingBag} />
         <StatCard label="مدفوعات الإيجار (نقدا)" value={formatMAD(initialStats.totalRentals)}  icon={TrendingUp}  />

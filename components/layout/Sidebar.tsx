@@ -8,7 +8,7 @@ import {
   ShoppingCart, Package, Wallet, CreditCard, ClipboardList,
   BookOpen, Users, LayoutDashboard, TrendingUp, Receipt,
   ScrollText, SlidersHorizontal, Settings, Bell,
-  CalendarCheck, Shirt,
+  CalendarCheck, Shirt, History,
   ChevronLeft, ChevronRight, type LucideIcon,
 } from "lucide-react"
 import type { NavItem } from "@/lib/utils/nav"
@@ -19,6 +19,7 @@ import { BrandLogo } from "@/components/ui/BrandLogo"
 
 const ICON_MAP: Record<string, LucideIcon> = {
   pos:              ShoppingCart,
+  sales:            History,
   inventory:        Package,
   rentals:          CalendarCheck,
   rental_inventory: Shirt,
@@ -119,7 +120,7 @@ export default function Sidebar({
       style={{
         width:           isMobile ? 240 : (isCollapsed ? 64 : 240),
         flexShrink:      0,
-        height:          "100vh",
+        height:          "100dvh",
         background:      "var(--surface)",
         borderInlineEnd: "1px solid var(--border)",
         display:         "flex",
@@ -264,7 +265,7 @@ export default function Sidebar({
         >
           <button aria-label="طي أو توسيع القائمة"
             onClick={toggle}
-            title={collapsed ? "Expand" : "Collapse"}
+            title={collapsed ? "توسيع القائمة" : "طي القائمة"}
             style={{
               width:          32,
               height:         32,

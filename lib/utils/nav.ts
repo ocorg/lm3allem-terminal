@@ -16,6 +16,8 @@ export interface NavItem extends NavConfigItem {
 const NAV_CONFIG: Record<Portal, NavConfigItem[]> = {
   magazin: [
     { key: "pos",       path: "pos",       module: "pos" },
+    // sales history + returns: part of the counter work, so it follows the POS permission
+    { key: "sales",     path: "sales",     module: "pos" },
     { key: "inventory", path: "inventory", module: "inventory" },
     { key: "caisse",    path: "caisse",    module: "caisse" },
     { key: "credits",   path: "credits",   module: "credits" },

@@ -38,7 +38,9 @@ export function PasswordInput(props: PasswordInputProps) {
             cursor: "pointer",
             color: "var(--text-muted)",
             display: "flex",
-            padding: 4,
+            // a 36px finger target, drawn without changing the field's size
+            padding: 10,
+            margin: -6,
           }}
         >
           {visible ? <EyeOff size={16} /> : <Eye size={16} />}
