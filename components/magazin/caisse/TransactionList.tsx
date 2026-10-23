@@ -1,5 +1,5 @@
 import { useTranslations } from "next-intl"
-import { formatMAD, formatSignedMAD }      from "@/lib/utils/currency"
+import { formatSignedMAD }      from "@/lib/utils/currency"
 import { formatRelative } from "@/lib/utils/date"
 import type { TransactionEntry } from "@/lib/actions/magazin/caisse"
 import React from "react"

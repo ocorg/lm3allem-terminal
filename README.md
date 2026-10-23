@@ -8,7 +8,7 @@ Internal ERP / point-of-sale for **Lm3allem Clothing** (Morocco). Arabic-first (
 | **Costumes** (suits) | Suit sales POS, **rentals** (7-step lifecycle, guarantee, deposits, cancellation, refunds), rental/sale inventory, clients, caisse |
 | **Lm3allem** (back office, admins only) | Dashboard, finances, caisse history, expenses, users & permissions, activity log, alerts, settings (maintenance) |
 
-Stack: Next.js 16 (App Router, `proxy.ts`), React 19, Prisma 7 on Neon Postgres, Auth.js v5 (JWT), next-intl (Arabic), Tailwind 3, Cloudflare R2, Pusher, Telegram alerts. Currency: MAD.
+Stack: Next.js 16 (App Router, `proxy.ts`), React 19, Prisma 7 on Neon Postgres, Auth.js v5 (JWT), next-intl (Arabic), Tailwind 3, Cloudflare R2, Pusher, Telegram alerts. Currency: Moroccan dirham, written "درهم".
 
 > Next.js 16 differs from older versions (e.g. `middleware.ts` → `proxy.ts`, `next lint` removed). Read `node_modules/next/dist/docs/` before changing framework-level code.
 
@@ -26,7 +26,7 @@ There is no `superadmin`. Permissions are stored as `{ portal: { module: boolean
 
 Email + password (no PIN).
 
-- Passwords: `bcrypt(HMAC-SHA256(AUTH_PASSWORD_PEPPER, password))`, cost 12, 8+ characters.
+- Passwords: `bcrypt(HMAC-SHA256(pepper, password))`, cost 12, 8+ characters. The pepper is `AUTH_PASSWORD_PEPPER`, or the older `PIN_HASH_PEPPER` when the first is not set. **Production uses `PIN_HASH_PEPPER`: never change or remove it, and do not add `AUTH_PASSWORD_PEPPER`, or every existing password stops working.**
 - Brute-force protection is **per account in the database** (5 failures → 5-minute lock), enforced for every entry point.
 - New and reset passwords are one-time **temporary passwords** shown once to the admin; the user must change them at first login.
 - Sessions are JWT but re-validated against the database every 30 s: deactivating a user or changing a role/permission takes effect within seconds. Max age 12 h.
@@ -89,11 +89,11 @@ The migration also recomputes `Rental.amountPaid/balance` from the payment ledge
 
 ### Alerts (Telegram + in-app bell)
 
-Every notification (new rental, caisse opened/closed, low stock) appears in the admin bell and is also sent to Telegram when `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` are set (see `.env.example`). The "low-stock summary" button on the Alerts screen sends to Telegram too. Actions by the ghost account never notify anyone.
+Every notification (see "Owner alerts on Telegram" below for the full list) appears in the admin bell and is also sent to Telegram when `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` are set (see `.env.example`). The "low-stock summary" button on the Alerts screen sends to Telegram too. Actions by the ghost account never notify anyone.
 
-### Overdue alerts
+### Daily jobs
 
-`GET /api/cron/overdue` (header `Authorization: Bearer $CRON_SECRET`) notifies the admin (in-app bell + one Telegram summary) about rentals not returned after their return day. Call it daily from any cron service (Vercel Cron sends the header automatically).
+`/api/cron/close-caisse`, `/api/cron/morning` and `/api/cron/evening` (header `Authorization: Bearer $CRON_SECRET`) are scheduled in `vercel.json`; Vercel Cron sends the header automatically. Late rentals are part of the morning brief.
 
 ## Scripts
 
@@ -131,11 +131,11 @@ The app is Arabic-only: `routing.locales = ["ar"]`. Adding a language means addi
 - Photos are compressed in the browser to about 200 KB, and again on the server as a safety net.
 - Low-stock alerts are sent to Telegram as table pictures (Arabic font bundled in `assets/fonts`).
 
-## Going live checklist
-1. Set env vars: `DATABASE_URL`, `AUTH_SECRET`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, R2 keys incl. `CLOUDFLARE_R2_PRIVATE_BUCKET_NAME`, `CRON_SECRET`. Do not set `AUTH_PASSWORD_PEPPER` if accounts already exist.
-2. Apply migrations: `npx prisma migrate deploy` (includes the Arabic labels migration).
-3. Schedule a daily call to `/api/cron/overdue` with the `CRON_SECRET`.
-4. Test the production build once: login, a sale, offline sale, a rental with dates, a Telegram alert.
+## Deploying
+1. Pushing to `main` on GitHub (`ocorg/lm3allem-terminal`) deploys to production on Vercel. `vercel.json` pins the London region (next to the database) and the three daily jobs.
+2. Environment variables (Production and Preview): `DATABASE_URL`, `DATABASE_URL_UNPOOLED`, `AUTH_SECRET`, `AUTH_URL`, `PIN_HASH_PEPPER`, `CRON_SECRET`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_R2_ACCESS_KEY_ID`, `CLOUDFLARE_R2_SECRET_ACCESS_KEY`, `CLOUDFLARE_R2_BUCKET_NAME`, `CLOUDFLARE_R2_PRIVATE_BUCKET_NAME`, `CLOUDFLARE_R2_PUBLIC_URL`, the Pusher keys. Optional: `NEXT_PUBLIC_BUSINESS_UTC_OFFSET_MINUTES`. A changed variable needs a redeploy.
+3. New migrations: the owner runs `npx prisma migrate deploy` from their computer (the local `.env` points at the production database).
+4. After a deploy: log in, open both tills, check one Telegram alert.
 
 ## Look and feel
 - Brand colours come from the store logo (charcoal `#353535`, orange `#F59A0E`, red `#D02828`). They are defined once in `app/globals.css`: `--brand` is for filled buttons, `--primary` is the same orange tuned so it stays readable as text in each theme.
@@ -158,3 +158,15 @@ The app is Arabic-only: `routing.locales = ["ar"]`. Adding a language means addi
 - Instant alerts (`lib/notifications/alerts.ts`): sale under the minimum price, sale or debt of 1 000 dirhams or more, till closed with a gap, cash taken out of the till, rental cancelled, account created / password reset / locked, last piece sold.
 - Daily: morning brief at 10:00 and evening report at 22:00 (`/api/cron/morning`, `/api/cron/evening`). The morning job also sends the weekly summary on Mondays and the monthly results on the 1st.
 - Ask the bot: commands such as `/today`, `/stock`, `/caisse`, `/rentals`, `/debts`, `/week`, `/month`, `/help` typed in the owners group are answered by `/api/telegram/webhook`. Read-only, and only for the configured group.
+
+## Current status (October 2026)
+- **Live**: https://lm3allem-terminal.vercel.app (Vercel project `lm3allem-terminal`, production deploys from `main`). Database: Neon, London (eu-west-2). Files: Cloudflare R2 (public bucket for product photos, private bucket for guarantee documents).
+- **Accounts**: Amine (admin, owner), Ibrahim (admin), TECH SUPPORT `support@lmaalam.com` (ghost, maintenance). Test accounts end in `@test.local` and must not be left active.
+- **Data**: all test data was wiped on 2026-10-06 (products, costumes, sales, rentals, payments, tills, clients, logs); the dropdown lists and settings were kept. A JSON backup of the data before the wipe is in `backups/` (local only).
+- **Telegram**: alerts go to the owners' group "Lm3allem ERP" (`TELEGRAM_CHAT_ID` is the group id). The bot webhook points at `/api/telegram/webhook` on the live site, with a secret derived from the bot token; the command menu was set with `setMyCommands`. If the bot token changes, run `setWebhook` and `setMyCommands` again (see `lib/notifications/bot.ts`).
+- **Daily jobs** (Vercel Cron, free plan: each runs once a day, sometime within its hour): 04:00 automatic till closing, 10:00 morning brief (+ weekly on Mondays, monthly on the 1st), 22:00 evening report. Times are Morocco time (UTC+0).
+
+## Open items
+- **AppSheet prototype**: the owner validated an earlier AppSheet version whose rules (especially rentals) are the reference. An export is in `docs/appsheet/Clothes Entry.xlsx` (local, not committed). Aligning the rental flow with it was postponed by the owner.
+- Not yet checked on a real phone (only phone-size emulation) or with real staff on the counter.
+- Offline mode covers POS sales only; every other screen needs a connection.

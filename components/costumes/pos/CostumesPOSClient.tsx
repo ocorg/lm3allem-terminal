@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo, useEffect }  from "react"
+import { useState, useMemo }  from "react"
 import { useRouter }          from "next/navigation"
 import { useTranslations }   from "next-intl"
 import { ShoppingCart, Package, Trash2, Minus, Plus } from "lucide-react"
