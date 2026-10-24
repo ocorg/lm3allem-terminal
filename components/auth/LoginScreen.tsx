@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, useTransition, type FormEvent } from "react"
+import { useState, useTransition, type FormEvent } from "react"
 import { useTranslations } from "next-intl"
 import ThemeToggle from "@/components/ui/ThemeToggle"
 import { Input } from "@/components/ui/Input"
@@ -21,28 +21,10 @@ export default function LoginScreen({ locale }: Props) {
   const [email, setEmail]       = useState("")
   const [password, setPassword] = useState("")
   const [error, setError]       = useState<string | null>(null)
-  const [attemptsLeft, setAttemptsLeft] = useState<number | null>(null)
-  const [lockedUntil, setLockedUntil]   = useState<number | null>(null)
-  const [countdown, setCountdown]       = useState(0)
-
-  // Lockout countdown, derived from the server-provided timestamp
-  useEffect(() => {
-    if (!lockedUntil) return
-    const tick = () => {
-      const rem = Math.ceil((lockedUntil - Date.now()) / 1000)
-      if (rem <= 0) { setLockedUntil(null); setCountdown(0) }
-      else setCountdown(rem)
-    }
-    tick()
-    const iv = setInterval(tick, 500)
-    return () => clearInterval(iv)
-  }, [lockedUntil])
-
-  const isLocked = lockedUntil !== null
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault()
-    if (isLocked || isPending || !email.trim() || !password) return
+    if (isPending || !email.trim() || !password) return
     setError(null)
 
     startTransition(async () => {
@@ -51,11 +33,7 @@ export default function LoginScreen({ locale }: Props) {
       if (result.ok) return
 
       setPassword("")
-      if (result.error === "locked") {
-        setLockedUntil(result.lockedUntil)
-        setAttemptsLeft(null)
-      } else if (result.error === "invalid") {
-        setAttemptsLeft(result.attemptsLeft)
+      if (result.error === "invalid") {
         setError(t("invalidCredentials"))
       } else {
         setError(t("invalidInput"))
@@ -107,7 +85,6 @@ export default function LoginScreen({ locale }: Props) {
           dir="ltr"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          disabled={isLocked}
           autoFocus
           required
         />
@@ -118,32 +95,22 @@ export default function LoginScreen({ locale }: Props) {
           autoComplete="current-password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          disabled={isLocked}
           required
         />
 
         <div style={{ minHeight: 40, textAlign: "center", display: "flex", flexDirection: "column", gap: 4, justifyContent: "center" }}>
-          {isLocked && (
-            <p style={{ color: "var(--danger)", fontSize: 13, fontWeight: 500, margin: 0 }}>
-              {t("lockedOut", { seconds: countdown })}
-            </p>
-          )}
-          {!isLocked && isPending && (
+          {isPending && (
             <p style={{ color: "var(--text-muted)", fontSize: 12, margin: 0 }}>{t("verifying")}</p>
           )}
-          {!isLocked && !isPending && error && (
+          {!isPending && error && (
             <>
               <p style={{ color: "var(--danger)", fontSize: 13, fontWeight: 500, margin: 0 }}>{error}</p>
-              {attemptsLeft !== null && attemptsLeft > 0 && (
-                <p style={{ color: "var(--text-muted)", fontSize: 12, margin: 0 }}>
-                  {t("attemptsRemaining", { count: attemptsLeft })}
-                </p>
-              )}
+              <p style={{ color: "var(--text-muted)", fontSize: 12, margin: 0 }}>{t("lockHint")}</p>
             </>
           )}
         </div>
 
-        <Button type="submit" fullWidth size="lg" loading={isPending} disabled={isLocked || !email.trim() || !password}>
+        <Button type="submit" fullWidth size="lg" loading={isPending} disabled={!email.trim() || !password}>
           {t("login")}
         </Button>
       </form>

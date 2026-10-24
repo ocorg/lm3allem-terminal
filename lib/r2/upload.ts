@@ -53,9 +53,12 @@ export async function compressForStorage(input: Buffer, maxDimension: number): P
   return best
 }
 
+/** A file refused for a reason the person can fix: its message is shown to them as is. */
+export class UploadRejected extends Error {}
+
 export function assertUploadSize(size: number): void {
-  if (size <= 0) throw new Error("ملف فارغ")
-  if (size > MAX_SIZE) throw new Error("الملف كبير جدا. الحد الأقصى 10 ميغابايت.")
+  if (size <= 0) throw new UploadRejected("ملف فارغ")
+  if (size > MAX_SIZE) throw new UploadRejected("الملف كبير جدا. الحد الأقصى 10 ميغابايت.")
 }
 
 /**
@@ -83,13 +86,13 @@ export interface UploadResult {
 export async function uploadImage(buffer: Buffer, kind: UploadKind): Promise<UploadResult> {
   assertUploadSize(buffer.length)
   // The real file type is read from the bytes; anything that is not a genuine image is refused.
-  if (!detectImage(buffer)) throw new Error("نوع الملف غير مسموح. الصيغ المقبولة: JPEG، PNG، WebP، GIF.")
+  if (!detectImage(buffer)) throw new UploadRejected("نوع الملف غير مسموح. الصيغ المقبولة: JPEG، PNG، WebP، GIF.")
 
   let stored: Buffer
   try {
     stored = await compressForStorage(buffer, kind === "guarantee" ? 1800 : 1600)
   } catch {
-    throw new Error("تعذر معالجة الصورة، جرّب صورة أخرى")
+    throw new UploadRejected("تعذر معالجة الصورة، جرّب صورة أخرى")
   }
 
   const key = buildR2Key(kind, "webp")

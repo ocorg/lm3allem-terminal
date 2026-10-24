@@ -768,6 +768,7 @@ export async function setKitItemReturned(
 ): Promise<ActionResult> {
   return run(async () => {
     const user = await requireModule("costumes", "rentals")
+    kitItemId = asId(kitItemId)
     if (typeof returned !== "boolean") throw new ActionError("validation")
 
     const item = await prisma.rentalKitItem.findUnique({

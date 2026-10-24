@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getCurrentUser } from "@/lib/auth/guard"
 import { canAccessModule, isAdminRole } from "@/lib/permissions"
-import { assertUploadSize, uploadImage, type UploadKind } from "@/lib/r2/upload"
+import { assertUploadSize, uploadImage, UploadRejected, type UploadKind } from "@/lib/r2/upload"
 import { checkMaintenanceMode } from "@/lib/utils/maintenance"
 
 const ALLOWED_UPLOAD_TYPES: UploadKind[] = ["product-image", "guarantee"]
@@ -50,7 +50,9 @@ export async function POST(
     const result = await uploadImage(buffer, kind)
     return NextResponse.json({ url: result.url, key: result.key })
   } catch (err) {
-    const message = err instanceof Error ? err.message : "فشل الرفع"
-    return NextResponse.json({ error: message }, { status: 400 })
+    if (err instanceof UploadRejected) return NextResponse.json({ error: err.message }, { status: 400 })
+    // storage or server problem: details stay in the server log, never in the browser
+    console.error("[upload] failed:", err)
+    return NextResponse.json({ error: "تعذر رفع الصورة الآن، يرجى المحاولة مرة أخرى" }, { status: 500 })
   }
 }

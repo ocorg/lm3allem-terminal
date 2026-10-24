@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/db/prisma"
 import { requireAdmin } from "@/lib/auth/guard"
 import { ActionError } from "@/lib/actions/result"
+import { dayKey } from "@/lib/validation"
 import { getRevenueRows } from "@/lib/finance/revenue"
 import { round2, toNum } from "@/lib/utils/money"
 import { endOfDay, monthKey, startOfDay } from "@/lib/utils/time"
@@ -41,6 +42,7 @@ const MAX_MONTHS = 36
 
 export async function getFinancesData(range: DateRange): Promise<FinancesData> {
   await requireAdmin()
+  if (!dayKey.safeParse(range?.from).success || !dayKey.safeParse(range?.to).success) throw new ActionError("validation")
 
   const from = startOfDay(range.from)
   const to   = endOfDay(range.to)

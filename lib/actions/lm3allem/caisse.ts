@@ -1,5 +1,8 @@
 "use server"
 
+import { z } from "zod"
+import { dayKey, readFilters } from "@/lib/validation"
+
 import type { Prisma } from "@prisma/client"
 import { prisma } from "@/lib/db/prisma"
 import { requireAdmin } from "@/lib/auth/guard"
@@ -35,13 +38,22 @@ export interface SessionsResult {
 
 const PAGE_SIZE = 20
 
+const sessionFilters = z.object({
+  portal: z.enum(["magazin", "costumes"]).optional(),
+  status: z.enum(["open", "closed"]).optional(),
+  from:   dayKey.optional(),
+  to:     dayKey.optional(),
+  page:   z.number().int().min(1).max(100_000).optional(),
+})
+
 export async function getAllSessions(
   filters: SessionHistoryFilters = {}
 ): Promise<SessionsResult> {
   await requireAdmin()
+  const clean = readFilters(sessionFilters, filters)
 
-  const { portal, status, from, to } = filters
-  const page = Number.isFinite(filters.page) && (filters.page as number) > 0 ? Math.floor(filters.page as number) : 1
+  const { portal, status, from, to } = clean
+  const page = clean.page ?? 1
 
   const where: Prisma.CaisseSessionWhereInput = {}
   if (portal === "magazin" || portal === "costumes") where.portal = portal

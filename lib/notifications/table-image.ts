@@ -2,6 +2,9 @@ import path from "node:path"
 import { existsSync } from "node:fs"
 import sharp from "sharp"
 
+/** One layer of the picture (the type sharp's composite() takes). */
+type OverlayOptions = Parameters<ReturnType<typeof sharp>["composite"]>[0][number]
+
 /**
  * Draws a real table as a PNG image (Telegram has no table support, but it shows images perfectly).
  * Arabic is shaped and laid out right-to-left by sharp's text engine using the bundled Cairo font
@@ -57,7 +60,7 @@ export async function renderTablePng(spec: TableSpec): Promise<Buffer> {
   const width = tableW + PAD * 2
   const height = TITLE_H + HEAD_H + spec.rows.length * ROW_H + PAD
 
-  const layers: sharp.OverlayOptions[] = []
+  const layers: OverlayOptions[] = []
 
   // Title (right-aligned block spanning the table width)
   const title = await text(spec.title, tableW, "#111827", true, "x-large")

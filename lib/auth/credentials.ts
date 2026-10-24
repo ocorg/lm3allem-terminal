@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto"
 import { prisma } from "@/lib/db/prisma"
 import { normalizeEmail, verifyAgainstDummy, verifyPassword } from "@/lib/auth/password"
 import { normalizePermissions, type ModulePermissions } from "@/lib/permissions"
@@ -17,6 +18,16 @@ export interface AuthenticatedUser {
   preferredLanguage:  Language
   preferredTheme:     Theme
   mustChangePassword: boolean
+  passwordVersion:    string
+}
+
+/**
+ * A short fingerprint of the stored password hash. It travels inside the (encrypted) session; when
+ * the password changes (by its owner or a reset by an admin) the fingerprint no longer matches and
+ * every older session ends at its next check.
+ */
+export function passwordVersion(passwordHash: string | null): string {
+  return createHash("sha256").update(`pwv:${passwordHash ?? ""}`).digest("base64url").slice(0, 16)
 }
 
 export type CredentialsResult =
@@ -76,21 +87,7 @@ export async function verifyCredentials(emailRaw: string, password: string): Pro
       preferredLanguage:  user.preferredLanguage,
       preferredTheme:     user.preferredTheme,
       mustChangePassword: user.mustChangePassword,
+      passwordVersion:    passwordVersion(user.passwordHash),
     },
-  }
-}
-
-/** Remaining attempts / lock state for an email, used only to build UI feedback after a failure. */
-export async function getLoginState(emailRaw: string): Promise<{ locked: boolean; lockedUntil: number | null; attemptsLeft: number }> {
-  const user = await prisma.user.findUnique({
-    where:  { email: normalizeEmail(emailRaw) },
-    select: { failedLogins: true, lockedUntil: true },
-  })
-  if (!user) return { locked: false, lockedUntil: null, attemptsLeft: MAX_FAILED_ATTEMPTS }
-  const locked = !!user.lockedUntil && user.lockedUntil > new Date()
-  return {
-    locked,
-    lockedUntil: locked ? user.lockedUntil!.getTime() : null,
-    attemptsLeft: Math.max(0, MAX_FAILED_ATTEMPTS - user.failedLogins),
   }
 }

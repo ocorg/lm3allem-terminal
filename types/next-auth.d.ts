@@ -23,6 +23,8 @@ declare module "next-auth" {
     preferredLanguage: Language
     preferredTheme: Theme
     mustChangePassword: boolean
+    /** fingerprint of the password in force at login (see lib/auth/auth.ts) */
+    passwordVersion?: string
   }
 }
 
@@ -38,5 +40,7 @@ declare module "@auth/core/jwt" {
     mustChangePassword: boolean
     /** epoch ms of the last database re-validation */
     checkedAt: number
+    /** fingerprint of the password in force at login: a new password ends older sessions */
+    passwordVersion?: string
   }
 }

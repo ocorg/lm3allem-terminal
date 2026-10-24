@@ -1,7 +1,7 @@
 import NextAuth from "next-auth"
 import Credentials from "next-auth/providers/credentials"
 import { prisma } from "@/lib/db/prisma"
-import { verifyCredentials } from "@/lib/auth/credentials"
+import { passwordVersion, verifyCredentials } from "@/lib/auth/credentials"
 import { normalizePermissions } from "@/lib/permissions"
 
 /** How long a token is trusted before role / permissions / active flag are re-read from the database. */
@@ -36,6 +36,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           preferredLanguage:  user.preferredLanguage,
           preferredTheme:     user.preferredTheme,
           mustChangePassword: user.mustChangePassword,
+          passwordVersion:    user.passwordVersion,
         }
       },
     }),
@@ -51,6 +52,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         token.preferredLanguage  = user.preferredLanguage
         token.preferredTheme     = user.preferredTheme
         token.mustChangePassword = user.mustChangePassword
+        token.passwordVersion    = user.passwordVersion
         token.checkedAt          = Date.now()
         return token
       }
@@ -66,10 +68,16 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           select: {
             isActive: true, role: true, name: true, email: true, portalAccess: true,
             modulePermissions: true, preferredLanguage: true, preferredTheme: true,
-            mustChangePassword: true,
+            mustChangePassword: true, passwordHash: true,
           },
         })
         if (!fresh || !fresh.isActive) return null // ends the session
+
+        // The password was changed or reset since this session started: it ends too.
+        // (Sessions opened before this check existed simply receive the fingerprint.)
+        const version = passwordVersion(fresh.passwordHash)
+        if (token.passwordVersion && token.passwordVersion !== version) return null
+        token.passwordVersion = version
 
         token.name               = fresh.name
         token.email              = fresh.email

@@ -28,6 +28,8 @@ Email + password (no PIN).
 
 - Passwords: `bcrypt(HMAC-SHA256(pepper, password))`, cost 12, 8+ characters. The pepper is `AUTH_PASSWORD_PEPPER`, or the older `PIN_HASH_PEPPER` when the first is not set. **Production uses `PIN_HASH_PEPPER`: never change or remove it, and do not add `AUTH_PASSWORD_PEPPER`, or every existing password stops working.**
 - Brute-force protection is **per account in the database** (5 failures → 5-minute lock), enforced for every entry point.
+- A failed login always gets the **same answer** (no "attempts left", no "locked"), so nobody can find out which emails have an account. A locked account still sends an owner alert.
+- A **new password ends every other session** of that account within 30 s (a fingerprint of the password travels in the session). The device that changed its own password is signed in again at once.
 - New and reset passwords are one-time **temporary passwords** shown once to the admin; the user must change them at first login.
 - Sessions are JWT but re-validated against the database every 30 s: deactivating a user or changing a role/permission takes effect within seconds. Max age 12 h.
 - Sales below the minimum price need a **manager override**: an admin types their email + password, the server returns a 5-minute HMAC-signed token bound to the cashier, and the sale action verifies it. The browser cannot forge "authorized by".
@@ -38,7 +40,7 @@ Email + password (no PIN).
 
 Mutating actions return `ActionResult` (`{ ok: true, data } | { ok: false, code, message }`, see `lib/actions/result.ts`) instead of throwing, because production Next.js strips thrown error messages. The UI shows `result.message`.
 
-Other rules: inputs validated with zod (`lib/validation.ts`); stock changes use guarded atomic updates; create operations carry an idempotency key (`requestId`); guarantee documents (ID cards) go to a **private** R2 bucket and are served only through `/api/files/*` for authorised users; uploads are type-checked by magic bytes; security headers in `next.config.ts`.
+Other rules: a Content-Security-Policy in `next.config.ts` (only this site, product photos on `*.r2.dev` and Pusher are allowed; no framing, plugins or foreign scripts); offline sales carry the cashier who made them and the server refuses them under any other account (`other_cashier`), so they wait for that person; upload errors from storage never reach the browser; inputs validated with zod (`lib/validation.ts`, `readFilters` for list filters); stock changes use guarded atomic updates; create operations carry an idempotency key (`requestId`); guarantee documents (ID cards) go to a **private** R2 bucket and are served only through `/api/files/*` for authorised users; uploads are type-checked by magic bytes; security headers in `next.config.ts`.
 
 ## Money rules
 

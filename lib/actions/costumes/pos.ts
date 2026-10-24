@@ -51,6 +51,8 @@ export interface CostumeSaleItemInput {
 
 export interface CreateCostumeSaleInput {
   requestId:       string
+  /** the cashier who made the sale (offline sales are only sent under that same account) */
+  expectedCashierId?: string
   caisseSessionId: string
   items:           CostumeSaleItemInput[]
   paymentMethod:   "cash" | "tpe" | "banque"
@@ -60,6 +62,8 @@ export interface CreateCostumeSaleInput {
 
 const saleSchema = z.object({
   requestId,
+  /** offline sales: the cashier who made it (the sale is refused under anyone else's session) */
+  expectedCashierId: id.optional(),
   caisseSessionId: id,
   items: z.array(z.object({
     costumeItemId: id,
@@ -123,6 +127,8 @@ export async function createCostumeSale(
   return run(async () => {
     const user  = await requireModule("costumes", "pos")
     const input = parseInput(saleSchema, rawInput)
+    // A sale saved on this device while offline belongs to whoever made it, never to the next person
+    if (input.expectedCashierId && input.expectedCashierId !== user.id) throw new ActionError("other_cashier")
 
     const existing = await prisma.costumeSale.findUnique({
       where: { requestId: input.requestId }, select: { id: true, cashierId: true },

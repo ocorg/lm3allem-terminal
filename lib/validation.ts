@@ -32,3 +32,15 @@ export function parseInput<S extends z.ZodType>(schema: S, input: unknown): z.in
 export function asId(value: unknown): string {
   return parseInput(id, value)
 }
+
+/** "YYYY-MM-DD" (a day picked in a filter). */
+export const dayKey = z.string().regex(/^\d{4}-\d{2}-\d{2}$/)
+
+/**
+ * Filters of a read-only list (they come from the address bar). A malformed value is dropped
+ * instead of failing the whole screen, but it never reaches the database as something else.
+ */
+export function readFilters<S extends z.ZodType>(schema: S, input: unknown): Partial<z.infer<S>> {
+  const parsed = schema.safeParse(input ?? {})
+  return parsed.success ? parsed.data : {}
+}

@@ -19,6 +19,7 @@ import type { ProductForPOS, SaleItemInput } from "@/lib/actions/magazin/pos"
 import type { PaymentMethod } from "@prisma/client"
 import React from "react"
 import { useBreakpoint } from "@/hooks/useBreakpoint"
+import { useCurrentUserId } from "@/components/system/CurrentUser"
 
 type LookupItem    = { id: string; label_fr: string; label_ar: string }
 type LookupMapItem = { label_fr: string; label_ar: string }
@@ -46,6 +47,7 @@ interface POSClientProps {
 
 export function POSClient({ products: serverProducts, categories, lookupById, locale }: POSClientProps) {
   const { session } = useCaisse()
+  const currentUserId = useCurrentUserId()
   const router      = useRouter()
   const tPos        = useTranslations("magazin.pos")
   const tP          = useTranslations("payment")
@@ -162,6 +164,7 @@ export function POSClient({ products: serverProducts, categories, lookupById, lo
 
       const saleInput = {
         requestId,
+        expectedCashierId: currentUserId ?? undefined,
         caisseSessionId: session.id,
         items,
         paymentMethod:   paymentMethod as PaymentMethod,

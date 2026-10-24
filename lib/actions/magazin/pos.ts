@@ -56,6 +56,8 @@ export interface SaleItemInput {
 export interface CreateSaleInput {
   /** idempotency key: a retried request returns the first sale instead of creating a duplicate */
   requestId:       string
+  /** the cashier who made the sale (offline sales are only sent under that same account) */
+  expectedCashierId?: string
   caisseSessionId: string
   items:           SaleItemInput[]
   paymentMethod:   "cash" | "tpe" | "banque" | "credit"
@@ -69,6 +71,8 @@ export interface CreateSaleInput {
 
 const saleSchema = z.object({
   requestId,
+  /** offline sales: the cashier who made it (the sale is refused under anyone else's session) */
+  expectedCashierId: id.optional(),
   caisseSessionId: id,
   items: z.array(z.object({
     variantId: id,
@@ -143,6 +147,8 @@ export async function createSale(
   return run(async () => {
     const user  = await requireModule("magazin", "pos")
     const input = parseInput(saleSchema, rawInput)
+    // A sale saved on this device while offline belongs to whoever made it, never to the next person
+    if (input.expectedCashierId && input.expectedCashierId !== user.id) throw new ActionError("other_cashier")
     const isCredit = input.paymentMethod === "credit"
 
     // Idempotency: same request id from the same cashier returns the original sale.

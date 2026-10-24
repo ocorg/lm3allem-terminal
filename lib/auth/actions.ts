@@ -5,17 +5,21 @@ import { AuthError } from "next-auth"
 import { signIn, signOut } from "@/lib/auth/auth"
 import { prisma } from "@/lib/db/prisma"
 import { requireUser } from "@/lib/auth/guard"
-import { getLoginState, verifyCredentials } from "@/lib/auth/credentials"
+import { verifyCredentials } from "@/lib/auth/credentials"
 import { hashPassword, isValidEmail, normalizeEmail, validatePassword } from "@/lib/auth/password"
 import { fail, ok, run, ActionError, type ActionResult } from "@/lib/actions/result"
 import { routing } from "@/lib/i18n/routing"
 import { logActivity } from "@/lib/activity/logger"
 
+/**
+ * A failed login always gives the SAME answer, whether the email exists, the password is wrong or
+ * the account is locked: anything else would tell a stranger which emails have an account.
+ * (The owner still learns about a locked account: it sends an alert.)
+ */
 export type LoginResult =
   | { ok: true }
   | { ok: false; error: "invalid_input" }
-  | { ok: false; error: "locked";  lockedUntil: number }
-  | { ok: false; error: "invalid"; attemptsLeft: number }
+  | { ok: false; error: "invalid" }
 
 function safeLocale(locale: string): string {
   return (routing.locales as readonly string[]).includes(locale) ? locale : routing.defaultLocale
@@ -39,13 +43,7 @@ export async function authenticateWithPassword(
       redirectTo: `/${safeLocale(locale)}/select-portal`,
     })
   } catch (error) {
-    if (error instanceof AuthError) {
-      const state = await getLoginState(normalized)
-      if (state.locked && state.lockedUntil) {
-        return { ok: false, error: "locked", lockedUntil: state.lockedUntil }
-      }
-      return { ok: false, error: "invalid", attemptsLeft: state.attemptsLeft }
-    }
+    if (error instanceof AuthError) return { ok: false, error: "invalid" }
     // Re-throw - Next.js redirect errors must propagate
     throw error
   }
@@ -76,6 +74,8 @@ export async function changePassword(
       where: { id: user.id },
       data:  { passwordHash: await hashPassword(newPassword), mustChangePassword: false },
     })
+    // A new password ends every other session (see lib/auth/auth.ts); this device gets a fresh one.
+    await signIn("credentials", { email: user.email, password: newPassword, redirect: false })
 
     await logActivity({
       portal: "lm3allem", entityType: "user", entityId: user.id, actor: user, action: "user.password_changed",

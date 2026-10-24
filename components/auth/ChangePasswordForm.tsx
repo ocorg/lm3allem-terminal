@@ -38,6 +38,7 @@ export default function ChangePasswordForm({ locale, forced }: Props) {
       toast(t("passwordChanged"), "success")
       // Full page load (not router.replace): the in-app router may serve a cached copy of the next
       // page from BEFORE the change, which redirects straight back here and looks like an endless load.
+      // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- a full load is wanted here (see above)
       window.location.assign(`/${locale}/select-portal`)
     })
   }

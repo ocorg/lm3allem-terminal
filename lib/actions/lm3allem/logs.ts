@@ -1,5 +1,8 @@
 "use server"
 
+import { z } from "zod"
+import { dayKey, id, readFilters } from "@/lib/validation"
+
 import type { Prisma } from "@prisma/client"
 import { prisma } from "@/lib/db/prisma"
 import { requireAdmin } from "@/lib/auth/guard"
@@ -38,8 +41,18 @@ const PAGE_SIZE = 30
 /** The ghost account never writes log rows, and any that exist are filtered out as well. */
 const NOT_GHOST: Prisma.ActivityLogWhereInput = { actor: { role: { not: "ghost" } } }
 
-export async function getLogs(filters: LogFilters = {}): Promise<LogsResult> {
+const logFilters = z.object({
+  portal:     z.enum(["magazin", "costumes", "lm3allem"]).optional(),
+  entityType: z.string().regex(/^[A-Za-z_]{1,40}$/).optional(),
+  actorId:    id.optional(),
+  from:       dayKey.optional(),
+  to:         dayKey.optional(),
+  page:       z.number().int().min(1).max(100_000).optional(),
+})
+
+export async function getLogs(rawFilters: LogFilters = {}): Promise<LogsResult> {
   await requireAdmin()
+  const filters = readFilters(logFilters, rawFilters)
 
   const { portal, entityType, actorId, from, to } = filters
   const page = Number.isFinite(filters.page) && (filters.page as number) > 0 ? Math.floor(filters.page as number) : 1

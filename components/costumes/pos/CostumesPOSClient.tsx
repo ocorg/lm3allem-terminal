@@ -21,6 +21,7 @@ import type { CostumeItemForPOS, LookupById, LookupItem } from "@/lib/actions/co
 import React from "react"
 import { useBreakpoint } from "@/hooks/useBreakpoint"
 import { IconButton } from "@/components/ui/IconButton"
+import { useCurrentUserId } from "@/components/system/CurrentUser"
 
 // ── Types ──────────────────────────────────────────────────────
 interface CartEntry {
@@ -48,6 +49,7 @@ const PAYMENT_METHOD_KEYS: SettlementMethod[] = ["cash", "tpe", "banque"]
 // ── Component ──────────────────────────────────────────────────
 export function CostumesPOSClient({ items: serverItems, costumeTypes, lookupById, locale }: Props) {
   const { session } = useCaisse()
+  const currentUserId = useCurrentUserId()
   const router      = useRouter()
   const tP          = useTranslations("payment")
   const PAYMENT_METHODS = PAYMENT_METHOD_KEYS.map(k => ({ value: k, label: tP(k) }))
@@ -141,6 +143,7 @@ export function CostumesPOSClient({ items: serverItems, costumeTypes, lookupById
     try {
       const saleInput = {
         requestId,
+        expectedCashierId: currentUserId ?? undefined,
         caisseSessionId: session.id,
         paymentMethod:   payMethod,
         totalAmount:     Math.round(subtotal * 100) / 100,

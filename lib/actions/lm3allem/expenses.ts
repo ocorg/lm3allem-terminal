@@ -7,7 +7,7 @@ import { logActivity } from "@/lib/activity/logger"
 import { ActionError, run, type ActionResult } from "@/lib/actions/result"
 import { actorLabel } from "@/lib/utils/actor"
 import { calendarDate, endOfDay, startOfDay } from "@/lib/utils/time"
-import { id, moneyPositive, parseInput, asId } from "@/lib/validation"
+import { id, moneyPositive, parseInput, asId, dayKey, readFilters } from "@/lib/validation"
 import { parseAmount } from "@/lib/utils/money"
 
 export interface SerializedExpense {
@@ -31,10 +31,18 @@ export interface ExpenseFilters {
   to?: string
 }
 
+const expenseFilters = z.object({
+  portal:     z.enum(["magazin", "costumes", "lm3allem"]).optional(),
+  categoryId: id.optional(),
+  from:       dayKey.optional(),
+  to:         dayKey.optional(),
+})
+
 export async function getExpenses(
-  filters: ExpenseFilters = {}
+  rawFilters: ExpenseFilters = {}
 ): Promise<SerializedExpense[]> {
   await requireAdmin()
+  const filters = readFilters(expenseFilters, rawFilters)
 
   const where: Record<string, unknown> = {}
   if (filters.portal) where.portal = filters.portal

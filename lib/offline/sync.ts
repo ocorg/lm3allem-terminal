@@ -6,7 +6,8 @@ import { isNetworkError } from "@/lib/client/online"
 import { listQueuedSales, removeQueuedSale, updateQueuedSale, type QueuedSale } from "@/lib/offline/queue"
 
 /** Errors that say nothing about the sale itself: keep it queued and try again later. */
-const RETRY_LATER = new Set(["server_error", "maintenance"])
+// "other_cashier": made on this device by someone else; it waits until that person logs in again
+const RETRY_LATER = new Set(["server_error", "maintenance", "other_cashier"])
 /** The session is gone: stop and wait for the user to log in again (the sales stay safe on the device). */
 const NEEDS_LOGIN = new Set(["unauthorized", "password_change_required"])
 

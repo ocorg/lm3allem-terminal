@@ -1,3 +1,4 @@
+import { CurrentUserProvider } from "@/components/system/CurrentUser"
 import type { ReactNode } from "react"
 import { redirect } from "next/navigation"
 import type { Portal } from "@prisma/client"
@@ -36,6 +37,7 @@ export default async function PortalLayout({
   }
 
   return (
+    <CurrentUserProvider userId={user.id}>
     <PortalShell
       portal={portal}
       locale={locale}
@@ -46,5 +48,6 @@ export default async function PortalLayout({
     >
       {children}
     </PortalShell>
+    </CurrentUserProvider>
   )
 }

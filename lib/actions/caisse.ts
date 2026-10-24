@@ -26,6 +26,7 @@ const CASH_PORTALS: Portal[] = ["magazin", "costumes"]
 export async function getActiveSession(
   portal: Portal
 ): Promise<SerializedCaisseSession | null> {
+  if (!CASH_PORTALS.includes(portal)) throw new ActionError("validation")
   await requirePortal(portal)
   return findActiveSession(portal)
 }
@@ -81,6 +82,7 @@ export async function closeCaisseSession(
 ): Promise<ActionResult<{ expectedAmount: number; difference: number }>> {
   return run(async () => {
     const user = await requireAdmin()
+    sessionId = asId(sessionId)
     if (!isValidMoney(closingAmount)) throw new ActionError("invalid_amount")
 
     const session = await prisma.caisseSession.findUnique({
