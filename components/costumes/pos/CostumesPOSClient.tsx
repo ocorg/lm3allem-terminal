@@ -21,6 +21,7 @@ import type { CostumeItemForPOS, LookupById, LookupItem } from "@/lib/actions/co
 import React from "react"
 import { useBreakpoint } from "@/hooks/useBreakpoint"
 import { IconButton } from "@/components/ui/IconButton"
+import { PosTabs } from "@/components/pos/PosTabs"
 import { useCurrentUserId } from "@/components/system/CurrentUser"
 
 // ── Types ──────────────────────────────────────────────────────
@@ -195,36 +196,11 @@ export function CostumesPOSClient({ items: serverItems, costumeTypes, lookupById
     <div style={{ display: "flex", flexDirection: isMobile ? "column" : (isRTL ? "row-reverse" : "row"), height: "calc(100dvh - 64px)", overflow: "hidden" }}>
 
       <h1 className="sr-only">نقطة بيع البدلات</h1>
-      {/* Mobile: tab switcher */}
+      {/* Mobile: tab switcher (the cart badge shows how many pieces are in it) */}
       {isMobile && (
-        <div style={{ display: "flex", flexShrink: 0, background: "var(--surface)", borderBottom: "1px solid var(--border)" }}>
-          {(["products", "cart"] as const).map(tab => {
-            const active = mobileTab === tab
-            const label  = tab === "products"
-              ? "المنتجات"
-              : `Panier${totalQty > 0 ? ` (${totalQty})` : ""}`
-            return (
-              <button
-                key={tab}
-                onClick={() => setMobileTab(tab)}
-                style={{
-                  flex: 1, padding: "14px 8px",
-                  border: "none",
-                  borderBottom: `2px solid ${active ? "var(--primary)" : "transparent"}`,
-                  background: "none", cursor: "pointer",
-                  fontSize: 14, fontWeight: active ? 700 : 500,
-                  color: active ? "var(--primary)" : "var(--text-muted)",
-                  transition: "all 0.15s",
-                }}
-              >
-                {label}
-              </button>
-            )
-          })}
-        </div>
+        <PosTabs active={mobileTab} onChange={setMobileTab} productsLabel="المنتجات" cartLabel="السلة" cartCount={totalQty} />
       )}
 
-      {/* ── Items panel ── */}
       {(!isMobile || mobileTab === "products") && (
       <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", borderInlineEnd: isMobile ? "none" : "1px solid var(--border)" }}>
         <div style={{ padding: "12px 16px 0", display: "flex", flexDirection: "column", gap: 10, flexShrink: 0 }}>

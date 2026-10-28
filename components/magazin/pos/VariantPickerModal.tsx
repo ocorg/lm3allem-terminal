@@ -14,6 +14,8 @@ interface VariantPickerModalProps {
   locale:    string
   onClose:   () => void
   onSelect:  (variantId: string) => void
+  /** pieces of each size already in the cart */
+  inCart?:   Record<string, number>
 }
 
 export function VariantPickerModal({
@@ -23,6 +25,7 @@ export function VariantPickerModal({
   locale,
   onClose,
   onSelect,
+  inCart = {},
 }: VariantPickerModalProps) {
   const name = locale === "ar" ? product.name_ar : product.name_fr
 
@@ -30,7 +33,7 @@ export function VariantPickerModal({
     const parts: string[] = []
     if (v.sizeId  && lookupById[v.sizeId])  parts.push(locale === "ar" ? lookupById[v.sizeId].label_ar  : lookupById[v.sizeId].label_fr)
     if (v.colorId && lookupById[v.colorId]) parts.push(locale === "ar" ? lookupById[v.colorId].label_ar : lookupById[v.colorId].label_fr)
-    return parts.join(" - ") || "Standard"
+    return parts.join(" - ") || "مقاس موحد"
   }
 
   return (
@@ -41,11 +44,14 @@ export function VariantPickerModal({
         </p>
 
         {product.variants.map(v => {
-          const isOut = v.stock === 0
+          const isOut   = v.stock === 0
+          const taken   = inCart[v.id] ?? 0
+          const allIn   = !isOut && taken >= v.stock
+          const blocked = isOut || allIn
           return (
             <button
               key={v.id}
-              disabled={isOut}
+              disabled={blocked}
               onClick={() => { onSelect(v.id); onClose() }}
               style={{
                 display:        "flex",
@@ -55,8 +61,9 @@ export function VariantPickerModal({
                 borderRadius:   8,
                 background:     "var(--surface)",
                 border:         "1px solid var(--border)",
-                cursor:         isOut ? "not-allowed" : "pointer",
-                opacity:        isOut ? 0.45 : 1,
+                cursor:         blocked ? "not-allowed" : "pointer",
+                opacity:        blocked ? 0.55 : 1,
+                minHeight:      56,
                 textAlign:      "start",
                 transition:     "border-color 150ms",
               }}
@@ -65,8 +72,9 @@ export function VariantPickerModal({
                 <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", margin: 0 }}>
                   {getLabel(v)}
                 </p>
-                <p style={{ fontSize: 12, color: isOut ? "var(--danger)" : "var(--success)", margin: "2px 0 0", fontWeight: 500 }}>
-                  {isOut ? "نفد المخزون" : `${v.stock} في المخزون`}
+                <p style={{ fontSize: 12, color: isOut ? "var(--danger)" : v.stock === 1 ? "var(--warning)" : "var(--success)", margin: "2px 0 0", fontWeight: 500 }}>
+                  {isOut ? "نفد المخزون" : v.stock === 1 ? "آخر قطعة" : `${v.stock} في المخزون`}
+                  {taken > 0 && <span style={{ color: "var(--text-muted)" }}>{` | في السلة: ${taken}`}{allIn ? " (كل المتوفر)" : ""}</span>}
                 </p>
               </div>
               <span style={{ fontSize: 13, fontWeight: 700, color: "var(--primary)" }}>

@@ -19,6 +19,7 @@ import type { ProductForPOS, SaleItemInput } from "@/lib/actions/magazin/pos"
 import type { PaymentMethod } from "@prisma/client"
 import React from "react"
 import { useBreakpoint } from "@/hooks/useBreakpoint"
+import { PosTabs } from "@/components/pos/PosTabs"
 import { useCurrentUserId } from "@/components/system/CurrentUser"
 
 type LookupItem    = { id: string; label_fr: string; label_ar: string }
@@ -104,14 +105,21 @@ export function POSClient({ products: serverProducts, categories, lookupById, lo
     })
   }
 
+  // The size / colour list always opens when the product has sizes or colours, even with a single
+  // piece left, so the cashier sees exactly which one is sold. Only a product without any size or
+  // colour goes straight into the cart.
   const handleProductClick = (product: ProductForPOS) => {
     const available = product.variants.filter(v => v.stock > 0)
     if (available.length === 0) return
-    if (available.length === 1) {
-      addVariantToCart(product, available[0].id)
-    } else {
-      setPickerProduct(product)
+    const hasChoices = product.variants.length > 1 || product.variants.some(v => v.sizeId || v.colorId)
+    if (hasChoices) { setPickerProduct(product); return }
+    const v = available[0]
+    if ((cart.find(i => i.variantId === v.id)?.quantity ?? 0) >= v.stock) {
+      toast(tPos("allInCart"), "info")
+      return
     }
+    addVariantToCart(product, v.id)
+    toast(tPos("addedToCart", { name: product.name_ar }), "success", 1800)
   }
 
   const updateCartItem = (variantId: string, updates: Partial<CartItem>) =>
@@ -236,33 +244,9 @@ export function POSClient({ products: serverProducts, categories, lookupById, lo
           overflow:      "hidden",
         }}
       >
-        {/* Mobile: tab switcher */}
+        {/* Mobile: tab switcher (the cart badge shows how many pieces are in it) */}
         {isMobile && (
-          <div style={{ display: "flex", flexShrink: 0, background: "var(--surface)", borderBottom: "1px solid var(--border)" }}>
-            {(["products", "cart"] as const).map(tab => {
-              const active = mobileTab === tab
-              const label  = tab === "products"
-                ? tPos("products")
-                : `${tPos("cartTitle")}${totalQty > 0 ? ` (${totalQty})` : ""}`
-              return (
-                <button
-                  key={tab}
-                  onClick={() => setMobileTab(tab)}
-                  style={{
-                    flex: 1, padding: "14px 8px",
-                    border: "none",
-                    borderBottom: `2px solid ${active ? "var(--primary)" : "transparent"}`,
-                    background: "none", cursor: "pointer",
-                    fontSize: 14, fontWeight: active ? 700 : 500,
-                    color: active ? "var(--primary)" : "var(--text-muted)",
-                    transition: "all 0.15s",
-                  }}
-                >
-                  {label}
-                </button>
-              )
-            })}
-          </div>
+          <PosTabs active={mobileTab} onChange={setMobileTab} productsLabel={tPos("products")} cartLabel={tPos("cartTitle")} cartCount={totalQty} />
         )}
 
         {/* Products panel */}
@@ -308,8 +292,11 @@ export function POSClient({ products: serverProducts, categories, lookupById, lo
           lookupById={lookupById}
           locale={locale}
           onClose={() => setPickerProduct(null)}
+          inCart={Object.fromEntries(cart.map(i => [i.variantId, i.quantity]))}
           onSelect={(variantId) => {
             addVariantToCart(pickerProduct, variantId)
+            const v = pickerProduct.variants.find(x => x.id === variantId)
+            toast(tPos("addedToCart", { name: `${pickerProduct.name_ar}${v ? ` | ${getVariantLabel(v)}` : ""}` }), "success", 1800)
             setPickerProduct(null)
           }}
         />
